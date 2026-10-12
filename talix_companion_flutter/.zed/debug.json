@@ -1,0 +1,9 @@
+[
+  {
+    "adapter": "Dart",
+    "label": "Flutter: Debug App",
+    "type": "flutter",
+    "request": "launch",
+    "cwd": "$ZED_WORKTREE_ROOT"
+  }
+]

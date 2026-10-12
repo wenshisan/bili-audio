@@ -1,0 +1,30 @@
+name: talix_desktop_floating_ball
+description: A high-performance spherical floating ball and system tray application for Windows and macOS.
+version: 1.0.0+1
+
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Window management for transparent, frameless, and always-on-top capabilities
+  window_manager: ^0.4.3
+  
+  # Getting screen size and cursor coordinates for snapping/docking logic
+  screen_retriever: ^0.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    # Make sure to place your tray icon in these assets
+    - assets/app_icon.png
+    - assets/app_icon_dark.png

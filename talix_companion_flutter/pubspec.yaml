@@ -1,0 +1,67 @@
+name: talix_companion
+description: High-fidelity Companion App for Talix AI Note smart audio hardware.
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 基础第三方库支持
+  cupertino_icons: ^1.0.5
+  provider: ^6.0.5          # 全局状态同步 (例如 isBound, deviceName 等)
+  qr_code_scanner: ^1.0.1   # 用于扫码绑定设备功能
+  flutter_blue_plus: ^1.15.0 # 蓝牙搜索、扫描及服务交互
+  percent_indicator: ^4.2.3 # 固件升级百分比加载器
+  window_manager: ^0.3.8    # 针对 Windows & macOS 桌面端窗口尺寸控制，提供高仿真手机面板尺寸
+  tray_manager: ^0.5.3      # 针对 Windows & macOS 桌面端的系统托盘 (System Tray) 支持
+  flutter_svg: ^2.0.10      # 加载 Figma 导出的 SVG 图标与装饰图
+
+  # 网络 / 存储 / 加密 - 登录注册 API 对接
+  dio: ^5.4.0               # HTTP 客户端（含拦截器、自动 JSON 解析）
+  shared_preferences: ^2.2.3 # 本地存储 token / deviceId
+  pointycastle: ^3.7.3      # secp256k1 ECDH + AES-CBC 加密（用于敏感字段）
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.1
+
+flutter:
+  uses-material-design: true
+  # 显式列出每个文件 — 比 `assets/` 目录通配符更可靠,
+  # 后者在新增文件后需要 `flutter clean` 才能被 build 系统感知。
+  assets:
+    - assets/app_icon.ico
+    - assets/app_icon.png
+    - assets/config/servers.json
+    - assets/config/active_server.json
+    - assets/auth/auth_decoration.svg
+    - assets/auth/icon_eye.svg
+    - assets/auth/icon_eye_off.svg
+    - assets/auth/icon_lock.svg
+    - assets/auth/icon_mail.svg
+    - assets/auth/sparkle_large.svg
+    # Figma 新设计 (669:xxxx) — 品牌 logo / 设备图 / 状态图标
+    - assets/images/talix_logo.svg
+    - assets/images/device_talix_note.png
+    - assets/images/icon_bluetooth.svg
+    - assets/images/icon_error.svg
+    # 左侧导航栏图标 (Figma 669:860)
+    - assets/images/ic_caret.svg
+    - assets/images/ic_auto_sync.svg
+    - assets/images/ic_disconnect.svg
+    # 设备详情 / 文件管理图标 (Figma 669:5665 / 5853 / 6303 / 6574 / 3988)
+    - assets/images/ic_add.svg
+    - assets/images/ic_caret_white.svg
+    - assets/images/ic_chevron_right.svg
+    - assets/images/ic_check_green.svg
+    - assets/images/ic_edit_name.svg
+    - assets/images/ic_record.svg
+    - assets/images/ic_flag.svg
+    - assets/images/ic_move_to_trash.svg
+    - assets/images/btn_play.svg
+    - assets/images/btn_stop.svg
+

@@ -1,0 +1,38 @@
+<svg width="235" height="105" viewBox="0 0 235 105" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="235" y2="105" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#EFF6FF"/>
+      <stop offset="100%" stop-color="#DBEAFE"/>
+    </linearGradient>
+    <linearGradient id="sparkleGradient" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#60A5FA"/>
+    </linearGradient>
+  </defs>
+  <rect width="235" height="105" rx="8" fill="url(#bgGradient)"/>
+
+  <!-- Sparkle 1 (large, top-left center) - Figma image 8 4-sparkle layout -->
+  <g transform="translate(85, 25)">
+    <path d="M14 0L17.5 10.5L28 14L17.5 17.5L14 28L10.5 17.5L0 14L10.5 10.5Z" fill="url(#sparkleGradient)"/>
+  </g>
+
+  <!-- Sparkle 2 (top-right) -->
+  <g transform="translate(170, 18)">
+    <path d="M7 0L8.75 5.25L14 7L8.75 8.75L7 14L5.25 8.75L0 7L5.25 5.25Z" fill="#60A5FA"/>
+  </g>
+
+  <!-- Sparkle 3 (bottom-left) -->
+  <g transform="translate(40, 65)">
+    <path d="M9 0L11.25 6.75L18 9L11.25 11.25L9 18L6.75 11.25L0 9L6.75 6.75Z" fill="#60A5FA" opacity="0.8"/>
+  </g>
+
+  <!-- Sparkle 4 (small, top-far-left) -->
+  <g transform="translate(35, 30)">
+    <path d="M4 0L5 3L8 4L5 5L4 8L3 5L0 4L3 3Z" fill="#93C5FD"/>
+  </g>
+
+  <!-- Sparkle 5 (small, right-bottom) -->
+  <g transform="translate(195, 70)">
+    <path d="M5 0L6.25 3.75L10 5L6.25 6.25L5 10L3.75 6.25L0 5L3.75 3.75Z" fill="#93C5FD" opacity="0.7"/>
+  </g>
+</svg>

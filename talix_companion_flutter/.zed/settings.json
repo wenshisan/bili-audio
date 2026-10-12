@@ -1,0 +1,36 @@
+{
+  "languages": {
+    "Dart": {
+      "language_servers": ["dart"],
+      "format_on_save": {
+        "external": {
+          "command": "dart",
+          "arguments": ["format", "--line-length=120", "{buffer_path}"]
+        }
+      }
+    }
+  },
+  "lsp": {
+    "dart": {
+      "settings": {
+        "dart": {
+          "flutterSdkPath": null,
+          "showTodos": true
+        },
+        "dart.analysisExcludedFolders": ["build", ".dart_tool", ".idea", ".vscode", ".zed"]
+      }
+    }
+  },
+  "context_servers": {
+      "figma": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-figma"
+        ],
+        "env": {
+          "FIGMA_ACCESS_TOKEN": "figd_e7TPFaQdaf9gnH6RD4GDtBDpu3SDxCiirHM5vHBt"
+        }
+      }
+    }
+}

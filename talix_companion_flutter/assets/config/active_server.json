@@ -1,0 +1,4 @@
+{
+  "_comment": "启动期服务器覆盖。修改 activeServerId 字段后重启 App 即生效。可选值: local / dev / staging / production (需与 assets/config/servers.json 中的 id 对应)。删除该字段或置空则回退到 SharedPreferences 中保存的上次选择。",
+  "activeServerId": "dev"
+}

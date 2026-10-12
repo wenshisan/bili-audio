@@ -1,0 +1,441 @@
+﻿,,,,,
+1,绑定、解绑录音卡接口,设备绑定,"POST /app-api/sl/app/recording-device/add
+
+{
+""deviceSN"": ""abcd"",
+""deviceName"": ""recDevice""
+}","{ ""code"": 0, 
+""data"": 
+{ 
+ “deviceToken”:""lkmlskdjfi323rknfsdlfsdf""
+ },
+ ""msg"": """"
+ }",待开发接口
+,,设备解绑,"POST /app-api/sl/app/recording-device/remove
+
+{
+""deviceSN"":""a1232s""
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+,,设备信息上报[对应后台的设备健康看板],"POST /app-api/sl/app/recording-device/report-info
+
+{
+""deviceSN"":""a1232s"",
+""deviceStatus"": 1
+""deviceVersion"": ""1.0.2""
+""deviceStorage"": 0.75
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+2,设备管理,查询设备列表,"GET /app-api/sl/app/recording-device/list
+
+{
+
+}","{ ""code"": 0,
+ ""data"": {
+ ""list"": [
+{
+""deviceSN"": ""NS123121""
+""deviceName"": ""recDevice"",
+""deviceToken"": ""ljlsadiof23rfsdl""}
+], 
+""msg"": """" }",待开发接口
+,,设备重命名,"POST /app-api/sl/app/recording-device/update-name
+
+{
+""deviceSN"": ""a1231"",
+""deviceName"": ""recDevice2"",
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+4,固件更新相关,固件版本信息查询,,,复用已有接口
+,,固件下载,,,
+5,录音文件信息列表,列表查询,"GET /app-api/sl/app/recording-file/list
+
+{
+""page"": 0
+}","{ ""code"": 0,
+""page"":0,
+""pageSize"": 10, 
+""totalSize"": 10,
+ ""data"": {
+ ""fileList"": [
+{
+""deviceSN"": ""a1231"",
+""fileId"": ""a123"",
+""summaryId"": ""a123"",
+""createTime"" : 1283747889821,
+""fileName"": ""会议录音"",
+""duration"": 120,
+""status"": 1}
+], 
+""msg"": """" }",待开发接口
+,,新增文件,"POST /app-api/sl/app/recording-file/add
+
+{
+""deviceSN"": ""a1231"",
+""fileName"": ""会议录音"",
+""duration"": 120,
+""status"": 1
+}","{ ""code"": 0, 
+""data"": 
+{ ""fileId"": ""a123"",
+ },
+ ""msg"": """"
+ }",
+,,删除文件,"POST /app-api/sl/app/recording-file/remove
+{
+""fileList"": [
+ ""a123""
+], 
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+,,修改文件名字？,"POST /app-api/sl/app/recording-file/update-name
+
+{
+""fileId"": ""a123"",
+""fileName"": ""录音""
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+,,回收站文件列表查询,"GET /app-api/sl/app/recycled-file/list
+
+{
+""page"": 0
+}","{ ""code"": 0,
+""page"":0,
+""pageSize"": 10, 
+""totalSize"": 10,
+ ""data"": {
+ ""fileList"": [
+{
+""deviceId"": ""a1231"",
+""fileId"": ""a123"",
+""createTime"" : 1283747889821,
+""deleteTime"": 1283747889821,
+""fileName"": ""会议录音"",
+""duration"": 120,
+""status"": 1}
+], 
+""msg"": """" }",
+,,回收站文件删除,"POST /app-api/sl/app/recycled-file/remove
+
+{
+""fileList"": [
+ ""a123""
+], 
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+,,回收站文件恢复,"POST /app-api/sl/app/recycled-file/recover
+
+{
+""fileList"": [
+ ""a123""
+], 
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+7,纪要生成：纪要以及思维导图,纪要生成,"POST /app-api/sl/app/summary/gen
+
+{
+""location"": ""巴黎会议室"",
+""aotoSeleteTemplate"": false,
+""templateId"" : ""123"",
+""languageId"" : ""123"",
+""transLanguageId"" : ""123"",
+""modelId"" : ""123"",
+""fileId"" : ""123""
+}","{ ""code"": 0, 
+""data"": {
+""summaryId"" : ""123"", 
+""summaryName"" : ""会议1"", 
+""summaryTime"" : 1234872734,
+""summaryText"": ""会议内容"",
+""summaryImage"" : ""https://image...."",
+""location"" : ""巴黎会议室"",
+""speakerList"" : [""发言人1"", ""发言人2""],
+""textRecord"" : [
+{
+""textId"": ""a1223s"",
+""speakerName"": ""发言人1"",
+ “startTime”: 5,
+""text"" : ""你好"",
+""textTrans"" : ""hello""
+}
+]
+},
+""msg"": """" }",待开发接口
+,,重命名,"POST /app-api/sl/app/summary/rename
+
+{
+""fileId"" : ""123"", 
+""summaryName"" : ""会议2""
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+,,重新生成,"POST /app-api/sl/app/summary/regen
+
+{
+""fileId"" : ""123""
+}","{ ""code"": 0, 
+""data"": {
+""summaryId"" : ""123"", 
+""summaryName"" : ""会议1"", 
+""summaryTime"" : 1234872734,
+""summaryText"": ""会议内容"",
+""summaryImage"" : ""https://image...."",
+""location"" : ""巴黎会议室"",
+""speakerList"" : [""发言人1"", ""发言人2""],
+""textRecord"" : [
+{
+""textId"": ""a1223s"",
+""speakerName"": ""发言人1"",
+ “startTime”: 5,
+""text"" : ""你好"",
+""textTrans"" : ""hello""
+}
+]
+},
+""msg"": """" }",
+,,内容分享,"shareContent
+{
+""typeList"" : [1,2,3],
+""summaryId"" : ""1234""
+}","{ ""code"": 0, 
+""data"": { 
+""shareLink"": ""https://xxxx""
+}, ""msg"": """" }",
+,,录音文件上传(如果分享的是录音则需要调用该接口),"uploadAudioFile
+{
+""fileId"" : ""123"",
+""file"":  
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+8,纪要模式合并成一个接口,查询纪要模板/模型/语言列表等物料信息,"GET /app-api/sl/app/summary-material/get
+
+{
+}","{ ""code"": 0,
+ ""data"": {
+ ""templateList"": [
+{
+""templateId"" : ""123"",
+""templateName"" : ""模板1"",
+""description"": ""用于普通会议""
+}
+],
+“audioLanguageList”: [
+{
+""languageId"" : ""123"",
+""languageName"" : ""中文(简体)"",
+""description"" : ""中文(简体)""
+}
+] ,
+""transLanguageList"": [
+{
+""languageId"" : ""123"",
+""languageName"" : ""中文(简体)"",
+""description"" : ""中文(简体)""
+}
+],
+""modelList"" : [
+{
+""modelId"" : ""123"",
+""modelName"" : ""Claude"",
+""description"": ""深层逻辑推理...""
+}
+]
+""msg"": """" }",待开发接口
+9,逐字稿,查询转写及摘要,GET /app-api/sl/app/summary/detail?fileId=123,"{ ""code"": 0, 
+""data"": {
+""summaryId"" : ""123"", 
+""textRecord"" : [
+{
+""textId"": ""a1223s"",
+""speakerName"": ""发言人1"",
+ “startTime”: 5,
+""text"" : ""你好"",
+""textTrans"" : ""hello""
+}
+]
+},
+""msg"": """" }
+
+
+{ ""code"": 0, 
+""data"": {
+""summaryId"" : ""123"", 
+""summaryName"" : ""会议1"", 
+""summaryTime"" : 1234872734,
+""summaryText"": ""会议内容"",
+""summaryImage"" : ""https://image...."",
+""location"" : ""巴黎会议室"",
+""speakerList"" : [""发言人1"", ""发言人2""],
+""textRecord"" : [
+{
+""textId"": ""a1223s"",
+""speakerName"": ""发言人1"",
+ “startTime”: 5,
+""text"" : ""你好"",
+""textTrans"" : ""hello""
+}
+]
+},
+""msg"": """" }",待开发接口
+,,编辑转写内容,"POST /app-api/sl/app/summary/edit-text
+
+{
+""fileId"" : ""123"",
+""textRecord"" : [
+{
+""textId"": ""a1223s"",
+""speakerName"": ""发言人1"",
+ “startTime”: 5,
+""text"" : ""你好"",
+""textTrans"" : ""hello""
+}
+]
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+,,编辑发言人,"POST /app-api/sl/app/summary/edit-speaker
+
+{
+""fileId"" : ""123"",
+""speakerName"" : ""发言人1"",
+""newSpakerName"" : ""张三""
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+10,AI问答基于录音、转写、纪要等，类似一体机,问答接口,"askQuestion
+{
+""fileList"": [""a123"", ""b234""],
+""question"": ""为什么""
+}","{ ""code"": 0,
+page:0
+ ""data"": {
+""answer"" : ""因为..."" 
+""msg"": """" }",待开发接口
+,,推荐问题卡片,"getQuestionList
+{
+""fileList"": [""a123"", ""b234""],
+}","{ ""code"": 0,
+page:0
+ ""data"": {
+ ""list"": [""为什么"", ""你说""], 
+""msg"": """" }",
+,,Rag库处理,,,
+11,talix付费管理,当前套餐查询,"getCurrentServicePlan
+{
+
+}","{
+  ""code"": 0,
+  ""data"": {
+    ""id"": 1948573455250075650,
+  ""name"": ""专业版"",
+  ""recommended"": true,
+  ""planAttr"": 1,
+  ""authMinutes"": 6000,
+  ""quotaResetCycle"": 1,
+  ""supportLanguages"": [{""languageId"" : ""123"",""languageName"" : ""中文(简体)"",""description"" : ""中文(简体)""}],
+  ""voiceprintEnable"": true,
+  ""modelId"": 1001,
+  ""summaryTemplateScope"": ""全部模板"",
+  ""summaryTemplateLimit"": -1,
+  ""customTemplateEnable"": true,
+  ""customVocabEnable"": true,
+  ""customVocabLimit"": 100,
+  ""exportFormatLimit"": 5,
+  ""thirdIntegrations"": [""zapier"", ""google_calendar""],
+  ""publishStatus"": 1,
+  ""effectiveTime"": ""2026-08-01 00:00:00"",
+  ""effectiveRegions"": [""CN"", ""US""],
+  ""planStatus"": 1,
+  ""billingCycle"": 3,
+  ""freeTrialDays"": 7,
+    ""planStatus"": 1,
+    ""prices"": [
+      { ""currency"": ""USD"", ""amount"": 99.00, ""discountPercent"": 70, ""finalAmount"": 69.30 }
+    ]
+  },
+  ""msg"": """"
+}",待开发接口
+,,偏好设置查询,"getPreferenceSettings
+{
+
+}","{ ""code"": 0,
+ ""data"": {
+ ""template"": 
+{
+""templateId"" : ""123"",
+""templateName"" : ""模板1"",
+""description"": ""用于普通会议""
+},
+“audioLanguage”:
+{
+""languageId"" : ""123"",
+""languageName"" : ""中文(简体)"",
+""description"" : ""中文(简体)""
+},
+""transLanguage"":
+{
+""languageId"" : ""123"",
+""languageName"" : ""中文(简体)"",
+""description"" : ""中文(简体)""
+},
+""model"" :
+{
+""modelId"" : ""123"",
+""modelName"" : ""Claude"",
+""description"": ""深层逻辑推理...""
+},
+""msg"": """" }",
+,,偏好设置设定,"setPreferenceSettings
+{
+""templateId"" : ""123"",
+""languageId"" : ""123"",
+""languageId"" : ""123"",
+""modelId"" : ""123""
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+,,推荐套餐卡片,"getRecommendedServicePlan
+{
+
+}","{ ""code"": 0, 
+""data"":
+ {
+ ""planList"" : [
+{
+""planId"": ""123"",
+""planName"" : ""专业版"",
+""monthPrice"" : 19.0,
+""yearPrice"" : 99.0,
+""abilityList"" : [""思维导图"", ""多维总结""]
+},
+{
+""planId"": ""234"",
+""planName"" : ""卓越版"",
+""monthPrice"" : 19.0,
+""yearPrice"" : 99.0,
+""abilityList"" : [""思维导图"", ""多维总结""]
+}
+] }",
+,,免费试用升级,"tryAdvancedServicePlan
+{
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+,,常见问题[后台发布文书条款],"getFAQ
+{
+}","{ ""code"": 0, 
+""data"": { 
+""content"": ""aaaaaa""
+}, ""msg"": """" }",
+,,套餐订阅,"subscribeServicePlan
+{
+""planId"" : ""123"",
+""purchasePlan"" : 1 (1.月付; 2. 年付) 
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+,,账单列表,"getBillList
+{
+}","{ ""code"": 0, 
+""data"": { 
+""billList"": [
+{
+""billId"" : ""123"",
+""purchasePlan"": 1,
+""paymentTool"" : ""App Store"",
+""paymentDate"" : 123242312312 
+}
+]
+}, ""msg"": """" }",
+,,删除账单,"deleteBillList
+{
+""billList"": [
+""123"",""234"",""345""
+]
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+,,取消订阅,"unsubscribeServicePlan
+{
+""planId"" : ""123"",
+}","{ ""code"": 0, ""data"": { ""success"": true }, ""msg"": """" }",
+12,支付接入,苹果支付、谷歌支付、信用卡支付,,,待开发接口
+,,,,,

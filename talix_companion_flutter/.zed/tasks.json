@@ -1,0 +1,42 @@
+[
+  {
+    "label": "flutter run (debug)",
+    "command": "C:/dev/flutter/bin/flutter.bat",
+    "args": ["run", "-d", "windows", "--debug"],
+    "cwd": "C:/Users/LSM/Documents/Code/flutter-app-tlx/talix_companion_flutter",
+    "use_new_terminal": true,
+    "reveal": "always"
+  },
+  {
+    "label": "flutter run (profile)",
+    "command": "C:/dev/flutter/bin/flutter.bat",
+    "args": ["run", "-d", "windows", "--profile"],
+    "cwd": "C:/Users/LSM/Documents/Code/flutter-app-tlx/talix_companion_flutter",
+    "use_new_terminal": true,
+    "reveal": "always"
+  },
+  {
+    "label": "flutter run (release)",
+    "command": "C:/dev/flutter/bin/flutter.bat",
+    "args": ["run", "-d", "windows", "--release"],
+    "cwd": "C:/Users/LSM/Documents/Code/flutter-app-tlx/talix_companion_flutter",
+    "use_new_terminal": true,
+    "reveal": "always"
+  },
+  {
+    "label": "flutter pub get",
+    "command": "C:/dev/flutter/bin/flutter.bat",
+    "args": ["pub", "get"],
+    "cwd": "C:/Users/LSM/Documents/Code/flutter-app-tlx/talix_companion_flutter",
+    "use_new_terminal": false,
+    "reveal": "always"
+  },
+  {
+    "label": "flutter build windows",
+    "command": "C:/dev/flutter/bin/flutter.bat",
+    "args": ["build", "windows"],
+    "cwd": "C:/Users/LSM/Documents/Code/flutter-app-tlx/talix_companion_flutter",
+    "use_new_terminal": true,
+    "reveal": "always"
+  }
+]

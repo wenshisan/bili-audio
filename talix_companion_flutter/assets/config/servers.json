@@ -1,0 +1,42 @@
+[
+  {
+    "id": "local",
+    "name": "Local",
+    "description": "127.0.0.1:48080",
+    "baseUrl": "http://127.0.0.1:48080",
+    "tenantId": "1",
+    "publicKey": "048154410a161957e04d26f8e7b4c8927bb68a538523c18b2e7cf38653347fcda1cbd64200677fea79b946a94a545b808e68f85ebe49cb74f64464b8eced8f60b2",
+    "privateKey": "ad65f9394e457b80d13f09bdbed2a1cde5e1f7d27584f5d145287ec535e11bbc",
+    "isBuiltIn": true
+  },
+  {
+    "id": "dev",
+    "name": "Dev",
+    "description": "http://10.119.135.105:48080",
+    "baseUrl": "http://10.119.135.105:48080",
+    "tenantId": "1",
+    "publicKey": "048154410a161957e04d26f8e7b4c8927bb68a538523c18b2e7cf38653347fcda1cbd64200677fea79b946a94a545b808e68f85ebe49cb74f64464b8eced8f60b2",
+    "privateKey": "ad65f9394e457b80d13f09bdbed2a1cde5e1f7d27584f5d145287ec535e11bbc",
+    "isBuiltIn": true
+  },
+  {
+    "id": "staging",
+    "name": "Staging",
+    "description": "staging-api.talix.example",
+    "baseUrl": "https://staging-api.talix.example",
+    "tenantId": "1",
+    "publicKey": "048154410a161957e04d26f8e7b4c8927bb68a538523c18b2e7cf38653347fcda1cbd64200677fea79b946a94a545b808e68f85ebe49cb74f64464b8eced8f60b2",
+    "privateKey": "ad65f9394e457b80d13f09bdbed2a1cde5e1f7d27584f5d145287ec535e11bbc",
+    "isBuiltIn": true
+  },
+  {
+    "id": "production",
+    "name": "Production",
+    "description": "api.talix.example",
+    "baseUrl": "https://api.talix.example",
+    "tenantId": "1",
+    "publicKey": "048154410a161957e04d26f8e7b4c8927bb68a538523c18b2e7cf38653347fcda1cbd64200677fea79b946a94a545b808e68f85ebe49cb74f64464b8eced8f60b2",
+    "privateKey": "ad65f9394e457b80d13f09bdbed2a1cde5e1f7d27584f5d145287ec535e11bbc",
+    "isBuiltIn": true
+  }
+]

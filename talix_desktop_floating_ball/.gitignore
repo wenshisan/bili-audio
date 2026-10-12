@@ -1,0 +1,15 @@
+
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+ios/.symlinks/
+macos/.symlinks/
+.vagrant/
+.directory
+.DS_Store
+.idea/
+.vscode/
+*.flutter-plugins
+*.flutter-plugins-dependencies
