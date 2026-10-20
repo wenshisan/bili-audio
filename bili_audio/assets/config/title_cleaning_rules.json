@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "rules": [
+    {
+      "id": "bracket_quality",
+      "type": "remove",
+      "pattern": "[【\\[(（「](?:Hi-?Res|无损|FLAC|320K|DSD|APE|WAV)[^】\\])）」]*[】\\])）」]",
+      "enabled": true
+    },
+    {
+      "id": "bracket_remaster",
+      "type": "remove",
+      "pattern": "[【\\[(（「](?:Remaster|重制|重录|数字版)[^】\\])）」]*[】\\])）」]",
+      "enabled": true
+    },
+    {
+      "id": "bracket_version",
+      "type": "remove",
+      "pattern": "[【\\[(（「](?:Live|现场|演唱会|Official|MV|PV|剧场版)[^】\\])）」]*[】\\])）」]",
+      "enabled": true
+    },
+    {
+      "id": "no_lyrics",
+      "type": "flag",
+      "pattern": "伴奏|纯音乐|Instrumental|无人声|Off Vocal",
+      "flag": "noLyrics"
+    },
+    {
+      "id": "cover_flag",
+      "type": "flag",
+      "pattern": "翻唱|cover|カバー",
+      "flag": "cover"
+    },
+    {
+      "id": "sep_dash",
+      "type": "split",
+      "pattern": "\\s[-—–]\\s",
+      "order": "title_artist",
+      "priority": 10
+    },
+    {
+      "id": "sep_slash",
+      "type": "split",
+      "pattern": "\\s[/／]\\s",
+      "order": "title_artist",
+      "priority": 9
+    },
+    {
+      "id": "extract_quotes",
+      "type": "extract",
+      "pattern": "[《「『]([^》」』]+)[》」』]",
+      "group": "title",
+      "priority": 15
+    }
+  ]
+}
