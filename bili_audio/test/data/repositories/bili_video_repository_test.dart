@@ -26,18 +26,18 @@ void main() {
 
   group('BiliVideoRepository', () {
     test('getTracks 单P使用视频标题', () async {
-      api.video = Video(
+      api.video = const Video(
         bvid: 'BV1',
         title: '周杰伦 - 七里香',
         uploader: 'UP主',
         uploaderMid: 123,
         cover: 'cover',
         pages: [
-          VideoPage(cid: 1, title: 'P1', duration: const Duration(seconds: 270), pageIndex: 1),
+          VideoPage(cid: 1, title: 'P1', duration: Duration(seconds: 270), pageIndex: 1),
         ],
       );
 
-      cleaner.result = CleanedTitle(name: '七里香', artist: '周杰伦');
+      cleaner.result = const CleanedTitle(name: '七里香', artist: '周杰伦');
 
       final result = await repo.getTracks('BV1');
 
@@ -53,19 +53,19 @@ void main() {
     });
 
     test('getTracks 多P且分P标题有效时使用分P标题', () async {
-      api.video = Video(
+      api.video = const Video(
         bvid: 'BV1',
         title: '合集',
         uploader: 'UP主',
         uploaderMid: 123,
         cover: 'cover',
         pages: [
-          VideoPage(cid: 1, title: '歌曲1', duration: const Duration(seconds: 200), pageIndex: 1),
-          VideoPage(cid: 2, title: '歌曲2', duration: const Duration(seconds: 300), pageIndex: 2),
+          VideoPage(cid: 1, title: '歌曲1', duration: Duration(seconds: 200), pageIndex: 1),
+          VideoPage(cid: 2, title: '歌曲2', duration: Duration(seconds: 300), pageIndex: 2),
         ],
       );
 
-      cleaner.result = CleanedTitle(name: 'cleaned', artist: 'artist');
+      cleaner.result = const CleanedTitle(name: 'cleaned', artist: 'artist');
 
       final result = await repo.getTracks('BV1');
 
@@ -78,19 +78,19 @@ void main() {
     });
 
     test('getTracks 多P但分P标题是占位符时用视频标题', () async {
-      api.video = Video(
+      api.video = const Video(
         bvid: 'BV1',
         title: '周杰伦 - 七里香',
         uploader: 'UP主',
         uploaderMid: 123,
         cover: 'cover',
         pages: [
-          VideoPage(cid: 1, title: 'P1', duration: const Duration(seconds: 270), pageIndex: 1),
-          VideoPage(cid: 2, title: '2', duration: const Duration(seconds: 280), pageIndex: 2),
+          VideoPage(cid: 1, title: 'P1', duration: Duration(seconds: 270), pageIndex: 1),
+          VideoPage(cid: 2, title: '2', duration: Duration(seconds: 280), pageIndex: 2),
         ],
       );
 
-      cleaner.result = CleanedTitle(name: '七里香', artist: '周杰伦');
+      cleaner.result = const CleanedTitle(name: '七里香', artist: '周杰伦');
 
       final result = await repo.getTracks('BV1');
 
@@ -102,17 +102,17 @@ void main() {
     });
 
     test('getTracks 保留用户编辑的歌名/歌手', () async {
-      api.video = Video(
+      api.video = const Video(
         bvid: 'BV1',
         title: 'Title',
         uploader: 'UP',
         uploaderMid: 1,
         cover: 'c',
         pages: [
-          VideoPage(cid: 10, title: 'P1', duration: const Duration(seconds: 100), pageIndex: 1),
+          VideoPage(cid: 10, title: 'P1', duration: Duration(seconds: 100), pageIndex: 1),
         ],
       );
-      cleaner.result = CleanedTitle(name: 'Auto', artist: 'AutoArtist');
+      cleaner.result = const CleanedTitle(name: 'Auto', artist: 'AutoArtist');
       await repo.getTracks('BV1');
       await db.tracksDao.updateTrackByUser(
         bvid: 'BV1',
@@ -128,18 +128,18 @@ void main() {
     });
 
     test('getTracks 写入数据库并回读', () async {
-      api.video = Video(
+      api.video = const Video(
         bvid: 'BV1',
         title: 'Title',
         uploader: 'UP',
         uploaderMid: 1,
         cover: 'c',
         pages: [
-          VideoPage(cid: 10, title: 'P1', duration: const Duration(seconds: 100), pageIndex: 1),
+          VideoPage(cid: 10, title: 'P1', duration: Duration(seconds: 100), pageIndex: 1),
         ],
       );
 
-      cleaner.result = CleanedTitle(name: 'Name', artist: 'Artist');
+      cleaner.result = const CleanedTitle(name: 'Name', artist: 'Artist');
 
       await repo.getTracks('BV1');
 
