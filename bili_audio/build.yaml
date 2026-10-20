@@ -1,0 +1,7 @@
+# build_runner 代码生成配置
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          store_date_time_values_as_text: false
