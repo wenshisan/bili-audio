@@ -129,6 +129,7 @@ class CacheIndex extends Table {
 }
 
 /// 流地址缓存表
+@DataClassName('StreamUrlRow')
 class StreamUrls extends Table {
   TextColumn get bvid => text()();
   IntColumn get cid => integer()();

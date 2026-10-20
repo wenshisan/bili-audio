@@ -3153,7 +3153,7 @@ class CacheIndexCompanion extends UpdateCompanion<CacheIndexData> {
 }
 
 class $StreamUrlsTable extends StreamUrls
-    with TableInfo<$StreamUrlsTable, StreamUrl> {
+    with TableInfo<$StreamUrlsTable, StreamUrlRow> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -3270,7 +3270,7 @@ class $StreamUrlsTable extends StreamUrls
   static const String $name = 'stream_urls';
   @override
   VerificationContext validateIntegrity(
-    Insertable<StreamUrl> instance, {
+    Insertable<StreamUrlRow> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
@@ -3347,9 +3347,9 @@ class $StreamUrlsTable extends StreamUrls
   @override
   Set<GeneratedColumn> get $primaryKey => {bvid, cid, quality};
   @override
-  StreamUrl map(Map<String, dynamic> data, {String? tablePrefix}) {
+  StreamUrlRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return StreamUrl(
+    return StreamUrlRow(
       bvid: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}bvid'],
@@ -3395,7 +3395,7 @@ class $StreamUrlsTable extends StreamUrls
   }
 }
 
-class StreamUrl extends DataClass implements Insertable<StreamUrl> {
+class StreamUrlRow extends DataClass implements Insertable<StreamUrlRow> {
   final String bvid;
   final int cid;
   final int quality;
@@ -3405,7 +3405,7 @@ class StreamUrl extends DataClass implements Insertable<StreamUrl> {
   final int? bandwidth;
   final DateTime expiresAt;
   final DateTime cachedAt;
-  const StreamUrl({
+  const StreamUrlRow({
     required this.bvid,
     required this.cid,
     required this.quality,
@@ -3449,12 +3449,12 @@ class StreamUrl extends DataClass implements Insertable<StreamUrl> {
     );
   }
 
-  factory StreamUrl.fromJson(
+  factory StreamUrlRow.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return StreamUrl(
+    return StreamUrlRow(
       bvid: serializer.fromJson<String>(json['bvid']),
       cid: serializer.fromJson<int>(json['cid']),
       quality: serializer.fromJson<int>(json['quality']),
@@ -3482,7 +3482,7 @@ class StreamUrl extends DataClass implements Insertable<StreamUrl> {
     };
   }
 
-  StreamUrl copyWith({
+  StreamUrlRow copyWith({
     String? bvid,
     int? cid,
     int? quality,
@@ -3492,7 +3492,7 @@ class StreamUrl extends DataClass implements Insertable<StreamUrl> {
     Value<int?> bandwidth = const Value.absent(),
     DateTime? expiresAt,
     DateTime? cachedAt,
-  }) => StreamUrl(
+  }) => StreamUrlRow(
     bvid: bvid ?? this.bvid,
     cid: cid ?? this.cid,
     quality: quality ?? this.quality,
@@ -3503,8 +3503,8 @@ class StreamUrl extends DataClass implements Insertable<StreamUrl> {
     expiresAt: expiresAt ?? this.expiresAt,
     cachedAt: cachedAt ?? this.cachedAt,
   );
-  StreamUrl copyWithCompanion(StreamUrlsCompanion data) {
-    return StreamUrl(
+  StreamUrlRow copyWithCompanion(StreamUrlsCompanion data) {
+    return StreamUrlRow(
       bvid: data.bvid.present ? data.bvid.value : this.bvid,
       cid: data.cid.present ? data.cid.value : this.cid,
       quality: data.quality.present ? data.quality.value : this.quality,
@@ -3521,7 +3521,7 @@ class StreamUrl extends DataClass implements Insertable<StreamUrl> {
 
   @override
   String toString() {
-    return (StringBuffer('StreamUrl(')
+    return (StringBuffer('StreamUrlRow(')
           ..write('bvid: $bvid, ')
           ..write('cid: $cid, ')
           ..write('quality: $quality, ')
@@ -3550,7 +3550,7 @@ class StreamUrl extends DataClass implements Insertable<StreamUrl> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is StreamUrl &&
+      (other is StreamUrlRow &&
           other.bvid == this.bvid &&
           other.cid == this.cid &&
           other.quality == this.quality &&
@@ -3562,7 +3562,7 @@ class StreamUrl extends DataClass implements Insertable<StreamUrl> {
           other.cachedAt == this.cachedAt);
 }
 
-class StreamUrlsCompanion extends UpdateCompanion<StreamUrl> {
+class StreamUrlsCompanion extends UpdateCompanion<StreamUrlRow> {
   final Value<String> bvid;
   final Value<int> cid;
   final Value<int> quality;
@@ -3602,7 +3602,7 @@ class StreamUrlsCompanion extends UpdateCompanion<StreamUrl> {
        url = Value(url),
        mime = Value(mime),
        expiresAt = Value(expiresAt);
-  static Insertable<StreamUrl> custom({
+  static Insertable<StreamUrlRow> custom({
     Expression<String>? bvid,
     Expression<int>? cid,
     Expression<int>? quality,
@@ -4533,6 +4533,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final PlaylistsDao playlistsDao = PlaylistsDao(this as AppDatabase);
   late final CacheDao cacheDao = CacheDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
+  late final StreamUrlsDao streamUrlsDao = StreamUrlsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6584,17 +6585,17 @@ class $$StreamUrlsTableTableManager
         RootTableManager<
           _$AppDatabase,
           $StreamUrlsTable,
-          StreamUrl,
+          StreamUrlRow,
           $$StreamUrlsTableFilterComposer,
           $$StreamUrlsTableOrderingComposer,
           $$StreamUrlsTableAnnotationComposer,
           $$StreamUrlsTableCreateCompanionBuilder,
           $$StreamUrlsTableUpdateCompanionBuilder,
           (
-            StreamUrl,
-            BaseReferences<_$AppDatabase, $StreamUrlsTable, StreamUrl>,
+            StreamUrlRow,
+            BaseReferences<_$AppDatabase, $StreamUrlsTable, StreamUrlRow>,
           ),
-          StreamUrl,
+          StreamUrlRow,
           PrefetchHooks Function()
         > {
   $$StreamUrlsTableTableManager(_$AppDatabase db, $StreamUrlsTable table)
@@ -6659,8 +6660,8 @@ class $$StreamUrlsTableTableManager
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
-                  e.readTable<$StreamUrlsTable, StreamUrl>(table),
-                  BaseReferences<_$AppDatabase, $StreamUrlsTable, StreamUrl>(
+                  e.readTable<$StreamUrlsTable, StreamUrlRow>(table),
+                  BaseReferences<_$AppDatabase, $StreamUrlsTable, StreamUrlRow>(
                     db,
                     table,
                     e,
@@ -6677,14 +6678,17 @@ typedef $$StreamUrlsTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
       $StreamUrlsTable,
-      StreamUrl,
+      StreamUrlRow,
       $$StreamUrlsTableFilterComposer,
       $$StreamUrlsTableOrderingComposer,
       $$StreamUrlsTableAnnotationComposer,
       $$StreamUrlsTableCreateCompanionBuilder,
       $$StreamUrlsTableUpdateCompanionBuilder,
-      (StreamUrl, BaseReferences<_$AppDatabase, $StreamUrlsTable, StreamUrl>),
-      StreamUrl,
+      (
+        StreamUrlRow,
+        BaseReferences<_$AppDatabase, $StreamUrlsTable, StreamUrlRow>,
+      ),
+      StreamUrlRow,
       PrefetchHooks Function()
     >;
 typedef $$QueueSnapshotTableCreateCompanionBuilder =
