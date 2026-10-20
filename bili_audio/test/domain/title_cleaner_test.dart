@@ -8,28 +8,28 @@ void main() {
 
   setUp(() {
     // 使用测试规则配置
-    final config = TitleRuleConfig(
+    final config = const TitleRuleConfig(
       version: 1,
       rules: [
-        const TitleRule(
+        TitleRule(
           id: 'bracket_quality',
           type: 'remove',
           pattern: r'[【\[(（「](?:Hi-?Res|无损|FLAC|320K)[^】\])）」]*[】\])）」]',
         ),
-        const TitleRule(
+        TitleRule(
           id: 'no_lyrics',
           type: 'flag',
           pattern: '伴奏|纯音乐|Instrumental',
           flag: 'noLyrics',
         ),
-        const TitleRule(
+        TitleRule(
           id: 'sep_dash',
           type: 'split',
           pattern: r'\s[-—]\s',
           order: 'title_artist',
           priority: 10,
         ),
-        const TitleRule(
+        TitleRule(
           id: 'extract_quotes',
           type: 'extract',
           pattern: r'[《「『]([^》」』]+)[》」』]',
@@ -101,7 +101,7 @@ void main() {
     });
 
     test('使用UP主作为候选歌手', () {
-      final video = Video(
+      final video = const Video(
         bvid: 'BV1xx411c7mD',
         title: '测试视频',
         uploader: '周杰伦',

@@ -40,6 +40,7 @@ dependencies:
   go_router: 18.1.0
   lpinyin: 2.0.3
   crypto: 3.0.7
+  path: 1.9.1
 
 dev_dependencies:
   flutter_test:
@@ -51,6 +52,7 @@ dev_dependencies:
   json_serializable: 6.15.1
   drift_dev: 2.35.1
   http_mock_adapter: 0.6.1
+  matcher: 0.12.19
 
 flutter:
   uses-material-design: true

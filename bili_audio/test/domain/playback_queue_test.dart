@@ -10,7 +10,7 @@ void main() {
         bvid: 'BV$i',
         cid: i,
         title: 'Track $i',
-        duration: Duration(minutes: 3),
+        duration: const Duration(minutes: 3),
       ),
     );
   }
@@ -107,7 +107,7 @@ void main() {
   group('PlaybackQueue 编辑操作', () {
     test('添加到队尾', () {
       final queue = PlaybackQueue(tracks: createTracks(3));
-      final newTrack = Track(
+      final newTrack = const Track(
         bvid: 'BV999',
         cid: 999,
         title: 'New Track',
@@ -120,7 +120,7 @@ void main() {
 
     test('插入到下一首', () {
       final queue = PlaybackQueue(tracks: createTracks(3));
-      final newTrack = Track(
+      final newTrack = const Track(
         bvid: 'BV999',
         cid: 999,
         title: 'Next Track',
