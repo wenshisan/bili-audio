@@ -20,8 +20,8 @@ mixin _$StreamUrl {
  String get bvid;/// 分P标识
  int get cid;/// 音质档位
  AudioQuality get quality;/// 流地址 (HTTPS)
- String get url;/// 备用流地址 (可选)
- String? get backupUrl;/// 过期时间 (Unix timestamp)
+ String get url;/// 备用流地址列表 (按优先级排序)
+ List<String> get backupUrls;/// 过期时间 (Unix timestamp)
  int get expiresAt;
 /// Create a copy of StreamUrl
 /// with the given fields replaced by the non-null parameter values.
@@ -35,16 +35,16 @@ $StreamUrlCopyWith<StreamUrl> get copyWith => _$StreamUrlCopyWithImpl<StreamUrl>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is StreamUrl&&(identical(other.bvid, bvid) || other.bvid == bvid)&&(identical(other.cid, cid) || other.cid == cid)&&(identical(other.quality, quality) || other.quality == quality)&&(identical(other.url, url) || other.url == url)&&(identical(other.backupUrl, backupUrl) || other.backupUrl == backupUrl)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is StreamUrl&&(identical(other.bvid, bvid) || other.bvid == bvid)&&(identical(other.cid, cid) || other.cid == cid)&&(identical(other.quality, quality) || other.quality == quality)&&(identical(other.url, url) || other.url == url)&&const DeepCollectionEquality().equals(other.backupUrls, backupUrls)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,bvid,cid,quality,url,backupUrl,expiresAt);
+int get hashCode => Object.hash(runtimeType,bvid,cid,quality,url,const DeepCollectionEquality().hash(backupUrls),expiresAt);
 
 @override
 String toString() {
-  return 'StreamUrl(bvid: $bvid, cid: $cid, quality: $quality, url: $url, backupUrl: $backupUrl, expiresAt: $expiresAt)';
+  return 'StreamUrl(bvid: $bvid, cid: $cid, quality: $quality, url: $url, backupUrls: $backupUrls, expiresAt: $expiresAt)';
 }
 
 
@@ -55,7 +55,7 @@ abstract mixin class $StreamUrlCopyWith<$Res>  {
   factory $StreamUrlCopyWith(StreamUrl value, $Res Function(StreamUrl) _then) = _$StreamUrlCopyWithImpl;
 @useResult
 $Res call({
- String bvid, int cid, AudioQuality quality, String url, String? backupUrl, int expiresAt
+ String bvid, int cid, AudioQuality quality, String url, List<String> backupUrls, int expiresAt
 });
 
 
@@ -72,14 +72,14 @@ class _$StreamUrlCopyWithImpl<$Res>
 
 /// Create a copy of StreamUrl
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? bvid = null,Object? cid = null,Object? quality = null,Object? url = null,Object? backupUrl = freezed,Object? expiresAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? bvid = null,Object? cid = null,Object? quality = null,Object? url = null,Object? backupUrls = null,Object? expiresAt = null,}) {
   return _then(StreamUrl(
 bvid: null == bvid ? _self.bvid : bvid // ignore: cast_nullable_to_non_nullable
 as String,cid: null == cid ? _self.cid : cid // ignore: cast_nullable_to_non_nullable
 as int,quality: null == quality ? _self.quality : quality // ignore: cast_nullable_to_non_nullable
 as AudioQuality,url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
-as String,backupUrl: freezed == backupUrl ? _self.backupUrl : backupUrl // ignore: cast_nullable_to_non_nullable
-as String?,expiresAt: null == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
+as String,backupUrls: null == backupUrls ? _self.backupUrls : backupUrls // ignore: cast_nullable_to_non_nullable
+as List<String>,expiresAt: null == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }
@@ -162,10 +162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String bvid,  int cid,  AudioQuality quality,  String url,  String? backupUrl,  int expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String bvid,  int cid,  AudioQuality quality,  String url,  List<String> backupUrls,  int expiresAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _StreamUrl() when $default != null:
-return $default(_that.bvid,_that.cid,_that.quality,_that.url,_that.backupUrl,_that.expiresAt);case _:
+return $default(_that.bvid,_that.cid,_that.quality,_that.url,_that.backupUrls,_that.expiresAt);case _:
   return orElse();
 
 }
@@ -183,10 +183,10 @@ return $default(_that.bvid,_that.cid,_that.quality,_that.url,_that.backupUrl,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String bvid,  int cid,  AudioQuality quality,  String url,  String? backupUrl,  int expiresAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String bvid,  int cid,  AudioQuality quality,  String url,  List<String> backupUrls,  int expiresAt)  $default,) {final _that = this;
 switch (_that) {
 case _StreamUrl():
-return $default(_that.bvid,_that.cid,_that.quality,_that.url,_that.backupUrl,_that.expiresAt);}
+return $default(_that.bvid,_that.cid,_that.quality,_that.url,_that.backupUrls,_that.expiresAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -200,10 +200,10 @@ return $default(_that.bvid,_that.cid,_that.quality,_that.url,_that.backupUrl,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String bvid,  int cid,  AudioQuality quality,  String url,  String? backupUrl,  int expiresAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String bvid,  int cid,  AudioQuality quality,  String url,  List<String> backupUrls,  int expiresAt)?  $default,) {final _that = this;
 switch (_that) {
 case _StreamUrl() when $default != null:
-return $default(_that.bvid,_that.cid,_that.quality,_that.url,_that.backupUrl,_that.expiresAt);case _:
+return $default(_that.bvid,_that.cid,_that.quality,_that.url,_that.backupUrls,_that.expiresAt);case _:
   return null;
 
 }
@@ -215,7 +215,7 @@ return $default(_that.bvid,_that.cid,_that.quality,_that.url,_that.backupUrl,_th
 @JsonSerializable()
 
 class _StreamUrl extends StreamUrl {
-  const _StreamUrl({required this.bvid, required this.cid, required this.quality, required this.url, this.backupUrl, required this.expiresAt}): super._();
+  const _StreamUrl({required this.bvid, required this.cid, required this.quality, required this.url,  List<String> backupUrls = const [], required this.expiresAt}): _backupUrls = backupUrls,super._();
   factory _StreamUrl.fromJson(Map<String, dynamic> json) => _$StreamUrlFromJson(json);
 
 /// B 站 BV 号
@@ -226,8 +226,15 @@ class _StreamUrl extends StreamUrl {
 @override final  AudioQuality quality;
 /// 流地址 (HTTPS)
 @override final  String url;
-/// 备用流地址 (可选)
-@override final  String? backupUrl;
+/// 备用流地址列表 (按优先级排序)
+ final  List<String> _backupUrls;
+/// 备用流地址列表 (按优先级排序)
+@override@JsonKey() List<String> get backupUrls {
+  if (_backupUrls is EqualUnmodifiableListView) return _backupUrls;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_backupUrls);
+}
+
 /// 过期时间 (Unix timestamp)
 @override final  int expiresAt;
 
@@ -244,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StreamUrl&&(identical(other.bvid, bvid) || other.bvid == bvid)&&(identical(other.cid, cid) || other.cid == cid)&&(identical(other.quality, quality) || other.quality == quality)&&(identical(other.url, url) || other.url == url)&&(identical(other.backupUrl, backupUrl) || other.backupUrl == backupUrl)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _StreamUrl&&(identical(other.bvid, bvid) || other.bvid == bvid)&&(identical(other.cid, cid) || other.cid == cid)&&(identical(other.quality, quality) || other.quality == quality)&&(identical(other.url, url) || other.url == url)&&const DeepCollectionEquality().equals(other._backupUrls, _backupUrls)&&(identical(other.expiresAt, expiresAt) || other.expiresAt == expiresAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,bvid,cid,quality,url,backupUrl,expiresAt);
+int get hashCode => Object.hash(runtimeType,bvid,cid,quality,url,const DeepCollectionEquality().hash(_backupUrls),expiresAt);
 
 @override
 String toString() {
-  return 'StreamUrl(bvid: $bvid, cid: $cid, quality: $quality, url: $url, backupUrl: $backupUrl, expiresAt: $expiresAt)';
+  return 'StreamUrl(bvid: $bvid, cid: $cid, quality: $quality, url: $url, backupUrls: $backupUrls, expiresAt: $expiresAt)';
 }
 
 
@@ -264,7 +271,7 @@ abstract mixin class _$StreamUrlCopyWith<$Res> implements $StreamUrlCopyWith<$Re
   factory _$StreamUrlCopyWith(_StreamUrl value, $Res Function(_StreamUrl) _then) = __$StreamUrlCopyWithImpl;
 @override @useResult
 $Res call({
- String bvid, int cid, AudioQuality quality, String url, String? backupUrl, int expiresAt
+ String bvid, int cid, AudioQuality quality, String url, List<String> backupUrls, int expiresAt
 });
 
 
@@ -281,14 +288,14 @@ class __$StreamUrlCopyWithImpl<$Res>
 
 /// Create a copy of StreamUrl
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? bvid = null,Object? cid = null,Object? quality = null,Object? url = null,Object? backupUrl = freezed,Object? expiresAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? bvid = null,Object? cid = null,Object? quality = null,Object? url = null,Object? backupUrls = null,Object? expiresAt = null,}) {
   return _then(_StreamUrl(
 bvid: null == bvid ? _self.bvid : bvid // ignore: cast_nullable_to_non_nullable
 as String,cid: null == cid ? _self.cid : cid // ignore: cast_nullable_to_non_nullable
 as int,quality: null == quality ? _self.quality : quality // ignore: cast_nullable_to_non_nullable
 as AudioQuality,url: null == url ? _self.url : url // ignore: cast_nullable_to_non_nullable
-as String,backupUrl: freezed == backupUrl ? _self.backupUrl : backupUrl // ignore: cast_nullable_to_non_nullable
-as String?,expiresAt: null == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
+as String,backupUrls: null == backupUrls ? _self._backupUrls : backupUrls // ignore: cast_nullable_to_non_nullable
+as List<String>,expiresAt: null == expiresAt ? _self.expiresAt : expiresAt // ignore: cast_nullable_to_non_nullable
 as int,
   ));
 }

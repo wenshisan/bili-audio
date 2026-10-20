@@ -11,7 +11,11 @@ _StreamUrl _$StreamUrlFromJson(Map<String, dynamic> json) => _StreamUrl(
   cid: (json['cid'] as num).toInt(),
   quality: $enumDecode(_$AudioQualityEnumMap, json['quality']),
   url: json['url'] as String,
-  backupUrl: json['backupUrl'] as String?,
+  backupUrls:
+      (json['backupUrls'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toList() ??
+      const [],
   expiresAt: (json['expiresAt'] as num).toInt(),
 );
 
@@ -21,7 +25,7 @@ Map<String, dynamic> _$StreamUrlToJson(_StreamUrl instance) =>
       'cid': instance.cid,
       'quality': _$AudioQualityEnumMap[instance.quality]!,
       'url': instance.url,
-      'backupUrl': instance.backupUrl,
+      'backupUrls': instance.backupUrls,
       'expiresAt': instance.expiresAt,
     };
 

@@ -24,8 +24,8 @@ sealed class StreamUrl with _$StreamUrl {
     /// 流地址 (HTTPS)
     required String url,
 
-    /// 备用流地址 (可选)
-    String? backupUrl,
+    /// 备用流地址列表 (按优先级排序)
+    @Default([]) List<String> backupUrls,
 
     /// 过期时间 (Unix timestamp)
     required int expiresAt,

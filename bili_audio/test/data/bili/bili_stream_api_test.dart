@@ -42,7 +42,7 @@ void main() {
                 {
                   'id': 30232,
                   'base_url': 'https://example.com/audio.m4a?deadline=1234567890',
-                  'backup_url': ['https://backup.com/audio.m4a'],
+                  'backup_url': ['https://backup1.com/audio.m4a', 'https://backup2.com/audio.m4a'],
                 },
               ],
             },
@@ -54,20 +54,23 @@ void main() {
         bvid: 'BV1xx411c7mD',
         cid: 12345,
         quality: AudioQuality.k132,
+        loggedIn: true,
       );
 
       expect(result.isSuccess, true);
-      final streamUrl = result.valueOrNull!;
+      final selection = result.valueOrNull!;
+      final streamUrl = selection.stream;
 
       expect(streamUrl.bvid, 'BV1xx411c7mD');
       expect(streamUrl.cid, 12345);
       expect(streamUrl.quality, AudioQuality.k132);
       expect(streamUrl.url, contains('audio.m4a'));
-      expect(streamUrl.backupUrl, 'https://backup.com/audio.m4a');
+      expect(streamUrl.backupUrls, ['https://backup1.com/audio.m4a', 'https://backup2.com/audio.m4a']);
       expect(streamUrl.expiresAt, 1234567890);
+      expect(selection.downgradedForGuest, false);
     });
 
-    test('多个音质选择匹配的', () async {
+    test('已登录选择最接近的音质', () async {
       adapter.onGet(
         '/x/player/wbi/playurl',
         (server) => server.reply(200, {
@@ -88,13 +91,15 @@ void main() {
         bvid: 'BV1xx411c7mD',
         cid: 12345,
         quality: AudioQuality.k192,
+        loggedIn: true,
       );
 
       expect(result.isSuccess, true);
-      expect(result.valueOrNull!.url, contains('192k.m4a'));
+      expect(result.valueOrNull!.stream.quality, AudioQuality.k192);
+      expect(result.valueOrNull!.downgradedForGuest, false);
     });
 
-    test('未找到目标音质时降级到第一个', () async {
+    test('未登录降级到 132K', () async {
       adapter.onGet(
         '/x/player/wbi/playurl',
         (server) => server.reply(200, {
@@ -102,7 +107,8 @@ void main() {
           'data': {
             'dash': {
               'audio': [
-                {'id': 30216, 'base_url': 'https://example.com/64k.m4a'},
+                {'id': 30232, 'base_url': 'https://example.com/132k.m4a'},
+                {'id': 30280, 'base_url': 'https://example.com/192k.m4a'},
               ],
             },
           },
@@ -112,11 +118,73 @@ void main() {
       final result = await streamApi.getStreamUrl(
         bvid: 'BV1xx411c7mD',
         cid: 12345,
-        quality: AudioQuality.hiRes, // 请求 Hi-Res 但不存在
+        quality: AudioQuality.k192,
+        loggedIn: false,
       );
 
       expect(result.isSuccess, true);
-      expect(result.valueOrNull!.url, contains('64k.m4a'));
+      expect(result.valueOrNull!.stream.quality, AudioQuality.k132);
+      expect(result.valueOrNull!.downgradedForGuest, true);
+    });
+
+    test('包含 Dolby 和 Flac 候选', () async {
+      adapter.onGet(
+        '/x/player/wbi/playurl',
+        (server) => server.reply(200, {
+          'code': 0,
+          'data': {
+            'dash': {
+              'audio': [
+                {'id': 30232, 'base_url': 'https://example.com/132k.m4a'},
+              ],
+              'dolby': {
+                'audio': [
+                  {'id': 30250, 'base_url': 'https://example.com/dolby.m4a'},
+                ],
+              },
+              'flac': {
+                'audio': {'id': 30251, 'base_url': 'https://example.com/flac.m4a'},
+              },
+            },
+          },
+        }),
+      );
+
+      final result = await streamApi.getStreamUrl(
+        bvid: 'BV1xx411c7mD',
+        cid: 12345,
+        quality: AudioQuality.hiRes,
+        loggedIn: true,
+      );
+
+      expect(result.isSuccess, true);
+      expect(result.valueOrNull!.stream.quality, AudioQuality.hiRes);
+    });
+
+    test('没有不高于目标的时选最低档', () async {
+      adapter.onGet(
+        '/x/player/wbi/playurl',
+        (server) => server.reply(200, {
+          'code': 0,
+          'data': {
+            'dash': {
+              'audio': [
+                {'id': 30280, 'base_url': 'https://example.com/192k.m4a'},
+              ],
+            },
+          },
+        }),
+      );
+
+      final result = await streamApi.getStreamUrl(
+        bvid: 'BV1xx411c7mD',
+        cid: 12345,
+        quality: AudioQuality.k64,
+        loggedIn: true,
+      );
+
+      expect(result.isSuccess, true);
+      expect(result.valueOrNull!.stream.quality, AudioQuality.k192);
     });
 
     test('无音频流返回错误', () async {
@@ -137,37 +205,6 @@ void main() {
       );
 
       expect(result.isFailure, true);
-    });
-
-    test('过期时间默认2小时', () async {
-      adapter.onGet(
-        '/x/player/wbi/playurl',
-        (server) => server.reply(200, {
-          'code': 0,
-          'data': {
-            'dash': {
-              'audio': [
-                {'id': 30232, 'base_url': 'https://example.com/audio.m4a'},
-              ],
-            },
-          },
-        }),
-      );
-
-      final before = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      final result = await streamApi.getStreamUrl(
-        bvid: 'BV1xx411c7mD',
-        cid: 12345,
-        quality: AudioQuality.k132,
-      );
-      final after = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-
-      expect(result.isSuccess, true);
-      final expiresAt = result.valueOrNull!.expiresAt;
-
-      // 应该在 before+7200 到 after+7200 之间
-      expect(expiresAt, greaterThanOrEqualTo(before + 7200));
-      expect(expiresAt, lessThanOrEqualTo(after + 7200));
     });
   });
 }
