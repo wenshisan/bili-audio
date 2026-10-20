@@ -33,7 +33,11 @@ class BiliSearchApi {
           'page_size': pageSize,
           if (tids.isNotEmpty) 'tids': tids.join(','),
         },
-        options: Options(extra: {'wbi': true}),
+        options: Options(extra: {
+          'wbi': true,
+          'risk_guarded': true,
+          'risk_retry': true,
+        }),
       );
 
       final data = response.data!['data'] as Map<String, dynamic>;
