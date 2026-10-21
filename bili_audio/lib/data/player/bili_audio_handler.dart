@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart' show ProcessingState;
 
+import '../../core/logging/app_logger.dart';
 import '../../domain/entities/app_error.dart';
 import '../../domain/entities/audio_track.dart';
 import '../../domain/queue/playback_queue.dart';
@@ -14,8 +15,8 @@ import 'queue_snapshot_store.dart';
 import 'sleep_timer.dart';
 
 /// 播放历史记录钩子 (M6.5): 开始播放一首时调用, 返回更新进度的回调
-typedef PlayRecorder = Future<void Function(Duration position)> Function(
-    Track track);
+typedef PlayRecorder =
+    Future<void Function(Duration position)> Function(Track track);
 
 /// 后台播放入口 (M3.1 / M3.4)
 ///
@@ -31,13 +32,15 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     this.recorder,
     AudioQuality Function()? quality,
     bool Function()? loggedIn,
-  })  : _quality = quality ?? (() => AudioQuality.k132),
-        _loggedIn = loggedIn ?? (() => false) {
+  }) : _quality = quality ?? (() => AudioQuality.k132),
+       _loggedIn = loggedIn ?? (() => false) {
     _subs.add(engine.playbackEventStream.listen((_) => _broadcast()));
     _subs.add(engine.playingStream.listen((_) => _broadcast()));
-    _subs.add(engine.processingStateStream.listen((s) {
-      if (s == ProcessingState.completed) unawaited(_onCompleted());
-    }));
+    _subs.add(
+      engine.processingStateStream.listen((s) {
+        if (s == ProcessingState.completed) unawaited(_onCompleted());
+      }),
+    );
     _publishQueue();
     sleepTimer = SleepTimer(onFire: pause);
   }
@@ -71,21 +74,36 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   /// 播放失败等错误, 由 UI 展示 (如需登录、风控)
   Stream<AppError> get errors => _errors.stream;
 
-  /// 设置新队列并从 [startIndex] 开始
+  /// 设置新队列并从 [startIndex] 开始。
+  ///
+  /// 随机模式下以 [startIndex] 为当前曲重新打乱, 下一首从其余曲目中随机选取。
   Future<void> setTracks(
     List<Track> tracks, {
     int startIndex = 0,
     bool autoplay = true,
+    PlayMode? mode,
   }) async {
-    _q = PlaybackQueue(tracks: tracks, mode: _q.mode);
-    if (startIndex != 0) _q.jumpTo(startIndex);
+    _q = PlaybackQueue(
+      tracks: tracks,
+      mode: mode ?? _q.mode,
+      startIndex: startIndex,
+    );
     await _loadCurrent(autoplay: autoplay);
+    _broadcast();
   }
 
   /// 启动时恢复上次队列与位置, 不自动播放
   Future<bool> restore() async {
     final snap = await snapshots?.load();
-    if (snap == null || snap.$1.isEmpty) return false;
+    if (snap == null || snap.$1.isEmpty) {
+      AppLogger.i('restore skipped (empty snapshot)', tag: 'player');
+      return false;
+    }
+    AppLogger.i(
+      'restore tracks=${snap.$1.length} cursor=${snap.$1.cursor} '
+      'pos=${snap.$2.inSeconds}s',
+      tag: 'player',
+    );
     _q = snap.$1;
     await _loadCurrent(autoplay: false, position: snap.$2);
     return true;
@@ -107,6 +125,12 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     final token = ++_loadToken;
     _lastDowngraded = false;
     final quality = _quality();
+    AppLogger.i(
+      'load ${track.bvid} cid=${track.cid} p=${track.pageIndex ?? 1} '
+      '"${track.title}" q=${quality.name} autoplay=$autoplay '
+      'pos=${position?.inSeconds ?? '-'}s',
+      tag: 'player',
+    );
     final key = track.cacheKey(quality);
     downloads.playingKey = key;
     final item = toMediaItem(track);
@@ -121,15 +145,33 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     );
     try {
       await engine.setSource(source, initialPosition: position);
-      if (token != _loadToken) return; // 快速切歌时丢弃过期加载
+      if (token != _loadToken) {
+        AppLogger.d(
+          'discard stale load ${track.bvid} cid=${track.cid}',
+          tag: 'player',
+        );
+        return; // 快速切歌时丢弃过期加载
+      }
       if (autoplay) {
         unawaited(engine.play());
         _recordProgress = await recorder?.call(track);
         if (_lastDowngraded) _downgradedController.add(true);
       }
-    } on AppError catch (e) {
+    } on AppError catch (e, st) {
+      AppLogger.e(
+        'load failed ${track.bvid} cid=${track.cid}',
+        tag: 'player',
+        error: e,
+        stackTrace: st,
+      );
       _errors.add(e);
-    } catch (e) {
+    } catch (e, st) {
+      AppLogger.e(
+        'load failed ${track.bvid} cid=${track.cid}',
+        tag: 'player',
+        error: e,
+        stackTrace: st,
+      );
       _errors.add(AppError.unknown(message: '播放失败: $e', cause: e));
     }
     unawaited(_preloadNext());
@@ -145,8 +187,22 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
         ? await streams.refresh(track, quality, loggedIn: _loggedIn())
         : await streams.resolve(track, quality, loggedIn: _loggedIn());
     final selection = result.valueOrNull;
-    if (selection == null) throw result.errorOrNull!;
+    if (selection == null) {
+      AppLogger.e(
+        '${refresh ? 'refresh' : 'resolve'} url failed '
+        '${track.bvid} cid=${track.cid} q=${quality.name}',
+        tag: 'player',
+        error: result.errorOrNull,
+      );
+      throw result.errorOrNull!;
+    }
     _lastDowngraded = selection.downgradedForGuest;
+    AppLogger.d(
+      '${refresh ? 'refresh' : 'resolve'} ${track.bvid} cid=${track.cid} '
+      'want=${quality.name} got=${selection.stream.quality.name} '
+      'downgraded=${selection.downgradedForGuest}',
+      tag: 'player',
+    );
     return selection.stream.url;
   }
 
@@ -240,16 +296,17 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
       setPlayMode(switch (repeatMode) {
         AudioServiceRepeatMode.one => PlayMode.singleLoop,
         AudioServiceRepeatMode.all ||
-        AudioServiceRepeatMode.group =>
-          PlayMode.listLoop,
+        AudioServiceRepeatMode.group => PlayMode.listLoop,
         AudioServiceRepeatMode.none => PlayMode.sequential,
       });
 
   @override
   Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async =>
-      setPlayMode(shuffleMode == AudioServiceShuffleMode.none
-          ? PlayMode.sequential
-          : PlayMode.shuffle);
+      setPlayMode(
+        shuffleMode == AudioServiceShuffleMode.none
+            ? PlayMode.sequential
+            : PlayMode.shuffle,
+      );
 
   // ---- 队列编辑 ----
 
@@ -260,6 +317,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     _edit(() => _q.replaceCurrent(track));
     mediaItem.add(toMediaItem(track));
   }
+
   void append(Track track) => _edit(() => _q.append(track));
   void insertNext(Track track) => _edit(() => _q.insertNext(track));
   void clearExceptCurrent() => _edit(_q.clearExceptCurrent);
@@ -299,36 +357,38 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
 
   void _broadcast() {
     final mode = _q.mode;
-    playbackState.add(PlaybackState(
-      controls: [
-        MediaControl.skipToPrevious,
-        if (engine.playing) MediaControl.pause else MediaControl.play,
-        MediaControl.skipToNext,
-        MediaControl.stop,
-      ],
-      systemActions: const {MediaAction.seek},
-      androidCompactActionIndices: const [0, 1, 2],
-      processingState: switch (engine.processingState) {
-        ProcessingState.idle => AudioProcessingState.idle,
-        ProcessingState.loading => AudioProcessingState.loading,
-        ProcessingState.buffering => AudioProcessingState.buffering,
-        ProcessingState.ready => AudioProcessingState.ready,
-        ProcessingState.completed => AudioProcessingState.completed,
-      },
-      playing: engine.playing,
-      updatePosition: engine.position,
-      bufferedPosition: engine.bufferedPosition,
-      speed: engine.speed,
-      queueIndex: _q.isEmpty ? null : _q.cursor,
-      repeatMode: switch (mode) {
-        PlayMode.singleLoop => AudioServiceRepeatMode.one,
-        PlayMode.listLoop => AudioServiceRepeatMode.all,
-        _ => AudioServiceRepeatMode.none,
-      },
-      shuffleMode: mode == PlayMode.shuffle || mode == PlayMode.smartShuffle
-          ? AudioServiceShuffleMode.all
-          : AudioServiceShuffleMode.none,
-    ));
+    playbackState.add(
+      PlaybackState(
+        controls: [
+          MediaControl.skipToPrevious,
+          if (engine.playing) MediaControl.pause else MediaControl.play,
+          MediaControl.skipToNext,
+          MediaControl.stop,
+        ],
+        systemActions: const {MediaAction.seek},
+        androidCompactActionIndices: const [0, 1, 2],
+        processingState: switch (engine.processingState) {
+          ProcessingState.idle => AudioProcessingState.idle,
+          ProcessingState.loading => AudioProcessingState.loading,
+          ProcessingState.buffering => AudioProcessingState.buffering,
+          ProcessingState.ready => AudioProcessingState.ready,
+          ProcessingState.completed => AudioProcessingState.completed,
+        },
+        playing: engine.playing,
+        updatePosition: engine.position,
+        bufferedPosition: engine.bufferedPosition,
+        speed: engine.speed,
+        queueIndex: _q.isEmpty ? null : _q.cursor,
+        repeatMode: switch (mode) {
+          PlayMode.singleLoop => AudioServiceRepeatMode.one,
+          PlayMode.listLoop => AudioServiceRepeatMode.all,
+          _ => AudioServiceRepeatMode.none,
+        },
+        shuffleMode: mode == PlayMode.shuffle || mode == PlayMode.smartShuffle
+            ? AudioServiceShuffleMode.all
+            : AudioServiceShuffleMode.none,
+      ),
+    );
   }
 
   Future<void> dispose() async {
@@ -344,12 +404,12 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
 
   /// 通知栏/锁屏信息: 标题、歌手、分P、封面 (M4.1)
   static MediaItem toMediaItem(Track t) => MediaItem(
-        id: '${t.bvid}_${t.cid}',
-        title: t.displayTitle,
-        artist: t.displayArtist,
-        album: (t.totalPages ?? 1) > 1 ? 'P${t.pageIndex}/${t.totalPages}' : null,
-        duration: t.duration,
-        artUri: t.cover == null || t.cover!.isEmpty ? null : Uri.tryParse(t.cover!),
-        extras: {'bvid': t.bvid, 'cid': t.cid},
-      );
+    id: '${t.bvid}_${t.cid}',
+    title: t.displayTitle,
+    artist: t.displayArtist,
+    album: (t.totalPages ?? 1) > 1 ? 'P${t.pageIndex}/${t.totalPages}' : null,
+    duration: t.duration,
+    artUri: t.cover == null || t.cover!.isEmpty ? null : Uri.tryParse(t.cover!),
+    extras: {'bvid': t.bvid, 'cid': t.cid},
+  );
 }

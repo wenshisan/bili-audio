@@ -91,6 +91,81 @@ void main() {
       expect(queue.current, current); // 当前曲不变
     });
 
+    test('顺序 → 随机: 下一首不是原列表的下一首', () {
+      for (var seed = 1; seed <= 20; seed++) {
+        final queue = PlaybackQueue(tracks: createTracks(8), seed: seed);
+        queue.next();
+        queue.next(); // Track 2
+        queue.setMode(PlayMode.shuffle);
+        expect(queue.current?.title, 'Track 2');
+        expect(queue.next()?.title, isNot('Track 3'));
+      }
+    });
+
+    test('随机模式从指定曲开始, 下一首不是它在原列表中的后一首', () {
+      for (var seed = 1; seed <= 20; seed++) {
+        final queue = PlaybackQueue(
+          tracks: createTracks(8),
+          mode: PlayMode.shuffle,
+          seed: seed,
+          startIndex: 4,
+        );
+        expect(queue.current?.title, 'Track 4');
+        expect(queue.next()?.title, isNot('Track 5'));
+      }
+    });
+
+    test('随机一轮结束后继续, 且不重复刚刚播完的那首', () {
+      final queue = PlaybackQueue(
+        tracks: createTracks(4),
+        mode: PlayMode.shuffle,
+        seed: 3,
+      );
+      Track? last;
+      for (var i = 0; i < 4; i++) {
+        last = queue.current;
+        queue.next();
+      }
+      expect(queue.current, isNot(last));
+      expect(queue.previous(), last);
+    });
+
+    test('随机模式下按原顺序追加后, 下一首不再顺着原顺序', () {
+      final queue = PlaybackQueue(
+        tracks: createTracks(1),
+        mode: PlayMode.shuffle,
+        seed: 1,
+      );
+      for (var i = 1; i < 6; i++) {
+        queue.append(
+          Track(
+            bvid: 'BV$i',
+            cid: i,
+            title: 'Track $i',
+            duration: const Duration(minutes: 3),
+          ),
+        );
+      }
+      expect(queue.next()?.title, isNot('Track 1'));
+    });
+
+    test('随机模式「下一首播放」仍插到紧接着的位置', () {
+      final queue = PlaybackQueue(
+        tracks: createTracks(5),
+        mode: PlayMode.shuffle,
+        seed: 3,
+      );
+      queue.insertNext(
+        const Track(
+          bvid: 'BV999',
+          cid: 999,
+          title: 'Inserted',
+          duration: Duration(minutes: 3),
+        ),
+      );
+      expect(queue.next()?.title, 'Inserted');
+    });
+
     test('随机 → 顺序: 定位到original位置', () {
       final tracks = createTracks(5);
       final queue = PlaybackQueue(tracks: tracks, mode: PlayMode.shuffle);
@@ -233,7 +308,11 @@ void main() {
     });
 
     test('随机模式跳转后"上一曲"回到跳转前', () {
-      final queue = PlaybackQueue(tracks: createTracks(5), mode: PlayMode.shuffle, seed: 1);
+      final queue = PlaybackQueue(
+        tracks: createTracks(5),
+        mode: PlayMode.shuffle,
+        seed: 1,
+      );
       final before = queue.current;
       final target = queue.tracks.indexOf(queue.orderedTracks.last);
       queue.jumpTo(target);

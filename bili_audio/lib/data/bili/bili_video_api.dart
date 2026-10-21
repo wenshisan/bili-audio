@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../core/logging/app_logger.dart';
 import '../../core/network/bili_http.dart';
 import '../../core/utils/result.dart';
 import '../../domain/entities/app_error.dart';
@@ -27,14 +28,34 @@ class BiliVideoApi {
       // 解析分P列表，过滤超过 15 分钟的
       final pagesData = data['pages'] as List<dynamic>?;
       if (pagesData == null || pagesData.isEmpty) {
+        AppLogger.w('view $bvid has no pages', tag: 'video');
         return const Result.failure(AppError.notFound());
       }
 
-      final pages = pagesData
-          .map((p) => _parsePageInfo(p as Map<String, dynamic>))
-          .where((p) => p != null && p.duration.inSeconds <= 900)
-          .cast<VideoPage>()
-          .toList();
+      final pages = <VideoPage>[];
+      final dropped = <String>[];
+      for (final raw in pagesData) {
+        if (raw is! Map) {
+          dropped.add('bad-json');
+          continue;
+        }
+        final page = _parsePageInfo(Map<String, dynamic>.from(raw));
+        if (page == null) {
+          dropped.add('unparsed');
+          continue;
+        }
+        if (page.duration.inSeconds > 900) {
+          dropped.add('p${page.pageIndex}=${page.duration.inSeconds}s');
+          continue;
+        }
+        pages.add(page);
+      }
+      AppLogger.d(
+        'view $bvid title="${data['title']}" raw=${pagesData.length} '
+        'kept=${pages.length}'
+        '${dropped.isEmpty ? '' : ' dropped=${dropped.join(',')}'}',
+        tag: 'video',
+      );
 
       if (pages.isEmpty) {
         return const Result.failure(
@@ -59,6 +80,7 @@ class BiliVideoApi {
       return Result.success(video);
     } on DioException catch (e) {
       final error = e.error;
+      AppLogger.e('view $bvid failed', tag: 'video', error: error ?? e);
       if (error is AppError) {
         return Result.failure(error);
       }
@@ -66,6 +88,7 @@ class BiliVideoApi {
         AppError.network(message: 'Get video info failed', cause: e),
       );
     } catch (e, st) {
+      AppLogger.e('view $bvid failed', tag: 'video', error: e, stackTrace: st);
       return Result.failure(
         AppError.unknown(
           message: 'Video info error: $e',
@@ -86,6 +109,7 @@ class BiliVideoApi {
 
       final data = response.data!['data'] as List<dynamic>?;
       if (data == null || data.isEmpty) {
+        AppLogger.w('pagelist $bvid empty', tag: 'video');
         return const Result.failure(AppError.notFound());
       }
 
@@ -93,15 +117,34 @@ class BiliVideoApi {
           .map((p) => _parsePageInfo(p as Map<String, dynamic>))
           .whereType<VideoPage>()
           .toList();
-      if (pages.isEmpty) return const Result.failure(AppError.notFound());
+      if (pages.isEmpty) {
+        AppLogger.w('pagelist $bvid unparsed raw=${data.length}', tag: 'video');
+        return const Result.failure(AppError.notFound());
+      }
+      final brief = pages
+          .take(12)
+          .map((p) => 'p${p.pageIndex}:${p.duration.inSeconds}s')
+          .join(',');
+      AppLogger.d(
+        'pagelist $bvid count=${pages.length} [$brief'
+        '${pages.length > 12 ? ',…' : ''}]',
+        tag: 'video',
+      );
       return Result.success(pages);
     } on DioException catch (e) {
       final error = e.error;
+      AppLogger.e('pagelist $bvid failed', tag: 'video', error: error ?? e);
       if (error is AppError) return Result.failure(error);
       return Result.failure(
         AppError.network(message: 'Get page list failed', cause: e),
       );
     } catch (e, st) {
+      AppLogger.e(
+        'pagelist $bvid failed',
+        tag: 'video',
+        error: e,
+        stackTrace: st,
+      );
       return Result.failure(
         AppError.unknown(
           message: 'Page list error: $e',
@@ -132,6 +175,7 @@ class BiliVideoApi {
       return Result.success(tags);
     } catch (e) {
       // 标签获取失败不阻塞，返回空列表
+      AppLogger.w('tags $bvid failed: $e', tag: 'video');
       return const Result.success([]);
     }
   }
@@ -144,6 +188,10 @@ class BiliVideoApi {
       final duration = json['duration'] as int?;
 
       if (cid == null || page == null || part == null || duration == null) {
+        AppLogger.w(
+          'page missing fields cid=$cid page=$page part=$part duration=$duration',
+          tag: 'video',
+        );
         return null;
       }
 
@@ -153,7 +201,8 @@ class BiliVideoApi {
         duration: Duration(seconds: duration),
         pageIndex: page,
       );
-    } catch (_) {
+    } catch (e) {
+      AppLogger.w('page parse failed: $e', tag: 'video');
       return null;
     }
   }

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:drift/drift.dart';
 
+import '../../core/logging/app_logger.dart';
 import '../../core/utils/result.dart';
 import '../../domain/entities/stream_url.dart';
 import '../../domain/entities/audio_track.dart';
@@ -13,11 +14,8 @@ import '../bili/bili_stream_api.dart';
 /// - 同一 (bvid, cid, quality) 的并发请求合并为一次
 /// - [refresh] 用于 CDN 403 等场景强制刷新
 class StreamUrlManager {
-  StreamUrlManager(
-    this._db,
-    this._streamApi, {
-    DateTime Function()? clock,
-  }) : _clock = clock ?? DateTime.now;
+  StreamUrlManager(this._db, this._streamApi, {DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now;
 
   static const expiryMargin = Duration(minutes: 10);
 
@@ -34,7 +32,21 @@ class StreamUrlManager {
   }) async {
     final cached = await _db.streamUrlsDao.getStreamUrl(bvid, cid, quality.id);
     if (cached != null && !_isExpired(cached)) {
-      return Result.success((stream: _toEntity(cached), downgradedForGuest: false));
+      AppLogger.d(
+        'cache hit $bvid cid=$cid q=${quality.name} '
+        'expires=${cached.expiresAt.toIso8601String()}',
+        tag: 'stream',
+      );
+      return Result.success((
+        stream: _toEntity(cached),
+        downgradedForGuest: false,
+      ));
+    }
+    if (cached != null) {
+      AppLogger.d(
+        'cache expired $bvid cid=$cid q=${quality.name}',
+        tag: 'stream',
+      );
     }
     return _fetch(bvid, cid, quality, loggedIn);
   }
@@ -45,8 +57,7 @@ class StreamUrlManager {
     required int cid,
     required AudioQuality quality,
     bool loggedIn = false,
-  }) =>
-      _fetch(bvid, cid, quality, loggedIn);
+  }) => _fetch(bvid, cid, quality, loggedIn);
 
   Future<Result<StreamSelection>> _fetch(
     String bvid,
@@ -55,31 +66,42 @@ class StreamUrlManager {
     bool loggedIn,
   ) {
     final key = '${bvid}_${cid}_${quality.id}';
-    return _inflight[key] ??= () async {
-      final result = await _streamApi.getStreamUrl(
-        bvid: bvid,
-        cid: cid,
-        quality: quality,
-        loggedIn: loggedIn,
-      );
-      final selection = result.valueOrNull;
-      if (selection != null) {
-        final s = selection.stream;
-        await _db.streamUrlsDao.upsertStreamUrl(StreamUrlsCompanion.insert(
-          bvid: bvid,
-          cid: cid,
-          quality: quality.id,
-          url: s.url,
-          backupUrls: Value(jsonEncode(s.backupUrls)),
-          mime: 'audio/mp4',
-          expiresAt: DateTime.fromMillisecondsSinceEpoch(s.expiresAt * 1000),
-        ));
-      }
-      return result;
-    }()
-        .whenComplete(() {
-      _inflight.remove(key); // 不能用 =>: 返回自身 Future 会导致自等待
-    });
+    return _inflight[key] ??=
+        () async {
+          final result = await _streamApi.getStreamUrl(
+            bvid: bvid,
+            cid: cid,
+            quality: quality,
+            loggedIn: loggedIn,
+          );
+          final selection = result.valueOrNull;
+          if (selection == null) {
+            AppLogger.w(
+              'fetch failed $bvid cid=$cid q=${quality.name} '
+              'loggedIn=$loggedIn error=${result.errorOrNull}',
+              tag: 'stream',
+            );
+          }
+          if (selection != null) {
+            final s = selection.stream;
+            await _db.streamUrlsDao.upsertStreamUrl(
+              StreamUrlsCompanion.insert(
+                bvid: bvid,
+                cid: cid,
+                quality: quality.id,
+                url: s.url,
+                backupUrls: Value(jsonEncode(s.backupUrls)),
+                mime: 'audio/mp4',
+                expiresAt: DateTime.fromMillisecondsSinceEpoch(
+                  s.expiresAt * 1000,
+                ),
+              ),
+            );
+          }
+          return result;
+        }().whenComplete(() {
+          _inflight.remove(key); // 不能用 =>: 返回自身 Future 会导致自等待
+        });
   }
 
   Future<int> cleanExpired() =>

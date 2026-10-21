@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../../../domain/entities/app_error.dart';
+import '../../logging/app_logger.dart';
 import '../bili_error_mapper.dart';
 import '../risk_control_guard.dart';
 
@@ -22,12 +23,19 @@ class RiskControlInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     if (options.extra['risk_guarded'] == true && _guard.inCooldown) {
-      return handler.reject(DioException(
-        requestOptions: options,
-        error: AppError.riskControl(
-          message: '请求过于频繁, 请 ${_guard.remaining.inSeconds} 秒后再试',
+      AppLogger.w(
+        'cooldown reject ${options.path} '
+        'remaining=${_guard.remaining.inSeconds}s',
+        tag: 'risk',
+      );
+      return handler.reject(
+        DioException(
+          requestOptions: options,
+          error: AppError.riskControl(
+            message: '请求过于频繁, 请 ${_guard.remaining.inSeconds} 秒后再试',
+          ),
         ),
-      ));
+      );
     }
     handler.next(options);
   }
@@ -47,9 +55,16 @@ class RiskControlInterceptor extends Interceptor {
     final options = err.requestOptions;
     _guard.recordHit(options.path);
 
-    final canRetry = options.extra['risk_retry'] == true &&
+    final canRetry =
+        options.extra['risk_retry'] == true &&
         options.extra['risk_retried'] != true &&
         !_guard.inCooldown;
+
+    AppLogger.w(
+      'hit ${options.path} code=$code retry=$canRetry '
+      'cooldown=${_guard.inCooldown}',
+      tag: 'risk',
+    );
 
     if (!canRetry) return handler.next(err);
 

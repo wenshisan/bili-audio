@@ -6,7 +6,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 
+import '../core/logging/app_logger.dart';
 import '../core/network/bili_http.dart';
+import '../core/network/interceptors/http_log_interceptor.dart';
 import '../core/network/buvid_manager.dart';
 import '../core/network/interceptors/header_interceptor.dart';
 import '../core/network/wbi_key_manager.dart';
@@ -39,14 +41,20 @@ import 'providers.dart';
 /// 要求 [PathManager.init] 已完成。失败时抛出, 由 main 展示启动错误页。
 Future<List<Override>> bootstrap() async {
   await initDesktopPlatform();
+  AppLogger.i(
+    'desktop ready os=${Platform.operatingSystem} smtc=$smtcAvailable',
+    tag: 'boot',
+  );
 
   final db = AppDatabase();
+  AppLogger.i('database opened ${PathManager.databaseFile.path}', tag: 'boot');
 
   final SecureStore store = FlutterSecureStore();
 
   // 获取 buvid / WBI key 的请求不经过 BiliHttp 拦截器链, 避免递归
   final raw = Dio(BaseOptions(baseUrl: 'https://api.bilibili.com'))
-    ..interceptors.add(HeaderInterceptor());
+    ..interceptors.add(HeaderInterceptor())
+    ..interceptors.add(HttpLogInterceptor());
   final http = BiliHttp(
     store: store,
     buvidManager: BuvidManager(store, () async {
@@ -86,6 +94,11 @@ Future<List<Override>> bootstrap() async {
     ),
     loggedIn: (await store.readCookies())?.contains('SESSDATA') ?? false,
   );
+  AppLogger.i(
+    'playback quality=${prefs.quality.name}(${prefs.quality.id}) '
+    'loggedIn=${prefs.loggedIn}',
+    tag: 'boot',
+  );
 
   BiliAudioHandler build() => BiliAudioHandler(
     engine: JustAudioEngine(),
@@ -124,7 +137,8 @@ Future<List<Override>> bootstrap() async {
       ),
     );
   }
-  await handler.restore();
+  final restored = await handler.restore();
+  AppLogger.i('queue restored=$restored', tag: 'boot');
 
   final initialTheme = ThemeState.decode(
     await db.settingsDao.getThemeMode(),

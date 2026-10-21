@@ -1,5 +1,6 @@
 import 'dart:math' show min;
 
+import '../../core/logging/app_logger.dart';
 import '../../core/utils/result.dart';
 import '../../domain/entities/audio_track.dart';
 import '../../domain/entities/video.dart';
@@ -31,14 +32,23 @@ class BiliSearchRepository implements SearchRepository {
   @override
   Future<Result<SearchHitPage>> search(String keyword, {int page = 1}) async {
     final result = await _api.searchVideo(keyword: keyword, page: page);
+    if (result.isFailure) {
+      AppLogger.e(
+        'search "$keyword" page=$page failed',
+        tag: 'search',
+        error: result.errorOrNull,
+      );
+      return Result.failure(result.errorOrNull!);
+    }
     return result.mapAsync((p) async {
       final groups = await _expandAll(p.items);
-      return (
-        items: [for (final group in groups) ...group],
-        page: p.page,
-        total: p.total,
-        hasMore: p.hasMore,
+      final items = [for (final group in groups) ...group];
+      AppLogger.i(
+        'search "$keyword" page=$page raw=${p.items.length} '
+        'shown=${items.length} total=${p.total} hasMore=${p.hasMore}',
+        tag: 'search',
       );
+      return (items: items, page: p.page, total: p.total, hasMore: p.hasMore);
     });
   }
 
@@ -66,13 +76,34 @@ class BiliSearchRepository implements SearchRepository {
     List<VideoPage>? pages;
     if (load != null) {
       try {
-        pages = (await load(item.bvid)).valueOrNull;
-      } catch (_) {
+        final loaded = await load(item.bvid);
+        pages = loaded.valueOrNull;
+        if (pages == null) {
+          AppLogger.w(
+            'pagelist ${item.bvid} failed: ${loaded.errorOrNull}; '
+            'fallback duration=${item.duration}s',
+            tag: 'search',
+          );
+        }
+      } catch (e, st) {
+        AppLogger.e(
+          'pagelist ${item.bvid} threw',
+          tag: 'search',
+          error: e,
+          stackTrace: st,
+        );
         pages = null;
       }
     }
     if (pages == null || pages.isEmpty) {
-      if (item.duration > maxDuration) return const [];
+      if (item.duration > maxDuration) {
+        AppLogger.d(
+          'drop ${item.bvid} duration=${item.duration}s > ${maxDuration}s '
+          '(no pages)',
+          tag: 'search',
+        );
+        return const [];
+      }
       return [_hit(item)];
     }
 
@@ -80,6 +111,14 @@ class BiliSearchRepository implements SearchRepository {
       for (final page in pages)
         if (page.duration.inSeconds <= maxDuration) page,
     ];
+    final dropped = pages.length - playable.length;
+    if (dropped > 0 || pages.length > 1) {
+      AppLogger.d(
+        'expand ${item.bvid} pages=${pages.length} kept=${playable.length} '
+        'dropped=$dropped',
+        tag: 'search',
+      );
+    }
     if (playable.isEmpty) return const [];
 
     if (pages.length == 1) {

@@ -164,6 +164,11 @@ class MockVideoApi implements BiliVideoApi {
   Future<Result<List<String>>> getVideoTags(String bvid) async {
     return const Result.success([]);
   }
+
+  @override
+  Future<Result<List<VideoPage>>> getPageList(String bvid) async {
+    return Result.success(video?.pages ?? const []);
+  }
 }
 
 class MockCleaner implements TitleCleaner {

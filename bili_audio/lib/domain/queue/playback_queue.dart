@@ -29,10 +29,14 @@ class PlaybackQueue {
     List<Track> tracks = const [],
     PlayMode mode = PlayMode.sequential,
     int? seed,
-  })  : _original = List.from(tracks),
-        _order = List.generate(tracks.length, (i) => i),
-        _mode = mode,
-        _seed = seed ?? DateTime.now().millisecondsSinceEpoch {
+    int startIndex = 0,
+  }) : _original = List.from(tracks),
+       _order = List.generate(tracks.length, (i) => i),
+       _mode = mode,
+       _seed = seed ?? DateTime.now().millisecondsSinceEpoch {
+    if (startIndex > 0 && startIndex < _original.length) {
+      _cursor = startIndex;
+    }
     if (_isShuffleMode(mode)) {
       _shuffleOrder();
     }
@@ -42,16 +46,13 @@ class PlaybackQueue {
   List<int> _order;
   int _cursor = 0;
   PlayMode _mode;
-  final int _seed;
+  int _seed;
   final List<int> _history = [];
 
-  Track? get current => _cursor < _order.length
-      ? _original[_order[_cursor]]
-      : null;
+  Track? get current =>
+      _cursor < _order.length ? _original[_order[_cursor]] : null;
 
-  Track? get nextTrack => _hasNext()
-      ? _original[_order[_nextCursor()]]
-      : null;
+  Track? get nextTrack => _hasNext() ? _original[_order[_nextCursor()]] : null;
 
   PlayMode get mode => _mode;
   int get length => _original.length;
@@ -60,8 +61,7 @@ class PlaybackQueue {
   List<Track> get tracks => List.unmodifiable(_original);
 
   /// 获取当前播放顺序的轨道列表
-  List<Track> get orderedTracks =>
-      _order.map((i) => _original[i]).toList();
+  List<Track> get orderedTracks => _order.map((i) => _original[i]).toList();
 
   /// 下一首
   Track? next() {
@@ -72,11 +72,19 @@ class PlaybackQueue {
       return current;
     }
 
+    if (_isShuffleMode(_mode)) {
+      // 队列仍按原顺序往后排时, 先打乱未播放部分
+      _shuffleUpcomingIfOriginalOrder();
+    }
+
     if (!_hasNext()) {
       if (_mode == PlayMode.listLoop) {
         // 列表循环: 回到开头
         _cursor = 0;
         _history.clear();
+      } else if (_isShuffleMode(_mode)) {
+        // 一轮结束: 换种子重排, 下一首不与本轮最后一首相同
+        _startNextRound();
       } else {
         // 顺序播放到头: 返回null
         return null;
@@ -143,7 +151,8 @@ class PlaybackQueue {
     _mode = newMode;
 
     if (_isShuffleMode(newMode)) {
-      // 切换到随机: 以当前曲为首重建order
+      // 切换到随机: 换种子, 以当前曲为首重建 order
+      _seed++;
       _shuffleOrder();
       _history.clear();
     } else {
@@ -156,10 +165,13 @@ class PlaybackQueue {
     }
   }
 
-  /// 添加到队尾
+  /// 添加到队尾。随机模式下若未播放部分仍是原顺序, 打乱它们。
   void append(Track track) {
     _original.add(track);
     _order.add(_original.length - 1);
+    if (_isShuffleMode(_mode)) {
+      _shuffleUpcomingIfOriginalOrder();
+    }
   }
 
   /// 插入到下一首
@@ -268,34 +280,94 @@ class PlaybackQueue {
   bool _isShuffleMode(PlayMode mode) =>
       mode == PlayMode.shuffle || mode == PlayMode.smartShuffle;
 
-  /// Fisher-Yates 随机打乱
-  void _shuffleOrder() {
-    final currentTrack = current;
+  /// 未播放部分仍是「当前曲在原列表中的后继」时打乱, 避免随机模式却顺序切歌。
+  ///
+  /// 只动光标之后的曲目, 已播放的不重复插入。用户点「下一首播放」插入的曲
+  /// 不在这条连续后继上, 因此不会被打乱。
+  void _shuffleUpcomingIfOriginalOrder() {
+    final start = _cursor + 1;
+    if (_order.length - start < 2 || _cursor >= _order.length) return;
+    final currentIndex = _order[_cursor];
+    for (var i = start; i < _order.length; i++) {
+      if (_order[i] != currentIndex + (i - _cursor)) return;
+    }
+    _seed++;
     final random = Random(_seed);
-
-    // 生成新的order
-    _order = List.generate(_original.length, (i) => i);
-
-    for (var i = _order.length - 1; i > 0; i--) {
-      final j = random.nextInt(i + 1);
+    for (var i = _order.length - 1; i > start; i--) {
+      final j = start + random.nextInt(i - start + 1);
       final temp = _order[i];
       _order[i] = _order[j];
       _order[j] = temp;
     }
+    _avoidSequentialSuccessor(random);
+  }
 
-    // 将当前曲目移到首位
+  /// 一轮随机耗尽后重排。新一轮第一首不与上一轮最后一首相同。
+  void _startNextRound() {
+    final last = current;
+    _seed++;
+    final random = Random(_seed);
+    _order = _fisherYates(random);
+
+    if (last != null && _order.length > 1) {
+      final lastIndex = _original.indexOf(last);
+      if (lastIndex >= 0 && _order[0] == lastIndex) {
+        final j = 1 + random.nextInt(_order.length - 1);
+        final temp = _order[0];
+        _order[0] = _order[j];
+        _order[j] = temp;
+      }
+    }
+
+    _cursor = 0;
+    _avoidSequentialSuccessor(random);
+    _history.clear();
+    if (last != null && _order.length > 1) {
+      final back = _order.indexOf(_original.indexOf(last));
+      if (back > 0) _history.add(back);
+    }
+  }
+
+  List<int> _fisherYates(Random random) {
+    final order = List.generate(_original.length, (i) => i);
+    for (var i = order.length - 1; i > 0; i--) {
+      final j = random.nextInt(i + 1);
+      final temp = order[i];
+      order[i] = order[j];
+      order[j] = temp;
+    }
+    return order;
+  }
+
+  /// Fisher-Yates 随机打乱, 当前曲固定在首位。
+  /// 若紧接着的一首刚好是原列表的下一首, 再和后面交换, 避免切歌仍像顺序播放。
+  void _shuffleOrder() {
+    final currentTrack = current;
+    final random = Random(_seed);
+    _order = _fisherYates(random);
+
     if (currentTrack != null) {
       final currentIndex = _original.indexOf(currentTrack);
-      final orderIndex = _order.indexOf(currentIndex);
-      if (orderIndex != 0) {
+      final orderIndex = currentIndex < 0 ? -1 : _order.indexOf(currentIndex);
+      if (orderIndex > 0) {
         _order[orderIndex] = _order[0];
         _order[0] = currentIndex;
       }
     }
 
     _cursor = 0;
+    _avoidSequentialSuccessor(random);
+  }
 
-    // 每轮结束后递增seed，避免下一轮完全重复
-    // (在实际播放完一轮后调用，此处预留逻辑)
+  void _avoidSequentialSuccessor(Random random) {
+    if (_order.length < 3 || _cursor >= _order.length) return;
+    final successor = _order[_cursor] + 1;
+    final nextPos = _cursor + 1;
+    if (successor >= _original.length || _order[nextPos] != successor) return;
+    if (nextPos + 1 >= _order.length) return;
+    final j = nextPos + 1 + random.nextInt(_order.length - nextPos - 1);
+    final temp = _order[nextPos];
+    _order[nextPos] = _order[j];
+    _order[j] = temp;
   }
 }

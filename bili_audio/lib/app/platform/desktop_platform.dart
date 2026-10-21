@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 
+import '../../core/logging/app_logger.dart';
 import '../../data/player/bili_audio_handler.dart';
 
 /// SMTC 是否已成功初始化; 失败时 [WindowsMediaBridge] 不应创建。
@@ -23,7 +23,12 @@ Future<void> initDesktopPlatform() async {
       await SMTCWindows.initialize();
       smtcAvailable = true;
     } catch (e, st) {
-      debugPrint('SMTCWindows.initialize failed: $e\n$st');
+      AppLogger.e(
+        'SMTCWindows.initialize failed',
+        tag: 'boot',
+        error: e,
+        stackTrace: st,
+      );
     }
   } else if (Platform.isLinux) {
     JustAudioMediaKit.ensureInitialized(linux: true);
@@ -56,26 +61,36 @@ class WindowsMediaBridge {
   final _subs = <StreamSubscription<Object?>>[];
 
   void _syncPlayback(PlaybackState state) {
-    final status = state.playing ? PlaybackStatus.playing : PlaybackStatus.paused;
+    final status = state.playing
+        ? PlaybackStatus.playing
+        : PlaybackStatus.paused;
     unawaited(_smtc.setPlaybackStatus(status));
     final dur = handler.engine.duration;
     if (dur != null && dur > Duration.zero) {
-      unawaited(_smtc.updateTimeline(PlaybackTimeline(
-        startTimeMs: 0,
-        endTimeMs: dur.inMilliseconds,
-        positionMs: state.position.inMilliseconds,
-      )));
+      unawaited(
+        _smtc.updateTimeline(
+          PlaybackTimeline(
+            startTimeMs: 0,
+            endTimeMs: dur.inMilliseconds,
+            positionMs: state.position.inMilliseconds,
+          ),
+        ),
+      );
     }
   }
 
   void _syncMetadata(MediaItem? item) {
     if (item == null) return;
-    unawaited(_smtc.updateMetadata(MusicMetadata(
-      title: item.title,
-      artist: item.artist ?? '',
-      album: item.album,
-      thumbnail: item.artUri?.toString(),
-    )));
+    unawaited(
+      _smtc.updateMetadata(
+        MusicMetadata(
+          title: item.title,
+          artist: item.artist ?? '',
+          album: item.album,
+          thumbnail: item.artUri?.toString(),
+        ),
+      ),
+    );
   }
 
   void _onButton(PressedButton button) {

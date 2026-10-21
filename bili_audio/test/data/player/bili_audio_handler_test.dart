@@ -24,11 +24,11 @@ void main() {
   late BiliAudioHandler handler;
 
   BiliAudioHandler build() => BiliAudioHandler(
-        engine: engine,
-        streams: streams,
-        downloads: downloads,
-        snapshots: snapshots,
-      );
+    engine: engine,
+    streams: streams,
+    downloads: downloads,
+    snapshots: snapshots,
+  );
 
   setUp(() async {
     db = AppDatabase.memory();
@@ -108,6 +108,25 @@ void main() {
 
     await handler.skipToPrevious();
     expect(loadedKey(), 'BV0_0_30232');
+  });
+
+  test('随机模式切下一首不会落到原列表的后一首', () async {
+    await handler.setTracks(
+      makeTracks(8),
+      mode: PlayMode.shuffle,
+      startIndex: 3,
+    );
+    expect(handler.currentTrack!.bvid, 'BV3');
+    await handler.skipToNext();
+    expect(handler.currentTrack!.bvid, isNot('BV4'));
+  });
+
+  test('随机模式播完一轮后下一首继续, 且不是刚播完的那首', () async {
+    await handler.setTracks(makeTracks(2), mode: PlayMode.shuffle);
+    await handler.skipToNext();
+    final last = handler.currentTrack!.bvid;
+    await handler.skipToNext();
+    expect(handler.currentTrack!.bvid, isNot(last));
   });
 
   test('随机 20 首: "上一曲"按实际播放路径回退', () async {
@@ -192,7 +211,8 @@ void main() {
   test('updateCurrentTrack 刷新通知栏与队列, 不重新加载', () async {
     await handler.setTracks(makeTracks(2));
     handler.updateCurrentTrack(
-        handler.currentTrack!.copyWith(cleanedName: '新歌名', artist: '新歌手'));
+      handler.currentTrack!.copyWith(cleanedName: '新歌名', artist: '新歌手'),
+    );
     expect(handler.mediaItem.value!.title, '新歌名');
     expect(handler.mediaItem.value!.artist, '新歌手');
     expect(handler.queue.value.first.title, '新歌名');

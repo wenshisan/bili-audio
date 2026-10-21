@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
+import '../../core/logging/app_logger.dart';
 import 'audio_cache_store.dart';
 
 const biliCdnHeaders = {
@@ -52,18 +53,22 @@ class CacheDownloadTask {
   Future<void> run() => _running ??= _run();
 
   Future<void> _run() async {
+    AppLogger.d('download start $key', tag: 'cache');
     var refreshed = false;
     while (true) {
       try {
         await _download();
+        AppLogger.i('download done $key bytes=$downloaded', tag: 'cache');
         break;
       } on DioException catch (e) {
         if (CancelToken.isCancel(e)) {
-          _fail(e);
+          AppLogger.d('download cancelled $key', tag: 'cache');
+          _fail(e, log: false);
           break;
         }
         if (e.response?.statusCode == 403 && !refreshed && refreshUrl != null) {
           refreshed = true;
+          AppLogger.w('download 403 $key, refreshing url', tag: 'cache');
           _url = await refreshUrl!();
           continue;
         }
@@ -78,7 +83,8 @@ class CacheDownloadTask {
 
   void cancel() => _cancel.cancel();
 
-  void _fail(Object e) {
+  void _fail(Object e, {bool log = true}) {
+    if (log) AppLogger.e('download failed $key', tag: 'cache', error: e);
     error = e;
     if (!_total.isCompleted) {
       _total.future.ignore(); // 无人等待时不报未处理异常
@@ -98,7 +104,10 @@ class CacheDownloadTask {
       cancelToken: _cancel,
       options: Options(
         responseType: ResponseType.stream,
-        headers: {...biliCdnHeaders, if (downloaded > 0) 'Range': 'bytes=$downloaded-'},
+        headers: {
+          ...biliCdnHeaders,
+          if (downloaded > 0) 'Range': 'bytes=$downloaded-',
+        },
         validateStatus: (s) => s != null && (s < 300 || s == 416),
       ),
     );
@@ -144,7 +153,7 @@ class CacheDownloadTask {
   Future<void> _complete(int total) async {
     if (!_total.isCompleted) _total.complete(total);
     // Windows 上读端短暂占用时 rename 可能失败, 稍后重试
-    for (var i = 0;; i++) {
+    for (var i = 0; ; i++) {
       try {
         await store.finalize(key, total);
         break;
@@ -162,7 +171,9 @@ class CacheDownloadTask {
     final range = res.headers.value('content-range');
     final m = range == null ? null : RegExp(r'/(\d+)$').firstMatch(range);
     if (m != null) return int.parse(m.group(1)!);
-    final len = int.tryParse(res.headers.value(Headers.contentLengthHeader) ?? '');
+    final len = int.tryParse(
+      res.headers.value(Headers.contentLengthHeader) ?? '',
+    );
     return len;
   }
 
@@ -182,18 +193,22 @@ class CacheDownloadTask {
         }
       }
       if (error != null) throw error!;
-      if (DateTime.now().difference(stalledSince) > const Duration(seconds: 30)) {
+      if (DateTime.now().difference(stalledSince) >
+          const Duration(seconds: 30)) {
         throw TimeoutException('cache download stalled');
       }
-      await _changes.stream.first
-          .timeout(const Duration(milliseconds: 500), onTimeout: () {});
+      await _changes.stream.first.timeout(
+        const Duration(milliseconds: 500),
+        onTimeout: () {},
+      );
     }
   }
 
   Future<Uint8List> _readAt(int pos, int n) async {
-    for (final file in done
-        ? [store.completeFile(key)]
-        : [store.tmpFile(key), store.completeFile(key)]) {
+    for (final file
+        in done
+            ? [store.completeFile(key)]
+            : [store.tmpFile(key), store.completeFile(key)]) {
       try {
         final raf = await file.open();
         try {

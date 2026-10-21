@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../core/logging/app_logger.dart';
 import '../../core/network/bili_http.dart';
 import '../../core/utils/result.dart';
 import '../../domain/entities/app_error.dart';
@@ -8,10 +9,7 @@ import '../../domain/entities/audio_track.dart';
 import 'audio_quality_selector.dart';
 
 /// 流选择结果 (M2.4)
-typedef StreamSelection = ({
-  StreamUrl stream,
-  bool downgradedForGuest,
-});
+typedef StreamSelection = ({StreamUrl stream, bool downgradedForGuest});
 
 /// Bilibili 音频流地址 API (M2.4)
 class BiliStreamApi {
@@ -46,6 +44,7 @@ class BiliStreamApi {
       final dash = data['dash'] as Map<String, dynamic>?;
 
       if (dash == null) {
+        AppLogger.w('playurl $bvid cid=$cid has no dash', tag: 'stream');
         return const Result.failure(AppError.unknown(message: 'No DASH data'));
       }
 
@@ -57,13 +56,19 @@ class BiliStreamApi {
       );
 
       if (selected == null) {
+        AppLogger.w(
+          'playurl $bvid cid=$cid no audio '
+          'candidates=${candidates.length} want=${quality.name}',
+          tag: 'stream',
+        );
         return const Result.failure(
           AppError.unknown(message: 'No audio streams'),
         );
       }
 
       final expiresAt = _extractExpiry(selected.url);
-      final downgradedForGuest = !loggedIn &&
+      final downgradedForGuest =
+          !loggedIn &&
           AudioQualitySelector.rank(quality) >
               AudioQualitySelector.rank(AudioQualitySelector.guestCap);
 
@@ -76,12 +81,25 @@ class BiliStreamApi {
         expiresAt: expiresAt,
       );
 
+      AppLogger.i(
+        'playurl $bvid cid=$cid want=${quality.name} '
+        'got=${selected.quality.name} loggedIn=$loggedIn '
+        'downgraded=$downgradedForGuest '
+        'candidates=${candidates.map((c) => c.quality.name).join(',')}',
+        tag: 'stream',
+      );
+
       return Result.success((
         stream: streamUrl,
         downgradedForGuest: downgradedForGuest,
       ));
     } on DioException catch (e) {
       final error = e.error;
+      AppLogger.e(
+        'playurl $bvid cid=$cid failed',
+        tag: 'stream',
+        error: error ?? e,
+      );
       if (error is AppError) {
         return Result.failure(error);
       }
@@ -89,6 +107,12 @@ class BiliStreamApi {
         AppError.network(message: 'Get stream URL failed', cause: e),
       );
     } catch (e, st) {
+      AppLogger.e(
+        'playurl $bvid cid=$cid failed',
+        tag: 'stream',
+        error: e,
+        stackTrace: st,
+      );
       return Result.failure(
         AppError.unknown(
           message: 'Stream URL error: $e',

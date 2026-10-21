@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../core/logging/app_logger.dart';
 import '../../data/repositories/repositories.dart';
 
 /// 搜索页状态 (M6.1)
@@ -69,10 +70,14 @@ class SearchController extends Notifier<SearchState> {
     final keyword = text.trim();
     if (keyword.isEmpty) {
       _generation++;
+      AppLogger.d('cleared', tag: 'search');
       state = const SearchState();
       return;
     }
-    if (keyword == state.keyword && state.items.isNotEmpty) return;
+    if (keyword == state.keyword && state.items.isNotEmpty) {
+      AppLogger.d('skip duplicate "$keyword"', tag: 'search');
+      return;
+    }
     _emptyFollows = 0;
     state = SearchState(keyword: keyword, loading: true);
     unawaited(ref.read(searchHistoryProvider.notifier).add(keyword));
@@ -93,13 +98,22 @@ class SearchController extends Notifier<SearchState> {
 
   Future<void> _load(int page) async {
     final gen = ++_generation;
+    final keyword = state.keyword;
+    AppLogger.d('load "$keyword" page=$page gen=$gen', tag: 'search');
     final result = await ref
         .read(searchRepositoryProvider)
         .search(state.keyword, page: page);
-    if (gen != _generation) return; // 已有更新的搜索, 丢弃过期结果
+    if (gen != _generation) {
+      AppLogger.d('stale result dropped page=$page gen=$gen', tag: 'search');
+      return; // 已有更新的搜索, 丢弃过期结果
+    }
     final data = result.valueOrNull;
     if (data == null) {
       _emptyFollows = 0;
+      AppLogger.w(
+        'load failed "$keyword" page=$page error=${result.errorOrNull}',
+        tag: 'search',
+      );
       state = state.copyWith(loading: false, error: () => result.errorOrNull);
       return;
     }
@@ -117,6 +131,10 @@ class SearchController extends Notifier<SearchState> {
       return;
     }
     _emptyFollows++;
+    AppLogger.d(
+      'empty page, follow $_emptyFollows/$_maxEmptyFollows',
+      tag: 'search',
+    );
     await _load(data.page + 1);
   }
 }

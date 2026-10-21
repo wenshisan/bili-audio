@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../core/logging/app_logger.dart';
 import '../../core/utils/result.dart';
 import '../../data/db/app_database.dart' as db;
 import '../../domain/entities/app_error.dart';
@@ -34,7 +35,18 @@ class PlayerActions {
   Future<Result<void>> playVideo(String bvid, {int? cid}) async {
     final result = await tracksOf(bvid, cid: cid);
     final tracks = result.valueOrNull;
-    if (tracks == null) return Result.failure(result.errorOrNull!);
+    if (tracks == null) {
+      AppLogger.w(
+        'play $bvid cid=$cid failed: ${result.errorOrNull}',
+        tag: 'player',
+      );
+      return Result.failure(result.errorOrNull!);
+    }
+    AppLogger.i(
+      'play $bvid cid=$cid tracks=${tracks.length} '
+      '[${tracks.map((t) => '${t.pageIndex ?? 1}:${t.title}').join(' | ')}]',
+      tag: 'player',
+    );
     await _ref.read(audioHandlerProvider).setTracks(tracks);
     return const Result.success(null);
   }
@@ -45,11 +57,16 @@ class PlayerActions {
     int index = 0,
     bool shuffle = false,
   }) async {
+    AppLogger.i(
+      'playList count=${tracks.length} index=$index shuffle=$shuffle',
+      tag: 'player',
+    );
     final handler = ref(audioHandlerProvider);
-    await handler.setTracks(tracks, startIndex: index);
-    if (shuffle) {
-      handler.setPlayMode(PlayMode.shuffle);
-    }
+    await handler.setTracks(
+      tracks,
+      startIndex: index,
+      mode: shuffle ? PlayMode.shuffle : null,
+    );
   }
 
   Future<Result<void>> playNext(String bvid, {int? cid}) =>
@@ -64,7 +81,18 @@ class PlayerActions {
   }) async {
     final result = await tracksOf(bvid, cid: cid);
     final tracks = result.valueOrNull;
-    if (tracks == null) return Result.failure(result.errorOrNull!);
+    if (tracks == null) {
+      AppLogger.w(
+        '${next ? 'playNext' : 'append'} $bvid cid=$cid failed: '
+        '${result.errorOrNull}',
+        tag: 'player',
+      );
+      return Result.failure(result.errorOrNull!);
+    }
+    AppLogger.i(
+      '${next ? 'playNext' : 'append'} $bvid cid=$cid tracks=${tracks.length}',
+      tag: 'player',
+    );
     final handler = ref(audioHandlerProvider);
     if (handler.currentTrack == null) {
       await handler.setTracks(tracks);

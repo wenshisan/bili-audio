@@ -9,12 +9,14 @@ import 'package:tray_manager/tray_manager.dart';
 
 import 'app/app.dart';
 import 'app/bootstrap.dart';
+import 'core/logging/app_logger.dart';
 import 'core/storage/path_manager.dart';
 
 /// 单实例通道: 当第二个实例启动并检测到已有实例运行时, 原生层会向本实例
 /// 发送 "showMainWindow" 调用
-const MethodChannel _singleInstanceChannel =
-    MethodChannel('bili_audio/single_instance');
+const MethodChannel _singleInstanceChannel = MethodChannel(
+  'bili_audio/single_instance',
+);
 
 Future<void> _initSingleInstanceChannel() async {
   _singleInstanceChannel.setMethodCallHandler((call) async {
@@ -86,8 +88,13 @@ Future<void> initSystemTray() async {
     await trayManager.setToolTip('哔哩哔哩音频播放器');
     await _updateTrayMenu();
     trayManager.addListener(_TrayHandler());
-  } catch (e) {
-    debugPrint('System Tray initialization failed: $e');
+  } catch (e, st) {
+    AppLogger.e(
+      'system tray init failed',
+      tag: 'boot',
+      error: e,
+      stackTrace: st,
+    );
   }
 }
 
@@ -96,48 +103,69 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final rootZone = Zone.current;
 
-  runZonedGuarded(() {
-    FlutterError.onError = (details) {
-      FlutterError.presentError(details);
-      debugPrint('[FlutterError] ${details.exceptionAsString()}\n${details.stack}');
-    };
+  runZonedGuarded(
+    () {
+      FlutterError.onError = (details) {
+        FlutterError.presentError(details);
+        final where = '${details.context ?? ''}';
+        final building = where.contains('building');
+        AppLogger.e(
+          building ? 'page build failed ($where)' : details.exceptionAsString(),
+          tag: building ? 'nav' : 'flutter',
+          error: details.exception,
+          stackTrace: details.stack,
+        );
+      };
 
-    PlatformDispatcher.instance.onError = (error, stack) {
-      debugPrint('[PlatformError] $error\n$stack');
+      PlatformDispatcher.instance.onError = (error, stack) {
+        AppLogger.e(
+          'platform error',
+          tag: 'flutter',
+          error: error,
+          stackTrace: stack,
+        );
+        rootZone.run(() => _showBootError(error, stack));
+        return true;
+      };
+
+      _runApp(rootZone).catchError((Object e, StackTrace st) {
+        AppLogger.e('boot failed', tag: 'boot', error: e, stackTrace: st);
+        rootZone.run(() => _showBootError(e, st));
+      });
+    },
+    (error, stack) {
+      AppLogger.e('zone error', tag: 'boot', error: error, stackTrace: stack);
       rootZone.run(() => _showBootError(error, stack));
-      return true;
-    };
-
-    _runApp(rootZone).catchError((Object e, StackTrace st) {
-      debugPrint('[FATAL boot] $e\n$st');
-      rootZone.run(() => _showBootError(e, st));
-    });
-  }, (error, stack) {
-    debugPrint('[FATAL zone error] $error\n$stack');
-    rootZone.run(() => _showBootError(error, stack));
-  });
+    },
+  );
 }
 
 void _showBootError(Object error, StackTrace? stack) {
   try {
     runApp(_BootErrorScreen(error: error, stack: stack));
-  } catch (_) {
-    debugPrint('[FATAL] unable to show error screen: $error');
+  } catch (caught, st) {
+    AppLogger.e(
+      'unable to show error screen',
+      tag: 'boot',
+      error: caught,
+      stackTrace: st,
+    );
   }
 }
 
 Future<void> _runApp(Zone rootZone) async {
-  debugPrint('[boot] main() entered, kIsWeb=$kIsWeb');
+  AppLogger.i('main entered, kIsWeb=$kIsWeb', tag: 'boot');
 
   // 注册单实例通道
   await _initSingleInstanceChannel();
 
-  // 初始化路径管理
+  // 初始化路径管理与日志文件
   await PathManager.init();
+  await AppLogger.init(PathManager.logsDir);
 
   // 桌面端窗口设置
   if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
-    debugPrint('[boot] initializing window_manager…');
+    AppLogger.i('initializing window_manager', tag: 'boot');
     await windowManager.ensureInitialized();
 
     const WindowOptions windowOptions = WindowOptions(
@@ -154,26 +182,21 @@ Future<void> _runApp(Zone rootZone) async {
       await windowManager.show();
       await windowManager.focus();
     });
-    debugPrint('[boot] window shown');
+    AppLogger.i('window shown', tag: 'boot');
 
     // 初始化系统托盘
     await initSystemTray();
-    debugPrint('[boot] tray initialized');
+    AppLogger.i('tray initialized', tag: 'boot');
   }
 
   // 数据库 / 网络 / 播放器等全局依赖 (M6)
   final overrides = await bootstrap();
-  debugPrint('[boot] dependencies ready');
+  AppLogger.i('dependencies ready', tag: 'boot');
 
   rootZone.run(() {
-    runApp(
-      ProviderScope(
-        overrides: overrides,
-        child: const BiliAudioApp(),
-      ),
-    );
+    runApp(ProviderScope(overrides: overrides, child: const BiliAudioApp()));
   });
-  debugPrint('[boot] runApp returned');
+  AppLogger.i('runApp returned', tag: 'boot');
 }
 
 /// 启动期致命错误显示页
@@ -197,7 +220,11 @@ class _BootErrorScreen extends StatelessWidget {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.error_outline, color: Color(0xFFFF6B6B), size: 28),
+                    Icon(
+                      Icons.error_outline,
+                      color: Color(0xFFFF6B6B),
+                      size: 28,
+                    ),
                     SizedBox(width: 12),
                     Text(
                       '启动失败 / Startup Failed',

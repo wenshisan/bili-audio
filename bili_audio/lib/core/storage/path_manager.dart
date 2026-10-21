@@ -15,7 +15,9 @@ class PathManager {
   static Directory get audioDir => Directory('${_cacheRoot.path}/audio');
   static Directory get coversDir => Directory('${_cacheRoot.path}/covers');
   static Directory get lyricsDir => Directory('${_supportRoot.path}/lyrics');
-  static File get databaseFile => File('${_supportRoot.path}/bili_audio.sqlite');
+  static Directory get logsDir => Directory('${_supportRoot.path}/logs');
+  static File get databaseFile =>
+      File('${_supportRoot.path}/bili_audio.sqlite');
 
   static Future<void> init({String? customCacheRoot}) async {
     _supportRoot = await getApplicationSupportDirectory();
