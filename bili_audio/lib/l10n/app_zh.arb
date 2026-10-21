@@ -17,7 +17,13 @@
   "errorNotFound": "视频不存在或不可播放",
   "errorCopyright": "该视频因版权限制无法播放",
   "errorUnknown": "出错了：{message}",
-  "@errorUnknown": {"placeholders": {"message": {"type": "String"}}},
+  "@errorUnknown": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "retry": "重试",
   "cancel": "取消",
   "confirm": "确定",
@@ -28,11 +34,35 @@
   "actionAddToQueue": "加入播放队列",
   "addedToQueue": "已加入播放队列",
   "addedToPlaylist": "已加入「{name}」",
-  "@addedToPlaylist": {"placeholders": {"name": {"type": "String"}}},
+  "@addedToPlaylist": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "playCount": "{count} 次播放",
-  "@playCount": {"placeholders": {"count": {"type": "int"}}},
+  "@playCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "pageInfo": "P{index}/{total}：{title}",
-  "@pageInfo": {"placeholders": {"index": {"type": "int"}, "total": {"type": "int"}, "title": {"type": "String"}}},
+  "@pageInfo": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "nothingPlaying": "暂无播放",
   "modeSequential": "顺序播放",
   "modeListLoop": "列表循环",
@@ -51,11 +81,23 @@
   "playerLyricsPlaceholder": "暂无歌词",
   "sleepOff": "关闭",
   "sleepMinutes": "{minutes} 分钟",
-  "@sleepMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "@sleepMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "sleepAfterCurrent": "播完当前",
   "sleepAfterNext": "播完下一首",
   "sleepRemaining": "{time} 后停止",
-  "@sleepRemaining": {"placeholders": {"time": {"type": "String"}}},
+  "@sleepRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "fieldSongName": "歌名",
   "fieldArtist": "歌手",
   "originalTitle": "原始标题",
@@ -63,10 +105,22 @@
   "libraryCreate": "新建歌单",
   "libraryRename": "重命名",
   "libraryDeleteConfirm": "删除歌单「{name}」？",
-  "@libraryDeleteConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@libraryDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "playlistName": "歌单名称",
   "playlistTrackCount": "{count} 首",
-  "@playlistTrackCount": {"placeholders": {"count": {"type": "int"}}},
+  "@playlistTrackCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "playlistPlayAll": "播放全部",
   "playlistShuffle": "随机播放",
   "playlistEmpty": "歌单里还没有歌曲",
@@ -86,7 +140,16 @@
   "settingsCache": "缓存",
   "settingsCacheLimit": "缓存上限",
   "settingsCacheUsage": "已用 {used} / {limit}",
-  "@settingsCacheUsage": {"placeholders": {"used": {"type": "String"}, "limit": {"type": "String"}}},
+  "@settingsCacheUsage": {
+    "placeholders": {
+      "used": {
+        "type": "String"
+      },
+      "limit": {
+        "type": "String"
+      }
+    }
+  },
   "settingsCacheManage": "管理缓存",
   "settingsAppearance": "外观",
   "settingsThemeMode": "主题模式",
@@ -99,9 +162,53 @@
   "settingsLicenses": "开源许可",
   "cacheTitle": "缓存管理",
   "cacheSummary": "已缓存 {count} 首，共 {size}",
-  "@cacheSummary": {"placeholders": {"count": {"type": "int"}, "size": {"type": "String"}}},
+  "@cacheSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "cacheClearAll": "清空未收藏的缓存",
   "cacheClearConfirm": "将删除所有未加入歌单的缓存文件",
   "cacheCleared": "已清理 {count} 个文件",
-  "@cacheCleared": {"placeholders": {"count": {"type": "int"}}}
+  "@cacheCleared": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lyricsLoading": "正在匹配歌词…",
+  "lyricsUncertain": "找到可能的歌词，请确认",
+  "lyricsPick": "选择歌词",
+  "lyricsNoLyrics": "无歌词",
+  "lyricsMarkNone": "标记为无歌词",
+  "lyricsRematch": "重新匹配",
+  "lyricsOffset": "歌词偏移",
+  "lyricsOffsetValue": "{seconds} 秒",
+  "@lyricsOffsetValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
+  "lyricsCandidate": "{title} - {artist}（{score}%）",
+  "@lyricsCandidate": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "artist": {
+        "type": "String"
+      },
+      "score": {
+        "type": "int"
+      }
+    }
+  }
 }

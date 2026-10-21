@@ -9,6 +9,8 @@ import '../../domain/queue/playback_queue.dart';
 import '../../l10n/l10n.dart';
 import '../common/add_to_playlist_sheet.dart';
 import '../common/cover_image.dart';
+import '../lyrics/lyrics_controller.dart';
+import '../lyrics/lyrics_view.dart';
 
 final sleepStateProvider = StreamProvider<SleepState>((ref) {
   final timer = ref.watch(audioHandlerProvider).sleepTimer;
@@ -46,7 +48,7 @@ class PlayerPage extends ConsumerWidget {
               child: LayoutBuilder(builder: (context, c) {
                 final wide = c.maxWidth > 720;
                 final cover = _CoverSection(item: item);
-                const lyrics = _LyricsPlaceholder();
+                const lyrics = LyricsView();
                 return Column(
                   children: [
                     Expanded(
@@ -121,19 +123,6 @@ class _CoverSection extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// 歌词区占位: 歌词接入见 M5
-class _LyricsPlaceholder extends StatelessWidget {
-  const _LyricsPlaceholder();
-
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Text(
-          context.l10n.playerLyricsPlaceholder,
-          style: TextStyle(color: Theme.of(context).colorScheme.outline),
-        ),
-      );
 }
 
 class _ProgressBar extends ConsumerStatefulWidget {
@@ -435,5 +424,7 @@ class _MoreMenu extends ConsumerWidget {
     handler.updateCurrentTrack(
       track.copyWith(cleanedName: newName, artist: newArtist),
     );
+    // 歌名变化后清除歌词缓存并按新歌名重新匹配
+    await ref.read(lyricsControllerProvider.notifier).rematch();
   }
 }

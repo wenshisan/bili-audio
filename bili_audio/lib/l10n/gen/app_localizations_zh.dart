@@ -308,4 +308,35 @@ class AppLocalizationsZh extends AppLocalizations {
   String cacheCleared(int count) {
     return '已清理 $count 个文件';
   }
+
+  @override
+  String get lyricsLoading => '正在匹配歌词…';
+
+  @override
+  String get lyricsUncertain => '找到可能的歌词，请确认';
+
+  @override
+  String get lyricsPick => '选择歌词';
+
+  @override
+  String get lyricsNoLyrics => '无歌词';
+
+  @override
+  String get lyricsMarkNone => '标记为无歌词';
+
+  @override
+  String get lyricsRematch => '重新匹配';
+
+  @override
+  String get lyricsOffset => '歌词偏移';
+
+  @override
+  String lyricsOffsetValue(String seconds) {
+    return '$seconds 秒';
+  }
+
+  @override
+  String lyricsCandidate(String title, String artist, int score) {
+    return '$title - $artist（$score%）';
+  }
 }

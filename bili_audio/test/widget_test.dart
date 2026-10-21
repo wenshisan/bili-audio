@@ -7,13 +7,35 @@ import 'package:bili_audio/data/audio/audio_cache_store.dart';
 import 'package:bili_audio/data/audio/cache_download_manager.dart';
 import 'package:bili_audio/data/db/app_database.dart';
 import 'package:bili_audio/data/player/bili_audio_handler.dart';
+import 'package:bili_audio/data/lyrics/lyrics_manager.dart';
 import 'package:bili_audio/data/repositories/fake_repositories.dart';
+import 'package:bili_audio/domain/lyrics/lrc_parser.dart';
+import 'package:bili_audio/domain/lyrics/lyrics_provider.dart';
+import 'package:bili_audio/features/lyrics/lyrics_controller.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'data/player/fakes.dart';
+
+const _lrc = '[00:00.00]窗外的麻雀\n[00:05.00]在电线杆上多嘴';
+
+class _FixedLyrics implements LyricsProvider {
+  @override
+  String get name => 'fixed';
+  @override
+  int get priority => 0;
+  @override
+  Future<List<LyricsCandidate>> search(LyricsQuery q) async => [
+        LyricsCandidate(
+          lyrics: LrcParser.parse(_lrc),
+          source: name,
+          matchScore: 0.95,
+          lrcText: _lrc,
+        ),
+      ];
+}
 
 void main() {
   late AppDatabase db;
@@ -48,6 +70,9 @@ void main() {
               .overrideWithValue(FakeSearchRepository(latency: Duration.zero)),
           videoRepositoryProvider.overrideWithValue(FakeVideoRepository()),
           audioHandlerProvider.overrideWithValue(handler),
+          lyricsManagerProvider.overrideWithValue(
+            LyricsManager(db, dir, providers: [_FixedLyrics()]),
+          ),
         ],
         child: const BiliAudioApp(),
       );

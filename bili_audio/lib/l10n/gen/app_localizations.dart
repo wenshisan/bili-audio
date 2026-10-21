@@ -651,6 +651,60 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已清理 {count} 个文件'**
   String cacheCleared(int count);
+
+  /// No description provided for @lyricsLoading.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在匹配歌词…'**
+  String get lyricsLoading;
+
+  /// No description provided for @lyricsUncertain.
+  ///
+  /// In zh, this message translates to:
+  /// **'找到可能的歌词，请确认'**
+  String get lyricsUncertain;
+
+  /// No description provided for @lyricsPick.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择歌词'**
+  String get lyricsPick;
+
+  /// No description provided for @lyricsNoLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'无歌词'**
+  String get lyricsNoLyrics;
+
+  /// No description provided for @lyricsMarkNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'标记为无歌词'**
+  String get lyricsMarkNone;
+
+  /// No description provided for @lyricsRematch.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新匹配'**
+  String get lyricsRematch;
+
+  /// No description provided for @lyricsOffset.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词偏移'**
+  String get lyricsOffset;
+
+  /// No description provided for @lyricsOffsetValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'{seconds} 秒'**
+  String lyricsOffsetValue(String seconds);
+
+  /// No description provided for @lyricsCandidate.
+  ///
+  /// In zh, this message translates to:
+  /// **'{title} - {artist}（{score}%）'**
+  String lyricsCandidate(String title, String artist, int score);
 }
 
 class _AppLocalizationsDelegate

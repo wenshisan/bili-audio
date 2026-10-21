@@ -18,6 +18,8 @@ import '../data/bili/bili_search_api.dart';
 import '../data/bili/bili_stream_api.dart';
 import '../data/bili/bili_video_api.dart';
 import '../data/db/app_database.dart';
+import '../data/lyrics/lrclib_provider.dart';
+import '../data/lyrics/lyrics_manager.dart';
 import '../data/player/audio_engine.dart';
 import '../data/player/bili_audio_handler.dart';
 import '../data/player/queue_snapshot_store.dart';
@@ -27,6 +29,7 @@ import '../domain/entities/audio_track.dart';
 import '../domain/title/title_cleaner.dart';
 import 'platform/desktop_platform.dart';
 import 'theme.dart';
+import '../features/lyrics/lyrics_controller.dart';
 import 'providers.dart';
 
 /// 构建真实依赖并返回 ProviderScope overrides (M6)
@@ -125,8 +128,15 @@ Future<List<Override>> bootstrap() async {
     await db.settingsDao.getThemeSeed(),
   );
 
+  final lyricsManager = LyricsManager(
+    db,
+    PathManager.lyricsDir,
+    providers: [LrclibProvider()],
+  );
+
   return [
     databaseProvider.overrideWithValue(db),
+    lyricsManagerProvider.overrideWithValue(lyricsManager),
     initialThemeProvider.overrideWithValue(initialTheme),
     themeSaverProvider.overrideWithValue((theme) async {
       final (mode, seed) = theme.encode();
