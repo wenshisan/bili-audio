@@ -57,8 +57,9 @@ Future<List<Override>> bootstrap() async {
     wbiKeyManager: WbiKeyManager(() async {
       // 未登录时 code=-101, 但 wbi_img 仍然返回
       final res = await raw.get<Map<String, dynamic>>('/x/web-interface/nav');
-      final img = (res.data!['data'] as Map<String, dynamic>)['wbi_img']
-          as Map<String, dynamic>;
+      final img =
+          (res.data!['data'] as Map<String, dynamic>)['wbi_img']
+              as Map<String, dynamic>;
       return (img['img_url'] as String, img['sub_url'] as String);
     }),
   );
@@ -87,26 +88,26 @@ Future<List<Override>> bootstrap() async {
   );
 
   BiliAudioHandler build() => BiliAudioHandler(
-        engine: JustAudioEngine(),
-        streams: BiliStreamRepository(
-          StreamUrlManager(db, BiliStreamApi(http)),
+    engine: JustAudioEngine(),
+    streams: BiliStreamRepository(StreamUrlManager(db, BiliStreamApi(http))),
+    downloads: downloads,
+    snapshots: QueueSnapshotStore(db),
+    recorder: (track) async {
+      await db.tracksDao.ensureTrack(
+        TracksCompanion.insert(
+          bvid: track.bvid,
+          cid: track.cid,
+          title: track.title,
+          duration: track.duration.inSeconds,
         ),
-        downloads: downloads,
-        snapshots: QueueSnapshotStore(db),
-        recorder: (track) async {
-          await db.tracksDao.ensureTrack(TracksCompanion.insert(
-            bvid: track.bvid,
-            cid: track.cid,
-            title: track.title,
-            duration: track.duration.inSeconds,
-          ));
-          final id = await db.historyDao.start(track.bvid, track.cid);
-          return (Duration p) =>
-              unawaited(db.historyDao.updateProgress(id, p, track.duration));
-        },
-        quality: () => prefs.quality,
-        loggedIn: () => prefs.loggedIn,
       );
+      final id = await db.historyDao.start(track.bvid, track.cid);
+      return (Duration p) =>
+          unawaited(db.historyDao.updateProgress(id, p, track.duration));
+    },
+    quality: () => prefs.quality,
+    loggedIn: () => prefs.loggedIn,
+  );
 
   // audio_service 不支持 Windows/Linux (D3): 直接构造, Windows 另接 SMTC
   final BiliAudioHandler handler;
@@ -136,6 +137,8 @@ Future<List<Override>> bootstrap() async {
     providers: [LrclibProvider()],
   );
 
+  final videoApi = BiliVideoApi(http);
+
   return [
     databaseProvider.overrideWithValue(db),
     lyricsManagerProvider.overrideWithValue(lyricsManager),
@@ -146,10 +149,15 @@ Future<List<Override>> bootstrap() async {
       await db.settingsDao.setBatch({'theme_mode': mode, 'theme_seed': seed});
     }),
     playbackPrefsProvider.overrideWithValue(prefs),
-    searchRepositoryProvider
-        .overrideWithValue(BiliSearchRepository(BiliSearchApi(http), cleaner)),
+    searchRepositoryProvider.overrideWithValue(
+      BiliSearchRepository(
+        BiliSearchApi(http),
+        cleaner,
+        pageList: videoApi.getPageList,
+      ),
+    ),
     videoRepositoryProvider.overrideWithValue(
-      BiliVideoRepository(db, BiliVideoApi(http), cleaner),
+      BiliVideoRepository(db, videoApi, cleaner),
     ),
     audioHandlerProvider.overrideWithValue(handler),
   ];

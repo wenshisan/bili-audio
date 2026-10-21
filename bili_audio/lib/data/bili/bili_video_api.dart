@@ -76,6 +76,42 @@ class BiliVideoApi {
     }
   }
 
+  /// 分P列表，不过滤时长。搜索结果据此把多 P 拆开。
+  Future<Result<List<VideoPage>>> getPageList(String bvid) async {
+    try {
+      final response = await _http.dio.get<Map<String, dynamic>>(
+        '/x/player/pagelist',
+        queryParameters: {'bvid': bvid},
+      );
+
+      final data = response.data!['data'] as List<dynamic>?;
+      if (data == null || data.isEmpty) {
+        return const Result.failure(AppError.notFound());
+      }
+
+      final pages = data
+          .map((p) => _parsePageInfo(p as Map<String, dynamic>))
+          .whereType<VideoPage>()
+          .toList();
+      if (pages.isEmpty) return const Result.failure(AppError.notFound());
+      return Result.success(pages);
+    } on DioException catch (e) {
+      final error = e.error;
+      if (error is AppError) return Result.failure(error);
+      return Result.failure(
+        AppError.network(message: 'Get page list failed', cause: e),
+      );
+    } catch (e, st) {
+      return Result.failure(
+        AppError.unknown(
+          message: 'Page list error: $e',
+          cause: e,
+          stackTrace: st,
+        ),
+      );
+    }
+  }
+
   /// 获取视频标签
   Future<Result<List<String>>> getVideoTags(String bvid) async {
     try {
@@ -85,7 +121,8 @@ class BiliVideoApi {
       );
 
       final data = response.data!['data'] as List<dynamic>?;
-      final tags = data
+      final tags =
+          data
               ?.map((t) => (t as Map<String, dynamic>)['tag_name'] as String?)
               .where((t) => t != null)
               .cast<String>()

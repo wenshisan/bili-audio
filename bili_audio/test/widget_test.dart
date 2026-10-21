@@ -28,13 +28,13 @@ class _FixedLyrics implements LyricsProvider {
   int get priority => 0;
   @override
   Future<List<LyricsCandidate>> search(LyricsQuery q) async => [
-        LyricsCandidate(
-          lyrics: LrcParser.parse(_lrc),
-          source: name,
-          matchScore: 0.95,
-          lrcText: _lrc,
-        ),
-      ];
+    LyricsCandidate(
+      lyrics: LrcParser.parse(_lrc),
+      source: name,
+      matchScore: 0.95,
+      lrcText: _lrc,
+    ),
+  ];
 }
 
 void main() {
@@ -64,18 +64,19 @@ void main() {
   });
 
   Widget app() => ProviderScope(
-        overrides: [
-          databaseProvider.overrideWithValue(db),
-          searchRepositoryProvider
-              .overrideWithValue(FakeSearchRepository(latency: Duration.zero)),
-          videoRepositoryProvider.overrideWithValue(FakeVideoRepository()),
-          audioHandlerProvider.overrideWithValue(handler),
-          lyricsManagerProvider.overrideWithValue(
-            LyricsManager(db, dir, providers: [_FixedLyrics()]),
-          ),
-        ],
-        child: const BiliAudioApp(),
-      );
+    overrides: [
+      databaseProvider.overrideWithValue(db),
+      searchRepositoryProvider.overrideWithValue(
+        FakeSearchRepository(latency: Duration.zero),
+      ),
+      videoRepositoryProvider.overrideWithValue(FakeVideoRepository()),
+      audioHandlerProvider.overrideWithValue(handler),
+      lyricsManagerProvider.overrideWithValue(
+        LyricsManager(db, dir, providers: [_FixedLyrics()]),
+      ),
+    ],
+    child: const BiliAudioApp(),
+  );
 
   testWidgets('启动显示搜索页; 无播放时隐藏迷你播放栏', (tester) async {
     await tester.pumpWidget(app());
@@ -86,7 +87,7 @@ void main() {
     expect(find.byIcon(Icons.queue_music), findsNothing);
   });
 
-  testWidgets('搜索 → 显示清洗后标题, 超长视频灰显; 点击开始播放', (tester) async {
+  testWidgets('搜索 → 显示清洗后标题; 点击开始播放', (tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
 
@@ -103,6 +104,18 @@ void main() {
     expect(engine.playing, true);
     // 迷你播放栏出现, 显示当前曲
     expect(find.text('七里香'), findsWidgets);
+  });
+
+  testWidgets('超过 15 分钟的搜索结果不显示', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '录播');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(find.text('没有找到相关结果'), findsOneWidget);
+    expect(find.textContaining('超长'), findsNothing);
   });
 
   testWidgets('底部导航切换到歌单页', (tester) async {
@@ -141,14 +154,19 @@ void main() {
     expect(back.mode, ThemeMode.dark);
     expect(back.seed, const Color(0xFF00AEEC));
     // M0.3 默认值写的是 0xFF2196F3
-    expect(ThemeState.decode('system', '0xFF2196F3').seed, const Color(0xFF2196F3));
+    expect(
+      ThemeState.decode('system', '0xFF2196F3').seed,
+      const Color(0xFF2196F3),
+    );
     expect(ThemeState.decode(null, 'garbage').seed, presetSeeds.first);
 
     final saved = <ThemeState>[];
-    final container = ProviderContainer(overrides: [
-      initialThemeProvider.overrideWithValue(back),
-      themeSaverProvider.overrideWithValue((t) async => saved.add(t)),
-    ]);
+    final container = ProviderContainer(
+      overrides: [
+        initialThemeProvider.overrideWithValue(back),
+        themeSaverProvider.overrideWithValue((t) async => saved.add(t)),
+      ],
+    );
     addTearDown(container.dispose);
     expect(container.read(themeControllerProvider).mode, ThemeMode.dark);
     container.read(themeControllerProvider.notifier).setMode(ThemeMode.light);

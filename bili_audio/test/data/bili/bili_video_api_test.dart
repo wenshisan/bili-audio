@@ -21,10 +21,12 @@ void main() {
       dio: dio,
       store: MemorySecureStore(),
       buvidManager: BuvidManager(MemorySecureStore(), () async => ('B3', 'B4')),
-      wbiKeyManager: WbiKeyManager(() async => (
-            'https://i0.hdslb.com/bfs/wbi/7cd084941338484aae1ad9425b84077c.png',
-            'https://i0.hdslb.com/bfs/wbi/4932caff0ff746eab6f01bf08b70ac45.png',
-          )),
+      wbiKeyManager: WbiKeyManager(
+        () async => (
+          'https://i0.hdslb.com/bfs/wbi/7cd084941338484aae1ad9425b84077c.png',
+          'https://i0.hdslb.com/bfs/wbi/4932caff0ff746eab6f01bf08b70ac45.png',
+        ),
+      ),
     );
 
     videoApi = BiliVideoApi(http);
@@ -154,6 +156,26 @@ void main() {
 
       expect(result.isSuccess, true);
       expect(result.valueOrNull, isEmpty);
+    });
+
+    test('分P列表保留超长分P', () async {
+      adapter.onGet(
+        '/x/player/pagelist',
+        (server) => server.reply(200, {
+          'code': 0,
+          'data': [
+            {'cid': 11, 'page': 1, 'part': '稻香', 'duration': 240},
+            {'cid': 12, 'page': 2, 'part': '现场', 'duration': 1200},
+          ],
+        }),
+      );
+
+      final result = await videoApi.getPageList('BV1xx411c7mD');
+
+      expect(result.isSuccess, true);
+      final pages = result.valueOrNull!;
+      expect(pages.map((p) => p.cid), [11, 12]);
+      expect(pages[1].duration.inSeconds, 1200);
     });
 
     test('业务错误返回 Failure', () async {

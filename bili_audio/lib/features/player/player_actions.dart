@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../core/utils/result.dart';
 import '../../data/db/app_database.dart' as db;
+import '../../domain/entities/app_error.dart';
 import '../../domain/entities/audio_track.dart';
 import '../../domain/queue/playback_queue.dart';
 
@@ -17,12 +18,21 @@ class PlayerActions {
   final Ref _ref;
 
   /// 解析视频分P; 搜索结果点击 / 长按菜单共用
-  Future<Result<List<Track>>> tracksOf(String bvid) =>
-      _ref.read(videoRepositoryProvider).getTracks(bvid);
+  ///
+  /// 传入 [cid] 时只返回这一 P。
+  Future<Result<List<Track>>> tracksOf(String bvid, {int? cid}) async {
+    final result = await _ref.read(videoRepositoryProvider).getTracks(bvid);
+    if (cid == null) return result;
+    final tracks = result.valueOrNull;
+    if (tracks == null) return Result.failure(result.errorOrNull!);
+    final match = tracks.where((t) => t.cid == cid).toList();
+    if (match.isEmpty) return const Result.failure(AppError.notFound());
+    return Result.success(match);
+  }
 
-  /// 播放视频: 多P视频把所有分P作为队列 (分P连续)
-  Future<Result<void>> playVideo(String bvid) async {
-    final result = await tracksOf(bvid);
+  /// 播放视频。指定 [cid] 时只播放这一 P，否则多 P 连续入队。
+  Future<Result<void>> playVideo(String bvid, {int? cid}) async {
+    final result = await tracksOf(bvid, cid: cid);
     final tracks = result.valueOrNull;
     if (tracks == null) return Result.failure(result.errorOrNull!);
     await _ref.read(audioHandlerProvider).setTracks(tracks);
@@ -42,11 +52,17 @@ class PlayerActions {
     }
   }
 
-  Future<Result<void>> playNext(String bvid) => _enqueue(bvid, next: true);
-  Future<Result<void>> addToQueue(String bvid) => _enqueue(bvid, next: false);
+  Future<Result<void>> playNext(String bvid, {int? cid}) =>
+      _enqueue(bvid, next: true, cid: cid);
+  Future<Result<void>> addToQueue(String bvid, {int? cid}) =>
+      _enqueue(bvid, next: false, cid: cid);
 
-  Future<Result<void>> _enqueue(String bvid, {required bool next}) async {
-    final result = await tracksOf(bvid);
+  Future<Result<void>> _enqueue(
+    String bvid, {
+    required bool next,
+    int? cid,
+  }) async {
+    final result = await tracksOf(bvid, cid: cid);
     final tracks = result.valueOrNull;
     if (tracks == null) return Result.failure(result.errorOrNull!);
     final handler = ref(audioHandlerProvider);
@@ -79,34 +95,34 @@ class PlayerActions {
   T ref<T>(Provider<T> p) => _ref.read(p);
 
   static db.TracksCompanion _companion(Track t) => db.TracksCompanion.insert(
-        bvid: t.bvid,
-        cid: t.cid,
-        title: t.title,
-        cleanedName: Value(t.cleanedName),
-        artist: Value(t.artist),
-        duration: t.duration.inSeconds,
-        cover: Value(t.cover),
-        uploader: Value(t.uploader),
-        pageIndex: Value(t.pageIndex),
-        totalPages: Value(t.totalPages),
-      );
+    bvid: t.bvid,
+    cid: t.cid,
+    title: t.title,
+    cleanedName: Value(t.cleanedName),
+    artist: Value(t.artist),
+    duration: t.duration.inSeconds,
+    cover: Value(t.cover),
+    uploader: Value(t.uploader),
+    pageIndex: Value(t.pageIndex),
+    totalPages: Value(t.totalPages),
+  );
 }
 
 final playerActionsProvider = Provider(PlayerActions.new);
 
 /// drift 行 → 领域实体
 Track trackFromRow(db.Track row) => Track(
-      bvid: row.bvid,
-      cid: row.cid,
-      title: row.title,
-      cleanedName: row.cleanedName,
-      artist: row.artist,
-      duration: Duration(seconds: row.duration),
-      cover: row.cover,
-      uploader: row.uploader,
-      pageIndex: row.pageIndex,
-      totalPages: row.totalPages,
-    );
+  bvid: row.bvid,
+  cid: row.cid,
+  title: row.title,
+  cleanedName: row.cleanedName,
+  artist: row.artist,
+  duration: Duration(seconds: row.duration),
+  cover: row.cover,
+  uploader: row.uploader,
+  pageIndex: row.pageIndex,
+  totalPages: row.totalPages,
+);
 
 /// M7.3 辅助: 首次因未登录降级时弹窗提示 (非阻塞)
 void promptLoginIfDowngraded(
@@ -121,12 +137,14 @@ void promptLoginIfDowngraded(
   await db.settingsDao.set('login_prompt_shown', 'true');
   if (!context.mounted) return;
   final l10n = context.l10n;
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    content: Text(l10n.loginPrompt),
-    action: SnackBarAction(
-      label: l10n.loginTitle,
-      onPressed: () => context.push('/login'),
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(l10n.loginPrompt),
+      action: SnackBarAction(
+        label: l10n.loginTitle,
+        onPressed: () => context.push('/login'),
+      ),
+      duration: const Duration(seconds: 6),
     ),
-    duration: const Duration(seconds: 6),
-  ));
+  );
 }

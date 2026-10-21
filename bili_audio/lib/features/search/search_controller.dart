@@ -31,21 +31,25 @@ class SearchState {
     bool? hasMore,
     bool? loading,
     Object? Function()? error,
-  }) =>
-      SearchState(
-        keyword: keyword ?? this.keyword,
-        items: items ?? this.items,
-        page: page ?? this.page,
-        hasMore: hasMore ?? this.hasMore,
-        loading: loading ?? this.loading,
-        error: error != null ? error() : this.error,
-      );
+  }) => SearchState(
+    keyword: keyword ?? this.keyword,
+    items: items ?? this.items,
+    page: page ?? this.page,
+    hasMore: hasMore ?? this.hasMore,
+    loading: loading ?? this.loading,
+    error: error != null ? error() : this.error,
+  );
 }
 
 class SearchController extends Notifier<SearchState> {
   static const debounce = Duration(milliseconds: 500);
+
+  /// 一整页都被时长过滤掉时，最多再自动翻这么多页
+  static const _maxEmptyFollows = 2;
+
   Timer? _timer;
   int _generation = 0;
+  int _emptyFollows = 0;
 
   @override
   SearchState build() {
@@ -69,6 +73,7 @@ class SearchController extends Notifier<SearchState> {
       return;
     }
     if (keyword == state.keyword && state.items.isNotEmpty) return;
+    _emptyFollows = 0;
     state = SearchState(keyword: keyword, loading: true);
     unawaited(ref.read(searchHistoryProvider.notifier).add(keyword));
     await _load(1);
@@ -76,6 +81,7 @@ class SearchController extends Notifier<SearchState> {
 
   Future<void> loadMore() async {
     if (state.loading || !state.hasMore) return;
+    _emptyFollows = 0;
     state = state.copyWith(loading: true, error: () => null);
     await _load(state.page + 1);
   }
@@ -87,19 +93,31 @@ class SearchController extends Notifier<SearchState> {
 
   Future<void> _load(int page) async {
     final gen = ++_generation;
-    final result =
-        await ref.read(searchRepositoryProvider).search(state.keyword, page: page);
+    final result = await ref
+        .read(searchRepositoryProvider)
+        .search(state.keyword, page: page);
     if (gen != _generation) return; // 已有更新的搜索, 丢弃过期结果
     final data = result.valueOrNull;
-    state = data == null
-        ? state.copyWith(loading: false, error: () => result.errorOrNull)
-        : state.copyWith(
-            items: [...state.items, ...data.items],
-            page: data.page,
-            hasMore: data.hasMore,
-            loading: false,
-            error: () => null,
-          );
+    if (data == null) {
+      _emptyFollows = 0;
+      state = state.copyWith(loading: false, error: () => result.errorOrNull);
+      return;
+    }
+    final follow =
+        data.items.isEmpty && data.hasMore && _emptyFollows < _maxEmptyFollows;
+    state = state.copyWith(
+      items: [...state.items, ...data.items],
+      page: data.page,
+      hasMore: data.hasMore,
+      loading: follow,
+      error: () => null,
+    );
+    if (!follow) {
+      _emptyFollows = 0;
+      return;
+    }
+    _emptyFollows++;
+    await _load(data.page + 1);
   }
 }
 
@@ -124,9 +142,9 @@ class SearchHistory extends AsyncNotifier<List<String>> {
 
   Future<void> add(String keyword) async {
     final current = await future;
-    await _save([keyword, ...current.where((k) => k != keyword)]
-        .take(maxItems)
-        .toList());
+    await _save(
+      [keyword, ...current.where((k) => k != keyword)].take(maxItems).toList(),
+    );
   }
 
   Future<void> remove(String keyword) async =>
@@ -142,7 +160,3 @@ class SearchHistory extends AsyncNotifier<List<String>> {
 
 final searchHistoryProvider =
     AsyncNotifierProvider<SearchHistory, List<String>>(SearchHistory.new);
-
-/// 设置: 超过 15 分钟的结果完全隐藏 (默认灰显)
-final hideFilteredProvider = FutureProvider<bool>((ref) async =>
-    await ref.watch(databaseProvider).settingsDao.get('hide_filtered') == 'true');

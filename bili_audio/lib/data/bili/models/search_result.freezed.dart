@@ -16,7 +16,10 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$SearchResult {
 
- String get bvid; String get title; String get cleanTitle; int get duration; String get cover; String get author; int get play; String? get description; bool? get filtered;
+ String get bvid; String get title; String get cleanTitle; int get duration; String get cover; String get author; int get play; String? get description; bool? get filtered;/// 分P的 cid。展开后点击只播放这一 P
+ int? get cid;/// 分P序号 (1-based)
+ int? get pageIndex;/// 分P总数，含未展示的超长分P
+ int? get totalPages;
 /// Create a copy of SearchResult
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +32,16 @@ $SearchResultCopyWith<SearchResult> get copyWith => _$SearchResultCopyWithImpl<S
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SearchResult&&(identical(other.bvid, bvid) || other.bvid == bvid)&&(identical(other.title, title) || other.title == title)&&(identical(other.cleanTitle, cleanTitle) || other.cleanTitle == cleanTitle)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.cover, cover) || other.cover == cover)&&(identical(other.author, author) || other.author == author)&&(identical(other.play, play) || other.play == play)&&(identical(other.description, description) || other.description == description)&&(identical(other.filtered, filtered) || other.filtered == filtered));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SearchResult&&(identical(other.bvid, bvid) || other.bvid == bvid)&&(identical(other.title, title) || other.title == title)&&(identical(other.cleanTitle, cleanTitle) || other.cleanTitle == cleanTitle)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.cover, cover) || other.cover == cover)&&(identical(other.author, author) || other.author == author)&&(identical(other.play, play) || other.play == play)&&(identical(other.description, description) || other.description == description)&&(identical(other.filtered, filtered) || other.filtered == filtered)&&(identical(other.cid, cid) || other.cid == cid)&&(identical(other.pageIndex, pageIndex) || other.pageIndex == pageIndex)&&(identical(other.totalPages, totalPages) || other.totalPages == totalPages));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,bvid,title,cleanTitle,duration,cover,author,play,description,filtered);
+int get hashCode => Object.hash(runtimeType,bvid,title,cleanTitle,duration,cover,author,play,description,filtered,cid,pageIndex,totalPages);
 
 @override
 String toString() {
-  return 'SearchResult(bvid: $bvid, title: $title, cleanTitle: $cleanTitle, duration: $duration, cover: $cover, author: $author, play: $play, description: $description, filtered: $filtered)';
+  return 'SearchResult(bvid: $bvid, title: $title, cleanTitle: $cleanTitle, duration: $duration, cover: $cover, author: $author, play: $play, description: $description, filtered: $filtered, cid: $cid, pageIndex: $pageIndex, totalPages: $totalPages)';
 }
 
 
@@ -49,7 +52,7 @@ abstract mixin class $SearchResultCopyWith<$Res>  {
   factory $SearchResultCopyWith(SearchResult value, $Res Function(SearchResult) _then) = _$SearchResultCopyWithImpl;
 @useResult
 $Res call({
- String bvid, String title, String cleanTitle, int duration, String cover, String author, int play, String? description, bool? filtered
+ String bvid, String title, String cleanTitle, int duration, String cover, String author, int play, String? description, bool? filtered, int? cid, int? pageIndex, int? totalPages
 });
 
 
@@ -66,7 +69,7 @@ class _$SearchResultCopyWithImpl<$Res>
 
 /// Create a copy of SearchResult
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? bvid = null,Object? title = null,Object? cleanTitle = null,Object? duration = null,Object? cover = null,Object? author = null,Object? play = null,Object? description = freezed,Object? filtered = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? bvid = null,Object? title = null,Object? cleanTitle = null,Object? duration = null,Object? cover = null,Object? author = null,Object? play = null,Object? description = freezed,Object? filtered = freezed,Object? cid = freezed,Object? pageIndex = freezed,Object? totalPages = freezed,}) {
   return _then(SearchResult(
 bvid: null == bvid ? _self.bvid : bvid // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -77,7 +80,10 @@ as String,author: null == author ? _self.author : author // ignore: cast_nullabl
 as String,play: null == play ? _self.play : play // ignore: cast_nullable_to_non_nullable
 as int,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,filtered: freezed == filtered ? _self.filtered : filtered // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,cid: freezed == cid ? _self.cid : cid // ignore: cast_nullable_to_non_nullable
+as int?,pageIndex: freezed == pageIndex ? _self.pageIndex : pageIndex // ignore: cast_nullable_to_non_nullable
+as int?,totalPages: freezed == totalPages ? _self.totalPages : totalPages // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
@@ -159,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String bvid,  String title,  String cleanTitle,  int duration,  String cover,  String author,  int play,  String? description,  bool? filtered)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String bvid,  String title,  String cleanTitle,  int duration,  String cover,  String author,  int play,  String? description,  bool? filtered,  int? cid,  int? pageIndex,  int? totalPages)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SearchResult() when $default != null:
-return $default(_that.bvid,_that.title,_that.cleanTitle,_that.duration,_that.cover,_that.author,_that.play,_that.description,_that.filtered);case _:
+return $default(_that.bvid,_that.title,_that.cleanTitle,_that.duration,_that.cover,_that.author,_that.play,_that.description,_that.filtered,_that.cid,_that.pageIndex,_that.totalPages);case _:
   return orElse();
 
 }
@@ -180,10 +186,10 @@ return $default(_that.bvid,_that.title,_that.cleanTitle,_that.duration,_that.cov
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String bvid,  String title,  String cleanTitle,  int duration,  String cover,  String author,  int play,  String? description,  bool? filtered)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String bvid,  String title,  String cleanTitle,  int duration,  String cover,  String author,  int play,  String? description,  bool? filtered,  int? cid,  int? pageIndex,  int? totalPages)  $default,) {final _that = this;
 switch (_that) {
 case _SearchResult():
-return $default(_that.bvid,_that.title,_that.cleanTitle,_that.duration,_that.cover,_that.author,_that.play,_that.description,_that.filtered);}
+return $default(_that.bvid,_that.title,_that.cleanTitle,_that.duration,_that.cover,_that.author,_that.play,_that.description,_that.filtered,_that.cid,_that.pageIndex,_that.totalPages);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -197,10 +203,10 @@ return $default(_that.bvid,_that.title,_that.cleanTitle,_that.duration,_that.cov
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String bvid,  String title,  String cleanTitle,  int duration,  String cover,  String author,  int play,  String? description,  bool? filtered)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String bvid,  String title,  String cleanTitle,  int duration,  String cover,  String author,  int play,  String? description,  bool? filtered,  int? cid,  int? pageIndex,  int? totalPages)?  $default,) {final _that = this;
 switch (_that) {
 case _SearchResult() when $default != null:
-return $default(_that.bvid,_that.title,_that.cleanTitle,_that.duration,_that.cover,_that.author,_that.play,_that.description,_that.filtered);case _:
+return $default(_that.bvid,_that.title,_that.cleanTitle,_that.duration,_that.cover,_that.author,_that.play,_that.description,_that.filtered,_that.cid,_that.pageIndex,_that.totalPages);case _:
   return null;
 
 }
@@ -212,7 +218,7 @@ return $default(_that.bvid,_that.title,_that.cleanTitle,_that.duration,_that.cov
 @JsonSerializable()
 
 class _SearchResult implements SearchResult {
-  const _SearchResult({required this.bvid, required this.title, required this.cleanTitle, required this.duration, required this.cover, required this.author, required this.play, this.description, this.filtered});
+  const _SearchResult({required this.bvid, required this.title, required this.cleanTitle, required this.duration, required this.cover, required this.author, required this.play, this.description, this.filtered, this.cid, this.pageIndex, this.totalPages});
   factory _SearchResult.fromJson(Map<String, dynamic> json) => _$SearchResultFromJson(json);
 
 @override final  String bvid;
@@ -224,6 +230,12 @@ class _SearchResult implements SearchResult {
 @override final  int play;
 @override final  String? description;
 @override final  bool? filtered;
+/// 分P的 cid。展开后点击只播放这一 P
+@override final  int? cid;
+/// 分P序号 (1-based)
+@override final  int? pageIndex;
+/// 分P总数，含未展示的超长分P
+@override final  int? totalPages;
 
 /// Create a copy of SearchResult
 /// with the given fields replaced by the non-null parameter values.
@@ -238,16 +250,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SearchResult&&(identical(other.bvid, bvid) || other.bvid == bvid)&&(identical(other.title, title) || other.title == title)&&(identical(other.cleanTitle, cleanTitle) || other.cleanTitle == cleanTitle)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.cover, cover) || other.cover == cover)&&(identical(other.author, author) || other.author == author)&&(identical(other.play, play) || other.play == play)&&(identical(other.description, description) || other.description == description)&&(identical(other.filtered, filtered) || other.filtered == filtered));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _SearchResult&&(identical(other.bvid, bvid) || other.bvid == bvid)&&(identical(other.title, title) || other.title == title)&&(identical(other.cleanTitle, cleanTitle) || other.cleanTitle == cleanTitle)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.cover, cover) || other.cover == cover)&&(identical(other.author, author) || other.author == author)&&(identical(other.play, play) || other.play == play)&&(identical(other.description, description) || other.description == description)&&(identical(other.filtered, filtered) || other.filtered == filtered)&&(identical(other.cid, cid) || other.cid == cid)&&(identical(other.pageIndex, pageIndex) || other.pageIndex == pageIndex)&&(identical(other.totalPages, totalPages) || other.totalPages == totalPages));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,bvid,title,cleanTitle,duration,cover,author,play,description,filtered);
+int get hashCode => Object.hash(runtimeType,bvid,title,cleanTitle,duration,cover,author,play,description,filtered,cid,pageIndex,totalPages);
 
 @override
 String toString() {
-  return 'SearchResult(bvid: $bvid, title: $title, cleanTitle: $cleanTitle, duration: $duration, cover: $cover, author: $author, play: $play, description: $description, filtered: $filtered)';
+  return 'SearchResult(bvid: $bvid, title: $title, cleanTitle: $cleanTitle, duration: $duration, cover: $cover, author: $author, play: $play, description: $description, filtered: $filtered, cid: $cid, pageIndex: $pageIndex, totalPages: $totalPages)';
 }
 
 
@@ -258,7 +270,7 @@ abstract mixin class _$SearchResultCopyWith<$Res> implements $SearchResultCopyWi
   factory _$SearchResultCopyWith(_SearchResult value, $Res Function(_SearchResult) _then) = __$SearchResultCopyWithImpl;
 @override @useResult
 $Res call({
- String bvid, String title, String cleanTitle, int duration, String cover, String author, int play, String? description, bool? filtered
+ String bvid, String title, String cleanTitle, int duration, String cover, String author, int play, String? description, bool? filtered, int? cid, int? pageIndex, int? totalPages
 });
 
 
@@ -275,7 +287,7 @@ class __$SearchResultCopyWithImpl<$Res>
 
 /// Create a copy of SearchResult
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? bvid = null,Object? title = null,Object? cleanTitle = null,Object? duration = null,Object? cover = null,Object? author = null,Object? play = null,Object? description = freezed,Object? filtered = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? bvid = null,Object? title = null,Object? cleanTitle = null,Object? duration = null,Object? cover = null,Object? author = null,Object? play = null,Object? description = freezed,Object? filtered = freezed,Object? cid = freezed,Object? pageIndex = freezed,Object? totalPages = freezed,}) {
   return _then(_SearchResult(
 bvid: null == bvid ? _self.bvid : bvid // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
@@ -286,7 +298,10 @@ as String,author: null == author ? _self.author : author // ignore: cast_nullabl
 as String,play: null == play ? _self.play : play // ignore: cast_nullable_to_non_nullable
 as int,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,filtered: freezed == filtered ? _self.filtered : filtered // ignore: cast_nullable_to_non_nullable
-as bool?,
+as bool?,cid: freezed == cid ? _self.cid : cid // ignore: cast_nullable_to_non_nullable
+as int?,pageIndex: freezed == pageIndex ? _self.pageIndex : pageIndex // ignore: cast_nullable_to_non_nullable
+as int?,totalPages: freezed == totalPages ? _self.totalPages : totalPages // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 

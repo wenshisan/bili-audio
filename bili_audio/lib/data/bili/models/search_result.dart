@@ -16,6 +16,14 @@ sealed class SearchResult with _$SearchResult {
     required int play,
     String? description,
     bool? filtered, // 超过 15min 标记为 true
+    /// 分P的 cid。展开后点击只播放这一 P
+    int? cid,
+
+    /// 分P序号 (1-based)
+    int? pageIndex,
+
+    /// 分P总数，含未展示的超长分P
+    int? totalPages,
   }) = _SearchResult;
 
   factory SearchResult.fromJson(Map<String, dynamic> json) =>
@@ -33,4 +41,3 @@ sealed class SearchPage with _$SearchPage {
     required bool hasMore,
   }) = _SearchPage;
 }
-

@@ -17,6 +17,9 @@ _SearchResult _$SearchResultFromJson(Map<String, dynamic> json) =>
       play: (json['play'] as num).toInt(),
       description: json['description'] as String?,
       filtered: json['filtered'] as bool?,
+      cid: (json['cid'] as num?)?.toInt(),
+      pageIndex: (json['pageIndex'] as num?)?.toInt(),
+      totalPages: (json['totalPages'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$SearchResultToJson(_SearchResult instance) =>
@@ -30,4 +33,7 @@ Map<String, dynamic> _$SearchResultToJson(_SearchResult instance) =>
       'play': instance.play,
       'description': instance.description,
       'filtered': instance.filtered,
+      'cid': instance.cid,
+      'pageIndex': instance.pageIndex,
+      'totalPages': instance.totalPages,
     };
