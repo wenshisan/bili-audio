@@ -56,6 +56,10 @@ class TracksDao extends DatabaseAccessor<AppDatabase> with _$TracksDaoMixin {
     }
   }
 
+  /// 确保曲目行存在 (歌单/历史外键依赖); 已存在时不修改
+  Future<void> ensureTrack(TracksCompanion track) =>
+      into(tracks).insert(track, mode: InsertMode.insertOrIgnore);
+
   /// 批量插入或更新
   Future<void> upsertTracks(List<TracksCompanion> trackList) async {
     for (final track in trackList) {

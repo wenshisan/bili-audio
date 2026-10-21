@@ -16,6 +16,41 @@ class PlaylistsDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
+  /// 歌单列表 + 曲目数 (M6.4), 数据变化时自动推送
+  Stream<List<({Playlist playlist, int count})>> watchPlaylistsWithCount() {
+    final count = playlistTracks.bvid.count();
+    final query = select(playlists).join([
+      leftOuterJoin(
+        playlistTracks,
+        playlistTracks.playlistId.equalsExp(playlists.id),
+      ),
+    ])
+      ..addColumns([count])
+      ..groupBy([playlists.id])
+      ..orderBy([OrderingTerm.desc(playlists.updatedAt)]);
+    return query.watch().map((rows) => [
+          for (final r in rows)
+            (playlist: r.readTable(playlists), count: r.read(count) ?? 0),
+        ]);
+  }
+
+  Stream<Playlist?> watchPlaylist(int id) =>
+      (select(playlists)..where((p) => p.id.equals(id))).watchSingleOrNull();
+
+  /// 歌单内曲目 (按 position), 数据变化时自动推送
+  Stream<List<Track>> watchPlaylistTracks(int playlistId) {
+    final query = select(playlistTracks).join([
+      innerJoin(
+        tracks,
+        tracks.bvid.equalsExp(playlistTracks.bvid) &
+            tracks.cid.equalsExp(playlistTracks.cid),
+      ),
+    ])
+      ..where(playlistTracks.playlistId.equals(playlistId))
+      ..orderBy([OrderingTerm.asc(playlistTracks.position)]);
+    return query.watch().map((rows) => [for (final r in rows) r.readTable(tracks)]);
+  }
+
   /// 获取单个歌单
   Future<Playlist?> getPlaylist(int id) {
     return (select(playlists)..where((p) => p.id.equals(id)))

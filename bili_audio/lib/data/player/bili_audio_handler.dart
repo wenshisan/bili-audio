@@ -13,6 +13,10 @@ import 'audio_engine.dart';
 import 'queue_snapshot_store.dart';
 import 'sleep_timer.dart';
 
+/// 播放历史记录钩子 (M6.5): 开始播放一首时调用, 返回更新进度的回调
+typedef PlayRecorder = Future<void Function(Duration position)> Function(
+    Track track);
+
 /// 后台播放入口 (M3.1 / M3.4)
 ///
 /// - 播放器每次只加载当前曲; 下一首仅预解析流地址 (D8)
@@ -24,6 +28,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     required this.streams,
     required this.downloads,
     this.snapshots,
+    this.recorder,
     AudioQuality Function()? quality,
     bool Function()? loggedIn,
   })  : _quality = quality ?? (() => AudioQuality.k132),
@@ -44,6 +49,8 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   final StreamRepository streams;
   final CacheDownloadManager downloads;
   final QueueSnapshotStore? snapshots;
+  final PlayRecorder? recorder;
+  void Function(Duration position)? _recordProgress;
   final AudioQuality Function() _quality;
   final bool Function() _loggedIn;
 
@@ -89,6 +96,9 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
       await engine.stop();
       return;
     }
+    // 切歌前记下上一首的最终进度
+    _recordProgress?.call(engine.position);
+    _recordProgress = null;
     final token = ++_loadToken;
     final quality = _quality();
     final key = track.cacheKey(quality);
@@ -106,7 +116,10 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     try {
       await engine.setSource(source, initialPosition: position);
       if (token != _loadToken) return; // 快速切歌时丢弃过期加载
-      if (autoplay) unawaited(engine.play());
+      if (autoplay) {
+        unawaited(engine.play());
+        _recordProgress = await recorder?.call(track);
+      }
     } on AppError catch (e) {
       _errors.add(e);
     } catch (e) {
@@ -262,7 +275,10 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     _save();
   }
 
-  void _save() => snapshots?.scheduleSave(_q, engine.position);
+  void _save() {
+    snapshots?.scheduleSave(_q, engine.position);
+    _recordProgress?.call(engine.position);
+  }
 
   void _publishQueue() =>
       queue.add([for (final t in _q.orderedTracks) toMediaItem(t)]);

@@ -160,4 +160,32 @@ void main() {
     expect(engine.positions.single, const Duration(seconds: 42));
     expect(engine.playing, false);
   });
+
+  test('播放历史: 每首开始播放记录一次, 切歌前写入上一首进度; 恢复不计入', () async {
+    final log = <String>[];
+    await handler.dispose();
+    handler = BiliAudioHandler(
+      engine: engine,
+      streams: streams,
+      downloads: downloads,
+      snapshots: snapshots,
+      recorder: (t) async {
+        log.add('start ${t.bvid}');
+        return (p) => log.add('${t.bvid}@${p.inSeconds}');
+      },
+    );
+
+    await handler.setTracks(makeTracks(2));
+    engine.position = const Duration(seconds: 30);
+    await handler.skipToNext();
+
+    expect(log.first, 'start BV0');
+    expect(log, contains('BV0@30'));
+    expect(log.where((e) => e.startsWith('start')), ['start BV0', 'start BV1']);
+    expect(log.indexOf('BV0@30'), lessThan(log.indexOf('start BV1')));
+
+    log.clear();
+    await handler.restore();
+    expect(log.where((e) => e.startsWith('start')), isEmpty);
+  });
 }

@@ -8,6 +8,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 
 import 'app/app.dart';
+import 'app/bootstrap.dart';
 import 'core/storage/path_manager.dart';
 
 /// 单实例通道: 当第二个实例启动并检测到已有实例运行时, 原生层会向本实例
@@ -160,10 +161,15 @@ Future<void> _runApp(Zone rootZone) async {
     debugPrint('[boot] tray initialized');
   }
 
+  // 数据库 / 网络 / 播放器等全局依赖 (M6)
+  final overrides = await bootstrap();
+  debugPrint('[boot] dependencies ready');
+
   rootZone.run(() {
     runApp(
-      const ProviderScope(
-        child: BiliAudioApp(),
+      ProviderScope(
+        overrides: overrides,
+        child: const BiliAudioApp(),
       ),
     );
   });
