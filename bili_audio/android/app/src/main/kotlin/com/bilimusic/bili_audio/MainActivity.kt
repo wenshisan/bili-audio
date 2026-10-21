@@ -1,5 +1,6 @@
 package com.bilimusic.bili_audio
 
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 
-class MainActivity : FlutterActivity()
+// audio_service 要求使用 AudioServiceActivity 以共享 FlutterEngine (M4.1)
+class MainActivity : AudioServiceActivity()
