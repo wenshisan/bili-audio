@@ -11,6 +11,7 @@ import 'daos/cache_dao.dart';
 import 'daos/settings_dao.dart';
 import 'daos/stream_urls_dao.dart';
 import 'daos/history_dao.dart';
+import 'daos/lyrics_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -34,6 +35,7 @@ part 'app_database.g.dart';
     SettingsDao,
     StreamUrlsDao,
     HistoryDao,
+    LyricsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
