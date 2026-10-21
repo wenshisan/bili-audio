@@ -150,6 +150,30 @@ void main() {
     expect(handler.queue.value.length, 2);
   });
 
+  test('按播放顺序移除未在播的曲目，当前曲不重新加载', () async {
+    await handler.setTracks(makeTracks(3));
+    final loads = engine.sources.length;
+    await handler.removeOrderedAt(1);
+
+    expect(handler.currentTrack!.bvid, 'BV0');
+    expect(
+      handler.playbackQueue.orderedTracks.map((t) => t.bvid),
+      ['BV0', 'BV2'],
+    );
+    expect(handler.queue.value.length, 2);
+    expect(engine.sources.length, loads);
+  });
+
+  test('按播放顺序移除当前曲时加载下一首', () async {
+    await handler.setTracks(makeTracks(3), startIndex: 1);
+    await handler.removeOrderedAt(1);
+    expect(loadedKey(), 'BV2_2_30232');
+    expect(handler.playbackQueue.orderedTracks.map((t) => t.bvid), [
+      'BV0',
+      'BV2',
+    ]);
+  });
+
   test('流地址失败时通过 errors 通知 UI', () async {
     engine.requestOnLoad = true;
     streams.failWith = const AppError.needLogin();

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 
@@ -21,8 +22,10 @@ import '../data/bili/bili_search_api.dart';
 import '../data/bili/bili_stream_api.dart';
 import '../data/bili/bili_video_api.dart';
 import '../data/db/app_database.dart';
+import '../data/lyrics/bili_subtitle_provider.dart';
 import '../data/lyrics/lrclib_provider.dart';
 import '../data/lyrics/lyrics_manager.dart';
+import '../data/lyrics/netease_lyrics_provider.dart';
 import '../data/player/audio_engine.dart';
 import '../data/player/bili_audio_handler.dart';
 import '../data/player/queue_snapshot_store.dart';
@@ -111,7 +114,13 @@ Future<List<Override>> bootstrap() async {
           bvid: track.bvid,
           cid: track.cid,
           title: track.title,
+          cleanedName: Value(track.cleanedName),
+          artist: Value(track.artist),
           duration: track.duration.inSeconds,
+          cover: Value(track.cover),
+          uploader: Value(track.uploader),
+          pageIndex: Value(track.pageIndex),
+          totalPages: Value(track.totalPages),
         ),
       );
       final id = await db.historyDao.start(track.bvid, track.cid);
@@ -148,7 +157,12 @@ Future<List<Override>> bootstrap() async {
   final lyricsManager = LyricsManager(
     db,
     PathManager.lyricsDir,
-    providers: [LrclibProvider()],
+    providers: [
+      BiliSubtitleProvider(api: http.dio),
+      NeteaseLyricsProvider(),
+      LrclibProvider(),
+    ],
+    cleaner: cleaner,
   );
 
   final videoApi = BiliVideoApi(http);

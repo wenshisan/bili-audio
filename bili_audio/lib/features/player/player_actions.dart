@@ -8,6 +8,7 @@ import '../../app/providers.dart';
 import '../../core/logging/app_logger.dart';
 import '../../core/utils/result.dart';
 import '../../data/db/app_database.dart' as db;
+import '../../data/repositories/repositories.dart';
 import '../../domain/entities/app_error.dart';
 import '../../domain/entities/audio_track.dart';
 import '../../domain/queue/playback_queue.dart';
@@ -49,6 +50,79 @@ class PlayerActions {
     );
     await _ref.read(audioHandlerProvider).setTracks(tracks);
     return const Result.success(null);
+  }
+
+  /// 用搜索结果里已有的分P信息直接开播。
+  ///
+  /// 当前已加载的结果作为队列，从 [index] 开始。没有 cid 的条目跳过；
+  /// 点中的那条本身无法直接播放时，才回退到拉取整部视频。
+  Future<Result<void>> playSearchResults(
+    List<SearchHit> hits,
+    int index,
+  ) async {
+    if (index < 0 || index >= hits.length) {
+      return const Result.failure(AppError.notFound());
+    }
+    final tracks = <Track>[];
+    var start = -1;
+    for (var i = 0; i < hits.length; i++) {
+      final track = trackFromSearchHit(hits[i]);
+      if (track == null) continue;
+      if (i == index) start = tracks.length;
+      tracks.add(track);
+    }
+    if (start < 0) {
+      final hit = hits[index];
+      return playVideo(hit.result.bvid, cid: hit.result.cid);
+    }
+    tracks[start] = await _withSavedEdits(tracks[start]);
+    final track = tracks[start];
+    AppLogger.i(
+      'play search ${track.bvid} cid=${track.cid} '
+      'at=$start/${tracks.length} "${track.title}"',
+      tag: 'player',
+    );
+    await ref(audioHandlerProvider).setTracks(tracks, startIndex: start);
+    return const Result.success(null);
+  }
+
+  /// 下一首播放 / 追加到队列。有 cid 时不再请求视频详情。
+  Future<Result<void>> enqueueSearchHit(
+    SearchHit hit, {
+    required bool next,
+  }) async {
+    final local = trackFromSearchHit(hit);
+    if (local == null) {
+      return _enqueue(hit.result.bvid, next: next, cid: hit.result.cid);
+    }
+    final track = await _withSavedEdits(local);
+    AppLogger.i(
+      '${next ? 'playNext' : 'append'} search ${track.bvid} cid=${track.cid}',
+      tag: 'player',
+    );
+    final handler = ref(audioHandlerProvider);
+    if (handler.currentTrack == null) {
+      await handler.setTracks([track]);
+      return const Result.success(null);
+    }
+    next ? handler.insertNext(track) : handler.append(track);
+    return const Result.success(null);
+  }
+
+  /// 加入歌单用的曲目。有 cid 时直接用搜索结果。
+  Future<Result<List<Track>>> tracksForSearchHit(SearchHit hit) async {
+    final local = trackFromSearchHit(hit);
+    if (local == null) return tracksOf(hit.result.bvid, cid: hit.result.cid);
+    return Result.success([await _withSavedEdits(local)]);
+  }
+
+  /// 用户改过歌名/歌手时，播放和入队沿用改过的版本。
+  Future<Track> _withSavedEdits(Track track) async {
+    final row = await ref(
+      databaseProvider,
+    ).tracksDao.getTrack(track.bvid, track.cid);
+    if (row == null || !row.userEdited) return track;
+    return track.copyWith(cleanedName: row.cleanedName, artist: row.artist);
   }
 
   /// 以 [tracks] 为队列, 从 [index] 开始播放 (歌单/历史)
@@ -137,6 +211,26 @@ class PlayerActions {
 }
 
 final playerActionsProvider = Provider(PlayerActions.new);
+
+/// 搜索结果已带分P信息时直接成曲。没有 cid 或时长无效时返回 null。
+Track? trackFromSearchHit(SearchHit hit) {
+  final result = hit.result;
+  final cid = result.cid;
+  if (cid == null || result.duration <= 0) return null;
+  final name = hit.cleaned.name.trim();
+  return Track(
+    bvid: result.bvid,
+    cid: cid,
+    title: result.cleanTitle,
+    cleanedName: name.isEmpty ? null : name,
+    artist: hit.cleaned.artist,
+    duration: Duration(seconds: result.duration),
+    cover: result.cover.isEmpty ? null : result.cover,
+    uploader: result.author,
+    pageIndex: result.pageIndex,
+    totalPages: result.totalPages,
+  );
+}
 
 /// drift 行 → 领域实体
 Track trackFromRow(db.Track row) => Track(

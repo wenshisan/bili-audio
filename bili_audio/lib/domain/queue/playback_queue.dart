@@ -198,7 +198,7 @@ class PlaybackQueue {
     _pinned.insert(0, newIndex);
   }
 
-  /// 移除指定索引
+  /// 移除 [tracks] 中的第 [index] 项。
   void removeAt(int index) {
     if (index < 0 || index >= _original.length) return;
 
@@ -220,6 +220,15 @@ class PlaybackQueue {
     if (_cursor >= _order.length) {
       _cursor = max(0, _order.length - 1);
     }
+  }
+
+  /// 移除当前播放顺序中的第 [orderedIndex] 项。
+  ///
+  /// 与 [removeAt] 不同，这里的下标对应用户在队列里看到的位置，
+  /// 因此「下一首播放」插进来的曲目、以及重复出现的同一首，都能对上。
+  void removeOrderedAt(int orderedIndex) {
+    if (orderedIndex < 0 || orderedIndex >= _order.length) return;
+    removeAt(_order[orderedIndex]);
   }
 
   /// 调整顺序 (仅非随机模式可用)

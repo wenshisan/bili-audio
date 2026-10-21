@@ -17,12 +17,13 @@ final currentTrackKeyProvider = Provider<String?>((ref) {
 });
 
 LyricsQuery queryFor(Track t) => LyricsQuery(
-      bvid: t.bvid,
-      cid: t.cid,
-      title: t.displayTitle,
-      artist: t.artist,
-      duration: t.duration,
-    );
+  bvid: t.bvid,
+  cid: t.cid,
+  title: t.displayTitle,
+  artist: t.artist,
+  duration: t.duration,
+  rawTitle: t.title,
+);
 
 /// 当前曲目的歌词状态 (M5.5)
 ///
@@ -44,10 +45,12 @@ class LyricsController extends AsyncNotifier<LyricsResult?> {
     final current = state.value;
     if (t == null || current is! LyricsFound) return;
     await ref.read(lyricsManagerProvider).adjustOffset(t.bvid, t.cid, delta);
-    state = AsyncData(LyricsFound(
-      current.lyrics.copyWith(offset: current.lyrics.offset + delta),
-      fromCache: true,
-    ));
+    state = AsyncData(
+      LyricsFound(
+        current.lyrics.copyWith(offset: current.lyrics.offset + delta),
+        fromCache: true,
+      ),
+    );
   }
 
   Future<void> accept(LyricsCandidate c) async {
@@ -74,4 +77,6 @@ class LyricsController extends AsyncNotifier<LyricsResult?> {
 }
 
 final lyricsControllerProvider =
-    AsyncNotifierProvider<LyricsController, LyricsResult?>(LyricsController.new);
+    AsyncNotifierProvider<LyricsController, LyricsResult?>(
+      LyricsController.new,
+    );

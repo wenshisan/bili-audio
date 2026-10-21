@@ -96,8 +96,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('七里香 - 周杰伦'), findsOneWidget);
+    expect(find.byTooltip('播放'), findsOneWidget);
 
-    await tester.tap(find.text('七里香 - 周杰伦'));
+    await tester.tap(find.byTooltip('播放'));
     await tester.pumpAndSettle();
 
     expect(handler.currentTrack?.bvid, 'BV1fake00001');

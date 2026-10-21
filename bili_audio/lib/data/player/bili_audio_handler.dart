@@ -331,10 +331,19 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   }
 
   /// [index] 为 [PlaybackQueue.tracks] 中的位置; 删除当前曲时自动加载新的当前曲
-  Future<void> removeAt(int index) async {
+  Future<void> removeAt(int index) => _remove(() => _q.removeAt(index));
+
+  /// [orderedIndex] 为当前播放顺序中的位置。删除当前曲时自动加载新的当前曲。
+  Future<void> removeOrderedAt(int orderedIndex) =>
+      _remove(() => _q.removeOrderedAt(orderedIndex));
+
+  Future<void> _remove(void Function() remove) async {
     final wasCurrent = _q.current;
-    _q.removeAt(index);
-    if (_q.current != wasCurrent) {
+    final length = _q.length;
+    remove();
+    if (_q.length == length) return;
+    // 用身份比较: 队列里两首内容相同的曲目，删掉当前那首后下一首仍要重新加载
+    if (!identical(_q.current, wasCurrent)) {
       await _loadCurrent(autoplay: engine.playing);
     } else {
       _edit(() {});

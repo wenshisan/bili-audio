@@ -226,6 +226,18 @@ abstract class AppLocalizations {
   /// **'删除'**
   String get delete;
 
+  /// No description provided for @actionPlay.
+  ///
+  /// In zh, this message translates to:
+  /// **'播放'**
+  String get actionPlay;
+
+  /// No description provided for @actionPause.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂停'**
+  String get actionPause;
+
   /// No description provided for @actionPlayNext.
   ///
   /// In zh, this message translates to:
@@ -333,6 +345,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'随机模式下不能调整顺序'**
   String get queueReorderDisabled;
+
+  /// No description provided for @queueRemove.
+  ///
+  /// In zh, this message translates to:
+  /// **'从队列移除'**
+  String get queueRemove;
 
   /// No description provided for @playerSpeed.
   ///

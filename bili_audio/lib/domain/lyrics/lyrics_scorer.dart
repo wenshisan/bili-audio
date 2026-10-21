@@ -1,15 +1,13 @@
 import 'dart:math';
 
 import '../text_normalization.dart';
+import '../title/title_cleaner.dart';
 
 /// 歌词相似度评分器 (M1.5)
 ///
 /// 用于评估搜索到的歌词是否匹配当前曲目。
 class LyricsScorer {
-  LyricsScorer({
-    this.autoThreshold = 0.80,
-    this.manualThreshold = 0.60,
-  });
+  LyricsScorer({this.autoThreshold = 0.80, this.manualThreshold = 0.60});
 
   final double autoThreshold;
   final double manualThreshold;
@@ -25,21 +23,32 @@ class LyricsScorer {
     required String lyricsArtist,
     required int lyricsDuration,
   }) {
-    final titleSim = _titleSimilarity(trackTitle, lyricsTitle);
-    final artistSim = _artistSimilarity(trackArtist, lyricsArtist);
+    final track = TitleCleaner.parseLoose(trackTitle);
+    final lyrics = TitleCleaner.parseLoose(lyricsTitle);
+    final titleA = track.name.isEmpty ? trackTitle : track.name;
+    final titleB = lyrics.name.isEmpty ? lyricsTitle : lyrics.name;
+    final artistA = trackArtist.trim().isNotEmpty
+        ? trackArtist
+        : (track.artist ?? '');
+    final artistB = lyricsArtist.trim().isNotEmpty
+        ? lyricsArtist
+        : (lyrics.artist ?? '');
+
+    final titleSim = _titleSimilarity(titleA, titleB);
+    final artistSim = _artistSimilarity(artistA, artistB);
     final durationSim = _durationSimilarity(trackDuration, lyricsDuration);
 
     // 权重: title 55%, artist 25%, duration 20%
     // 如果 artist 为空，权重调整为 title 80%, duration 20%
-    final score = trackArtist.isEmpty
+    final score = artistA.isEmpty
         ? 0.80 * titleSim + 0.20 * durationSim
         : 0.55 * titleSim + 0.25 * artistSim + 0.20 * durationSim;
 
     final decision = score >= autoThreshold
         ? MatchDecision.auto
         : score >= manualThreshold
-            ? MatchDecision.uncertain
-            : MatchDecision.manual;
+        ? MatchDecision.uncertain
+        : MatchDecision.manual;
 
     return LyricsMatch(
       score: score,
@@ -48,6 +57,56 @@ class LyricsScorer {
       artistSimilarity: artistSim,
       durationSimilarity: durationSim,
     );
+  }
+
+  /// 这条歌词是不是当前这首歌。
+  ///
+  /// 歌名对不上就丢掉。歌名和歌手写反时换一个方向再认一次，
+  /// 但结果歌名只是对上了歌手、歌手对不上歌名的，仍然丢掉。
+  /// 这样「周杰伦 / 米兰的小铁匠」不会出现在《搁浅》的待选里。
+  double? pick({
+    required String trackTitle,
+    required String trackArtist,
+    required int trackDuration,
+    required String lyricsTitle,
+    required String lyricsArtist,
+    required int lyricsDuration,
+  }) {
+    final direct = _accepted(
+      score(
+        trackTitle: trackTitle,
+        trackArtist: trackArtist,
+        trackDuration: trackDuration,
+        lyricsTitle: lyricsTitle,
+        lyricsArtist: lyricsArtist,
+        lyricsDuration: lyricsDuration,
+      ),
+      lyricsArtist: lyricsArtist,
+    );
+    final artist = trackArtist.trim();
+    if (artist.isEmpty || artist == trackTitle.trim()) return direct?.score;
+    final flipped = _accepted(
+      score(
+        trackTitle: artist,
+        trackArtist: trackTitle,
+        trackDuration: trackDuration,
+        lyricsTitle: lyricsTitle,
+        lyricsArtist: lyricsArtist,
+        lyricsDuration: lyricsDuration,
+      ),
+      lyricsArtist: lyricsArtist,
+    );
+    if (direct == null) return flipped?.score;
+    if (flipped == null) return direct.score;
+    return max(direct.score, flipped.score);
+  }
+
+  LyricsMatch? _accepted(LyricsMatch match, {required String lyricsArtist}) {
+    if (match.titleSimilarity < 0.5) return null;
+    if (lyricsArtist.trim().isNotEmpty && match.artistSimilarity < 0.4) {
+      return null;
+    }
+    return match;
   }
 
   /// 标题相似度
@@ -67,7 +126,8 @@ class LyricsScorer {
       pinyinSim = _levenshteinSimilarity(pinyinA, pinyinB);
     }
 
-    return [lev, jaccard, pinyinSim].reduce(max);
+    final contained = _containmentSimilarity(normA, normB);
+    return [lev, jaccard, pinyinSim, contained].reduce(max);
   }
 
   /// 歌手相似度 (多歌手取最大值)
@@ -82,7 +142,13 @@ class LyricsScorer {
       for (final artB in artistsB) {
         final normA = normalizeForMatch(artA);
         final normB = normalizeForMatch(artB);
-        final sim = _levenshteinSimilarity(normA, normB);
+        var sim = _levenshteinSimilarity(normA, normB);
+        if (sim < 1 && (_hasChinese(artA) || _hasChinese(artB))) {
+          sim = max(
+            sim,
+            _levenshteinSimilarity(toPinyin(normA), toPinyin(normB)),
+          );
+        }
         maxSim = max(maxSim, sim);
       }
     }
@@ -136,6 +202,24 @@ class LyricsScorer {
 
     return matrix[a.length][b.length];
   }
+
+  /// 一方包含另一方，且多出来的只是 Live / 无损 / 年份时视为同一首歌。
+  double _containmentSimilarity(String a, String b) {
+    if (a.isEmpty || b.isEmpty) return 0;
+    final shorter = a.length <= b.length ? a : b;
+    final longer = a.length <= b.length ? b : a;
+    if (shorter.length < 2 || !longer.contains(shorter)) return 0;
+    final extra = longer
+        .replaceFirst(shorter, '')
+        .replaceAll(RegExp(r'[\s\d._+\-]+'), '');
+    if (extra.isEmpty || _versionExtra.hasMatch(extra)) return 0.92;
+    return 0;
+  }
+
+  static final _versionExtra = RegExp(
+    r'^(?:live|remix|cover|inst|instrumental|acoustic|demo|ost|mv|pv|tv|ver|version|hires|flac|dsd|ape|wav|official|翻唱|现场|演唱会|钢琴|吉他|伴奏|纯音乐|女声|男声|烟嗓|完整|原版|歌词)+$',
+    caseSensitive: false,
+  );
 
   /// Jaccard 相似度
   double _jaccardSimilarity(Set<String> a, Set<String> b) {

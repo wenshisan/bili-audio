@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:bili_audio/domain/title/title_cleaner.dart';
 import 'package:bili_audio/domain/title/title_rule.dart';
@@ -111,6 +113,44 @@ void main() {
       );
       final result = cleaner.clean('七里香', video: video);
       expect(result.artistCandidates, contains('周杰伦'));
+    });
+  });
+
+  group('播放日志样本', () {
+    late TitleCleaner assetCleaner;
+
+    setUp(() {
+      assetCleaner = TitleCleaner.fromJson(
+        File('assets/config/title_cleaning_rules.json').readAsStringSync(),
+      );
+    });
+
+    void expectClean(String raw, String name, String? artist) {
+      final result = assetCleaner.clean(raw);
+      expect(result.name, name, reason: raw);
+      expect(result.artist, artist, reason: raw);
+    }
+
+    test('合集序号 + 歌手-歌名', () {
+      expectClean('97.我的地盘', '我的地盘', null);
+      expectClean('011.周杰伦-以父之名', '以父之名', '周杰伦');
+      expectClean('006.周杰伦-等你下课', '等你下课', '周杰伦');
+      expectClean('007.周杰伦-稻香', '稻香', '周杰伦');
+    });
+
+    test('书名号歌名并保留外侧歌手', () {
+      expectClean('《搁浅》周杰伦丨百万级录音棚试听丨【Hi-Res无损】', '搁浅', '周杰伦');
+      expectClean('《七里香》周杰伦丨百万级录音棚试听丨【Hi-Res无损】', '七里香', '周杰伦');
+    });
+
+    test('空格破折号是歌名 - 歌手，括号里的剧名不是歌名', () {
+      expectClean('如烟 - 张碧晨（《淮水竹亭》影视剧主题曲/片尾曲）', '如烟', '张碧晨');
+    });
+
+    test('解说尾巴和音质标签', () {
+      expectClean('【女烟嗓版】如烟——听懂以后，才发现它写的是人的一生', '如烟', null);
+      expectClean('【4K Hi-Res】如烟_五月天     还欠了他一生', '如烟', '五月天');
+      expectClean('周杰伦-龙拳(无损音质4K60MV)[中文字幕]Hi-Res(FLAC24/48)', '龙拳', '周杰伦');
     });
   });
 

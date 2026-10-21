@@ -152,6 +152,67 @@ void main() {
     });
   });
 
+  group('LyricsScorer 脏标题', () {
+    test('分P序号和紧凑破折号按拆出的歌名歌手打分', () {
+      final match = scorer.score(
+        trackTitle: '007.周杰伦-稻香',
+        trackArtist: '',
+        trackDuration: 224,
+        lyricsTitle: '稻香',
+        lyricsArtist: '周杰伦',
+        lyricsDuration: 223,
+      );
+
+      expect(match.titleSimilarity, greaterThanOrEqualTo(0.9));
+      expect(match.artistSimilarity, greaterThanOrEqualTo(0.9));
+      expect(match.decision, MatchDecision.auto);
+    });
+  });
+
+  group('LyricsScorer 待选资格', () {
+    test('歌名对上歌手、歌手对不上歌名时不进待选', () {
+      final score = scorer.pick(
+        trackTitle: '搁浅',
+        trackArtist: '周杰伦',
+        trackDuration: 240,
+        lyricsTitle: '周杰伦',
+        lyricsArtist: '米兰的小铁匠',
+        lyricsDuration: 240,
+      );
+
+      expect(score, isNull);
+    });
+
+    test('歌名和歌手写反时仍能认出同一首歌', () {
+      final score = scorer.pick(
+        trackTitle: '周杰伦',
+        trackArtist: '七里香',
+        trackDuration: 299,
+        lyricsTitle: '七里香',
+        lyricsArtist: '周杰伦',
+        lyricsDuration: 299,
+      );
+
+      expect(score, greaterThanOrEqualTo(0.8));
+    });
+  });
+
+  group('LyricsScorer 版本后缀', () {
+    test('Live 后缀不把同一首歌打成无关标题', () {
+      final match = scorer.score(
+        trackTitle: '以父之名',
+        trackArtist: '周杰伦',
+        trackDuration: 343,
+        lyricsTitle: '以父之名 (Live)',
+        lyricsArtist: '周杰伦',
+        lyricsDuration: 343,
+      );
+
+      expect(match.titleSimilarity, greaterThanOrEqualTo(0.92));
+      expect(match.decision, MatchDecision.auto);
+    });
+  });
+
   group('LyricsScorer 中文拼音', () {
     test('繁简体混合', () {
       final match = scorer.score(

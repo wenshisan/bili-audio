@@ -258,12 +258,74 @@ void main() {
       expect(queue.next()?.title, 'Next Track');
     });
 
-    test('移除当前播放', () {
+    test('移除当前播放后，后面的曲目成为当前', () {
       final queue = PlaybackQueue(tracks: createTracks(5));
       queue.next(); // Track 1
 
       queue.removeAt(1);
       expect(queue.length, 4);
+      expect(queue.current?.title, 'Track 2');
+      expect(queue.next()?.title, 'Track 3');
+    });
+
+    test('按看到的顺序移除「下一首播放」插入的曲目', () {
+      final queue = PlaybackQueue(tracks: createTracks(3));
+      queue.insertNext(
+        const Track(
+          bvid: 'BV999',
+          cid: 999,
+          title: 'Inserted',
+          duration: Duration(minutes: 3),
+        ),
+      );
+
+      queue.removeOrderedAt(1);
+      expect(queue.orderedTracks.map((t) => t.title).toList(), [
+        'Track 0',
+        'Track 1',
+        'Track 2',
+      ]);
+      expect(queue.current?.title, 'Track 0');
+      expect(queue.next()?.title, 'Track 1');
+    });
+
+    test('同一首出现两次时，移除点中的那一次', () {
+      final track = createTracks(1).single;
+      final queue = PlaybackQueue(tracks: [track, track]);
+
+      queue.removeOrderedAt(1);
+      expect(queue.length, 1);
+      expect(queue.current, track);
+    });
+
+    test('移除最后一首后队列为空', () {
+      final queue = PlaybackQueue(tracks: createTracks(1));
+      queue.removeOrderedAt(0);
+      expect(queue.isEmpty, true);
+      expect(queue.current, isNull);
+    });
+
+    test('越界移除不改变队列', () {
+      final queue = PlaybackQueue(tracks: createTracks(2));
+      queue.removeOrderedAt(5);
+      expect(queue.length, 2);
+      expect(queue.current?.title, 'Track 0');
+    });
+
+    test('随机模式下移除后不会再选到它', () {
+      final queue = PlaybackQueue(
+        tracks: createTracks(4),
+        mode: PlayMode.shuffle,
+        seed: 1,
+      );
+      queue.removeOrderedAt(3);
+
+      final titles = <String>{};
+      for (var i = 0; i < 6; i++) {
+        titles.add(queue.current!.title);
+        queue.next();
+      }
+      expect(titles, isNot(contains('Track 3')));
     });
 
     test('移除光标之前的曲目，当前曲不变', () {

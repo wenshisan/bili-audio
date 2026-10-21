@@ -77,6 +77,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get delete => '删除';
 
   @override
+  String get actionPlay => '播放';
+
+  @override
+  String get actionPause => '暂停';
+
+  @override
   String get actionPlayNext => '下一首播放';
 
   @override
@@ -135,6 +141,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get queueReorderDisabled => '随机模式下不能调整顺序';
+
+  @override
+  String get queueRemove => '从队列移除';
 
   @override
   String get playerSpeed => '倍速';

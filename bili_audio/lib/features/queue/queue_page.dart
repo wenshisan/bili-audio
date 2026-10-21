@@ -13,7 +13,7 @@ import '../player/player_page.dart' show playModeIcon, playModeLabel;
 
 /// 播放队列 (M6.3)
 ///
-/// 顺序模式可拖拽排序; 随机模式禁用拖拽。滑动删除单项。
+/// 顺序模式可拖拽排序; 随机模式禁用拖拽。可移除任意单项，含正在播放的。
 class QueuePage extends ConsumerWidget {
   const QueuePage({super.key});
 
@@ -61,20 +61,28 @@ class QueuePage extends ConsumerWidget {
                   title: Text(t.displayTitle,
                       maxLines: 1, overflow: TextOverflow.ellipsis),
                   subtitle: Text(t.displayArtist, maxLines: 1),
-                  trailing: current
-                      ? const Icon(Icons.equalizer)
-                      : shuffle
-                          ? null
-                          : ReorderableDragStartListener(
-                              index: i,
-                              child: const Icon(Icons.drag_handle),
-                            ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (current) const Icon(Icons.equalizer),
+                      IconButton(
+                        tooltip: l10n.queueRemove,
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.close),
+                        onPressed: () => handler.removeOrderedAt(i),
+                      ),
+                      if (!current && !shuffle)
+                        ReorderableDragStartListener(
+                          index: i,
+                          child: const Icon(Icons.drag_handle),
+                        ),
+                    ],
+                  ),
                   onTap: () => handler.skipToQueueItem(i),
                 );
                 return Dismissible(
                   key: key,
-                  direction:
-                      current ? DismissDirection.none : DismissDirection.endToStart,
+                  direction: DismissDirection.endToStart,
                   background: ColoredBox(
                     color: Theme.of(context).colorScheme.errorContainer,
                     child: const Align(
@@ -85,7 +93,7 @@ class QueuePage extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  onDismissed: (_) => handler.removeAt(q.tracks.indexOf(t)),
+                  onDismissed: (_) => handler.removeOrderedAt(i),
                   child: tile,
                 );
               },

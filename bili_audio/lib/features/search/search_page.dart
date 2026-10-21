@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/providers.dart';
 import '../../core/utils/result.dart';
 import '../../data/repositories/repositories.dart';
 import '../../l10n/l10n.dart';
@@ -10,6 +11,8 @@ import '../player/player_actions.dart';
 import 'search_controller.dart';
 
 /// 搜索页 (M6.1)
+///
+/// 点击结果或播放按钮会用当前列表直接开播，不再等待整部视频详情。
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
@@ -97,7 +100,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               controller: _scroll,
               itemCount: items.length + 1,
               itemBuilder: (context, i) => i < items.length
-                  ? _ResultTile(items[i])
+                  ? _ResultTile(hit: items[i], index: i, hits: items)
                   : _Footer(
                       state: state,
                       onRetry: controller.retry,
@@ -112,9 +115,15 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 }
 
 class _ResultTile extends ConsumerWidget {
-  const _ResultTile(this.hit);
+  const _ResultTile({
+    required this.hit,
+    required this.index,
+    required this.hits,
+  });
 
   final SearchHit hit;
+  final int index;
+  final List<SearchHit> hits;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -125,6 +134,13 @@ class _ResultTile extends ConsumerWidget {
         ? 'P${r.pageIndex}/${r.totalPages}'
         : null;
     final actions = ref.read(playerActionsProvider);
+    final playing = ref.watch(
+      playbackStateProvider.select((state) => state.value?.playing ?? false),
+    );
+    final mediaId = ref.watch(
+      mediaItemProvider.select((state) => state.value?.id),
+    );
+    final current = r.cid != null && mediaId == '${r.bvid}_${r.cid}';
 
     Future<void> run(
       Future<Result<void>> Function() action, {
@@ -142,11 +158,20 @@ class _ResultTile extends ConsumerWidget {
       }
     }
 
-    final subtitle = [
-      ?pageLabel,
-      r.author,
-      l10n.playCount(r.play),
-    ].join(' · ');
+    Future<void> play() async {
+      if (current) {
+        final handler = ref.read(audioHandlerProvider);
+        if (playing) {
+          await handler.pause();
+        } else {
+          await handler.play();
+        }
+        return;
+      }
+      await run(() => actions.playSearchResults(hits, index));
+    }
+
+    final subtitle = [?pageLabel, r.author, l10n.playCount(r.play)].join(' · ');
 
     return ListTile(
       leading: Stack(
@@ -163,14 +188,28 @@ class _ResultTile extends ConsumerWidget {
         '${hit.cleaned.name} - $artist',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
+        style: current
+            ? TextStyle(color: Theme.of(context).colorScheme.primary)
+            : null,
       ),
       subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
-      onTap: () => run(() => actions.playVideo(r.bvid, cid: r.cid)),
+      onTap: play,
       onLongPress: () => _showMenu(context, ref, run),
-      trailing: IconButton(
-        icon: const Icon(Icons.more_vert),
-        tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-        onPressed: () => _showMenu(context, ref, run),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: current && playing ? l10n.actionPause : l10n.actionPlay,
+            icon: Icon(current && playing ? Icons.pause : Icons.play_arrow),
+            color: current ? Theme.of(context).colorScheme.primary : null,
+            onPressed: play,
+          ),
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+            onPressed: () => _showMenu(context, ref, run),
+          ),
+        ],
       ),
     );
   }
@@ -183,8 +222,6 @@ class _ResultTile extends ConsumerWidget {
   ) {
     final l10n = context.l10n;
     final actions = ref.read(playerActionsProvider);
-    final bvid = hit.result.bvid;
-    final cid = hit.result.cid;
     final pageLabel =
         (hit.result.totalPages ?? 1) > 1 && hit.result.pageIndex != null
         ? 'P${hit.result.pageIndex}/${hit.result.totalPages}'
@@ -202,7 +239,7 @@ class _ResultTile extends ConsumerWidget {
               onTap: () {
                 Navigator.pop(sheet);
                 run(
-                  () => actions.playNext(bvid, cid: cid),
+                  () => actions.enqueueSearchHit(hit, next: true),
                   success: l10n.addedToQueue,
                 );
               },
@@ -213,7 +250,7 @@ class _ResultTile extends ConsumerWidget {
               onTap: () {
                 Navigator.pop(sheet);
                 run(
-                  () => actions.addToQueue(bvid, cid: cid),
+                  () => actions.enqueueSearchHit(hit, next: false),
                   success: l10n.addedToQueue,
                 );
               },
@@ -224,7 +261,7 @@ class _ResultTile extends ConsumerWidget {
               onTap: () {
                 Navigator.pop(sheet);
                 showAddToPlaylistSheet(context, ref, () async {
-                  final result = await actions.tracksOf(bvid, cid: cid);
+                  final result = await actions.tracksForSearchHit(hit);
                   if (result.isFailure && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -240,11 +277,7 @@ class _ResultTile extends ConsumerWidget {
               leading: const Icon(Icons.info_outline),
               title: Text(l10n.originalTitle),
               subtitle: Text(
-                [
-                  hit.result.cleanTitle,
-                  ?pageLabel,
-                  bvid,
-                ].join('\n'),
+                [hit.result.cleanTitle, ?pageLabel, hit.result.bvid].join('\n'),
               ),
             ),
           ],
