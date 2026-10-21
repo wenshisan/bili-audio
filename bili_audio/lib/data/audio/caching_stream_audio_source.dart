@@ -1,3 +1,7 @@
+// D5: 有意使用 just_audio 实验性 StreamAudioSource 实现边听边存;
+// 升级 just_audio 时需回归 test/data/audio/caching_audio_test.dart
+// ignore_for_file: experimental_member_use
+
 import 'dart:async';
 
 import 'package:just_audio/just_audio.dart';
