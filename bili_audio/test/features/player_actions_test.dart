@@ -141,6 +141,13 @@ void main() {
     expect(videos.calls, 0);
     expect(handler.playbackQueue.tracks.map((t) => t.cid), [11, 33]);
   });
+
+  test('搜索封面的协议相对地址补成 https', () {
+    final track = trackFromSearchHit(
+      _hit(bvid: 'BVb', cid: 11, name: '七里香', cover: '//i0.hdslb.com/a.jpg'),
+    );
+    expect(track?.cover, 'https://i0.hdslb.com/a.jpg');
+  });
 }
 
 SearchHit _hit({
@@ -151,13 +158,14 @@ SearchHit _hit({
   int duration = 180,
   int? pageIndex,
   int? totalPages,
+  String cover = 'https://example.com/c.jpg',
 }) => (
   result: SearchResult(
     bvid: bvid,
     title: name,
     cleanTitle: name,
     duration: duration,
-    cover: 'https://example.com/c.jpg',
+    cover: cover,
     author: 'UP',
     play: 10,
     cid: cid,

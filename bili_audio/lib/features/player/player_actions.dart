@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../core/logging/app_logger.dart';
+import '../../core/utils/cover_url.dart';
 import '../../core/utils/result.dart';
 import '../../data/db/app_database.dart' as db;
 import '../../data/repositories/repositories.dart';
@@ -225,7 +226,7 @@ Track? trackFromSearchHit(SearchHit hit) {
     cleanedName: name.isEmpty ? null : name,
     artist: hit.cleaned.artist,
     duration: Duration(seconds: result.duration),
-    cover: result.cover.isEmpty ? null : result.cover,
+    cover: absoluteCoverUrl(result.cover),
     uploader: result.author,
     pageIndex: result.pageIndex,
     totalPages: result.totalPages,

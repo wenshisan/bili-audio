@@ -66,7 +66,9 @@ class NeteaseLyricsProvider implements LyricsProvider {
           options: lyricsRequestOptions(),
         );
         final lrc = lyric.data?['lrc'];
-        final text = lrc is Map<dynamic, dynamic> ? lrc['lyric'] as String? : null;
+        final text = lrc is Map<dynamic, dynamic>
+            ? lrc['lyric'] as String?
+            : null;
         if (text == null || !text.contains('[')) continue;
         final lyrics = LrcParser.parse(text);
         if (lyrics.lines.isEmpty) continue;

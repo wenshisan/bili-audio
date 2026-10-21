@@ -9,7 +9,7 @@ import 'lyrics_http.dart';
 ///
 /// 字幕属于正在播放的这一 P，命中后直接采用。
 class BiliSubtitleProvider implements LyricsProvider {
-  BiliSubtitleProvider({required Dio this._api, Dio? files})
+  BiliSubtitleProvider({required this._api, Dio? files})
     : _files = files ?? lyricsClient('');
 
   final Dio _api;

@@ -81,16 +81,31 @@ class WindowsMediaBridge {
 
   void _syncMetadata(MediaItem? item) {
     if (item == null) return;
-    unawaited(
-      _smtc.updateMetadata(
+    unawaited(_updateMetadata(item));
+  }
+
+  Future<void> _updateMetadata(MediaItem item) async {
+    final art = item.artUri;
+    final thumbnail = art != null && art.hasScheme && art.host.isNotEmpty
+        ? art.toString()
+        : null;
+    try {
+      await _smtc.updateMetadata(
         MusicMetadata(
           title: item.title,
           artist: item.artist ?? '',
           album: item.album,
-          thumbnail: item.artUri?.toString(),
+          thumbnail: thumbnail,
         ),
-      ),
-    );
+      );
+    } catch (e, st) {
+      AppLogger.e(
+        'SMTC metadata update failed',
+        tag: 'player',
+        error: e,
+        stackTrace: st,
+      );
+    }
   }
 
   void _onButton(PressedButton button) {

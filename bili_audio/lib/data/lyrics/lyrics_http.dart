@@ -3,7 +3,7 @@ import 'package:dio/dio.dart';
 import '../../domain/lyrics/lyrics_provider.dart';
 
 /// 每个歌词请求的连接和读取上限。失败后由管理器再试一次。
-const lyricsRequestTimeout = Duration(seconds: 1);
+const lyricsRequestTimeout = Duration(seconds: 3);
 
 Dio lyricsClient(String baseUrl, {Map<String, Object?>? headers}) {
   return Dio(

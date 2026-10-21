@@ -49,6 +49,19 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     ref.read(searchControllerProvider.notifier).search(keyword);
   }
 
+  /// 从第一条能直接播放的结果开始，已加载列表作为队列。
+  Future<void> _playAll(List<SearchHit> items) async {
+    if (items.isEmpty) return;
+    final start = items.indexWhere((hit) => trackFromSearchHit(hit) != null);
+    final result = await ref
+        .read(playerActionsProvider)
+        .playSearchResults(items, start < 0 ? 0 : start);
+    if (!mounted || result.isSuccess) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(errorText(context.l10n, result.errorOrNull))),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
@@ -96,16 +109,39 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     state.error == null &&
                     !state.hasMore =>
               Center(child: Text(l10n.searchNoResult)),
-            _ => ListView.builder(
-              controller: _scroll,
-              itemCount: items.length + 1,
-              itemBuilder: (context, i) => i < items.length
-                  ? _ResultTile(hit: items[i], index: i, hits: items)
-                  : _Footer(
-                      state: state,
-                      onRetry: controller.retry,
-                      onLoadMore: items.isEmpty ? controller.loadMore : null,
+            _ => Column(
+              children: [
+                if (items.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                    child: Row(
+                      children: [
+                        FilledButton.icon(
+                          icon: const Icon(Icons.play_arrow),
+                          label: Text(l10n.playlistPlayAll),
+                          onPressed: () => _playAll(items),
+                        ),
+                        const Spacer(),
+                        Text(l10n.playlistTrackCount(items.length)),
+                      ],
                     ),
+                  ),
+                Expanded(
+                  child: ListView.builder(
+                    controller: _scroll,
+                    itemCount: items.length + 1,
+                    itemBuilder: (context, i) => i < items.length
+                        ? _ResultTile(hit: items[i], index: i, hits: items)
+                        : _Footer(
+                            state: state,
+                            onRetry: controller.retry,
+                            onLoadMore: items.isEmpty
+                                ? controller.loadMore
+                                : null,
+                          ),
+                  ),
+                ),
+              ],
             ),
           },
         ),

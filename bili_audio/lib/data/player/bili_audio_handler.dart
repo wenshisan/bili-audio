@@ -4,6 +4,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart' show ProcessingState;
 
 import '../../core/logging/app_logger.dart';
+import '../../core/utils/cover_url.dart';
 import '../../domain/entities/app_error.dart';
 import '../../domain/entities/audio_track.dart';
 import '../../domain/queue/playback_queue.dart';
@@ -18,6 +19,12 @@ import 'sleep_timer.dart';
 typedef PlayRecorder =
     Future<void Function(Duration position)> Function(Track track);
 
+/// 解析流地址前把曲目行写入 tracks 表。
+///
+/// `stream_urls` 外键依赖 tracks(bvid, cid)。搜索结果直接开播时
+/// 曲目还不在库里，要在播放器请求流地址之前插入。
+typedef TrackPreparer = Future<void> Function(Track track);
+
 /// 后台播放入口 (M3.1 / M3.4)
 ///
 /// - 播放器每次只加载当前曲; 下一首仅预解析流地址 (D8)
@@ -29,6 +36,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     required this.streams,
     required this.downloads,
     this.snapshots,
+    this.prepareTrack,
     this.recorder,
     AudioQuality Function()? quality,
     bool Function()? loggedIn,
@@ -56,6 +64,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
 
   /// M7.3: 因未登录降级时推送 true (仅推送变化)
   Stream<bool> get downgradedForGuest => _downgradedController.stream;
+  final TrackPreparer? prepareTrack;
   final PlayRecorder? recorder;
   void Function(Duration position)? _recordProgress;
   final AudioQuality Function() _quality;
@@ -145,6 +154,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
       tag: item,
     );
     try {
+      await prepareTrack?.call(track);
       await engine.setSource(source, initialPosition: position);
       if (token != _loadToken) {
         AppLogger.d(
@@ -211,9 +221,21 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   Future<void> _preloadNext() async {
     final next = _q.nextTrack;
     if (next == null) return;
-    final quality = _quality();
-    if (await downloads.store.completed(next.cacheKey(quality)) != null) return;
-    await streams.resolve(next, quality, loggedIn: _loggedIn());
+    try {
+      await prepareTrack?.call(next);
+      final quality = _quality();
+      if (await downloads.store.completed(next.cacheKey(quality)) != null) {
+        return;
+      }
+      await streams.resolve(next, quality, loggedIn: _loggedIn());
+    } catch (e, st) {
+      AppLogger.e(
+        'preload next failed ${next.bvid} cid=${next.cid}',
+        tag: 'player',
+        error: e,
+        stackTrace: st,
+      );
+    }
   }
 
   Future<void> _onCompleted() async {
@@ -419,7 +441,13 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     artist: t.displayArtist,
     album: (t.totalPages ?? 1) > 1 ? 'P${t.pageIndex}/${t.totalPages}' : null,
     duration: t.duration,
-    artUri: t.cover == null || t.cover!.isEmpty ? null : Uri.tryParse(t.cover!),
+    artUri: _coverUri(t.cover),
     extras: {'bvid': t.bvid, 'cid': t.cid},
   );
+
+  static Uri? _coverUri(String? cover) {
+    final url = absoluteCoverUrl(cover);
+    if (url == null) return null;
+    return Uri.tryParse(url);
+  }
 }

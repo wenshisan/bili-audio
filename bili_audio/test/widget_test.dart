@@ -84,6 +84,7 @@ void main() {
 
     expect(find.byType(SearchBar), findsOneWidget);
     expect(find.text('输入关键词开始搜索'), findsOneWidget);
+    expect(find.text('播放全部'), findsNothing);
     expect(find.byIcon(Icons.queue_music), findsNothing);
   });
 
@@ -116,7 +117,27 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('没有找到相关结果'), findsOneWidget);
+    expect(find.text('播放全部'), findsNothing);
     expect(find.textContaining('超长'), findsNothing);
+  });
+
+  testWidgets('搜索结果可以播放全部', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '七里香');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(find.text('播放全部'), findsOneWidget);
+    expect(find.text('1 首'), findsOneWidget);
+
+    await tester.tap(find.text('播放全部'));
+    await tester.pumpAndSettle();
+
+    expect(handler.currentTrack?.bvid, 'BV1fake00001');
+    expect(engine.playing, true);
+    expect(find.text('七里香'), findsWidgets);
   });
 
   testWidgets('底部导航切换到歌单页', (tester) async {

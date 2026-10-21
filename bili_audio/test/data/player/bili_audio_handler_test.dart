@@ -1,9 +1,11 @@
 import 'dart:io';
 
+import 'package:bili_audio/core/utils/result.dart';
 import 'package:bili_audio/data/audio/audio_cache_store.dart';
 import 'package:bili_audio/data/audio/cache_download_manager.dart';
 import 'package:bili_audio/data/audio/caching_stream_audio_source.dart';
-import 'package:bili_audio/data/db/app_database.dart';
+import 'package:bili_audio/data/bili/bili_stream_api.dart';
+import 'package:bili_audio/data/db/app_database.dart' hide Track;
 import 'package:bili_audio/data/player/bili_audio_handler.dart';
 import 'package:bili_audio/data/player/queue_snapshot_store.dart';
 import 'package:bili_audio/domain/entities/app_error.dart';
@@ -156,10 +158,10 @@ void main() {
     await handler.removeOrderedAt(1);
 
     expect(handler.currentTrack!.bvid, 'BV0');
-    expect(
-      handler.playbackQueue.orderedTracks.map((t) => t.bvid),
-      ['BV0', 'BV2'],
-    );
+    expect(handler.playbackQueue.orderedTracks.map((t) => t.bvid), [
+      'BV0',
+      'BV2',
+    ]);
     expect(handler.queue.value.length, 2);
     expect(engine.sources.length, loads);
   });
@@ -242,4 +244,63 @@ void main() {
     expect(handler.queue.value.first.title, '新歌名');
     expect(engine.sources.length, 1);
   });
+
+  test('协议相对封面转成绝对 URI，非法封面不传出', () {
+    final relative = BiliAudioHandler.toMediaItem(
+      const Track(
+        bvid: 'BV1',
+        cid: 1,
+        title: 't',
+        duration: Duration(seconds: 3),
+        cover: '//i0.hdslb.com/bfs/archive/a.jpg',
+      ),
+    );
+    expect(
+      relative.artUri.toString(),
+      'https://i0.hdslb.com/bfs/archive/a.jpg',
+    );
+
+    final invalid = BiliAudioHandler.toMediaItem(
+      const Track(
+        bvid: 'BV1',
+        cid: 1,
+        title: 't',
+        duration: Duration(seconds: 3),
+        cover: 'not a url',
+      ),
+    );
+    expect(invalid.artUri, isNull);
+  });
+
+  test('解析流地址前先准备曲目行', () async {
+    final order = <String>[];
+    final localEngine = FakeEngine()..requestOnLoad = true;
+    final local = BiliAudioHandler(
+      engine: localEngine,
+      streams: _OrderStreams(order),
+      downloads: downloads,
+      prepareTrack: (track) async => order.add('prepare:${track.bvid}'),
+    );
+    addTearDown(local.dispose);
+
+    await local.setTracks(makeTracks(1));
+
+    expect(order, ['prepare:BV0', 'resolve:BV0']);
+  });
+}
+
+class _OrderStreams extends CountingStreamRepository {
+  _OrderStreams(this.order);
+
+  final List<String> order;
+
+  @override
+  Future<Result<StreamSelection>> resolve(
+    Track track,
+    AudioQuality quality, {
+    bool loggedIn = false,
+  }) async {
+    order.add('resolve:${track.bvid}');
+    return super.resolve(track, quality, loggedIn: loggedIn);
+  }
 }

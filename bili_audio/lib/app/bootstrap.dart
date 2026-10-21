@@ -15,13 +15,14 @@ import '../core/network/interceptors/header_interceptor.dart';
 import '../core/network/wbi_key_manager.dart';
 import '../core/storage/path_manager.dart';
 import '../core/storage/secure_store.dart';
+import '../core/utils/cover_url.dart';
 import '../data/audio/audio_cache_store.dart';
 import '../data/audio/cache_download_manager.dart';
 import '../data/bili/bili_login_api.dart';
 import '../data/bili/bili_search_api.dart';
 import '../data/bili/bili_stream_api.dart';
 import '../data/bili/bili_video_api.dart';
-import '../data/db/app_database.dart';
+import '../data/db/app_database.dart' hide Track;
 import '../data/lyrics/bili_subtitle_provider.dart';
 import '../data/lyrics/lrclib_provider.dart';
 import '../data/lyrics/lyrics_manager.dart';
@@ -108,21 +109,9 @@ Future<List<Override>> bootstrap() async {
     streams: BiliStreamRepository(StreamUrlManager(db, BiliStreamApi(http))),
     downloads: downloads,
     snapshots: QueueSnapshotStore(db),
+    prepareTrack: (track) => db.tracksDao.ensureTrack(_trackRow(track)),
     recorder: (track) async {
-      await db.tracksDao.ensureTrack(
-        TracksCompanion.insert(
-          bvid: track.bvid,
-          cid: track.cid,
-          title: track.title,
-          cleanedName: Value(track.cleanedName),
-          artist: Value(track.artist),
-          duration: track.duration.inSeconds,
-          cover: Value(track.cover),
-          uploader: Value(track.uploader),
-          pageIndex: Value(track.pageIndex),
-          totalPages: Value(track.totalPages),
-        ),
-      );
+      await db.tracksDao.ensureTrack(_trackRow(track));
       final id = await db.historyDao.start(track.bvid, track.cid);
       return (Duration p) =>
           unawaited(db.historyDao.updateProgress(id, p, track.duration));
@@ -190,3 +179,16 @@ Future<List<Override>> bootstrap() async {
     audioHandlerProvider.overrideWithValue(handler),
   ];
 }
+
+TracksCompanion _trackRow(Track track) => TracksCompanion.insert(
+  bvid: track.bvid,
+  cid: track.cid,
+  title: track.title,
+  cleanedName: Value(track.cleanedName),
+  artist: Value(track.artist),
+  duration: track.duration.inSeconds,
+  cover: Value(absoluteCoverUrl(track.cover)),
+  uploader: Value(track.uploader),
+  pageIndex: Value(track.pageIndex),
+  totalPages: Value(track.totalPages),
+);
