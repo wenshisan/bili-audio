@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
@@ -93,7 +94,8 @@ Future<List<Override>> bootstrap() async {
             duration: track.duration.inSeconds,
           ));
           final id = await db.historyDao.start(track.bvid, track.cid);
-          return (p) => db.historyDao.updateProgress(id, p, track.duration);
+          return (Duration p) =>
+              unawaited(db.historyDao.updateProgress(id, p, track.duration));
         },
         quality: () => prefs.quality,
         loggedIn: () => prefs.loggedIn,
