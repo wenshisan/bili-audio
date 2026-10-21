@@ -188,4 +188,14 @@ void main() {
     await handler.restore();
     expect(log.where((e) => e.startsWith('start')), isEmpty);
   });
+
+  test('updateCurrentTrack 刷新通知栏与队列, 不重新加载', () async {
+    await handler.setTracks(makeTracks(2));
+    handler.updateCurrentTrack(
+        handler.currentTrack!.copyWith(cleanedName: '新歌名', artist: '新歌手'));
+    expect(handler.mediaItem.value!.title, '新歌名');
+    expect(handler.mediaItem.value!.artist, '新歌手');
+    expect(handler.queue.value.first.title, '新歌名');
+    expect(engine.sources.length, 1);
+  });
 }

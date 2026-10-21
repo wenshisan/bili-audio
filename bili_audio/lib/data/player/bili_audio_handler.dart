@@ -246,6 +246,12 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   // ---- 队列编辑 ----
 
   void setPlayMode(PlayMode mode) => _edit(() => _q.setMode(mode));
+
+  /// 用户编辑当前曲歌名/歌手后刷新队列与通知栏, 不重新加载音频
+  void updateCurrentTrack(Track track) {
+    _edit(() => _q.replaceCurrent(track));
+    mediaItem.add(toMediaItem(track));
+  }
   void append(Track track) => _edit(() => _q.append(track));
   void insertNext(Track track) => _edit(() => _q.insertNext(track));
   void clearExceptCurrent() => _edit(_q.clearExceptCurrent);

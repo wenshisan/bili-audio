@@ -26,6 +26,7 @@ import '../data/repositories/stream_url_manager.dart';
 import '../domain/entities/audio_track.dart';
 import '../domain/title/title_cleaner.dart';
 import 'platform/desktop_platform.dart';
+import 'theme.dart';
 import 'providers.dart';
 
 /// 构建真实依赖并返回 ProviderScope overrides (M6)
@@ -35,6 +36,7 @@ Future<List<Override>> bootstrap() async {
   await initDesktopPlatform();
 
   final db = AppDatabase();
+
   final SecureStore store = FlutterSecureStore();
 
   // 获取 buvid / WBI key 的请求不经过 BiliHttp 拦截器链, 避免递归
@@ -118,8 +120,18 @@ Future<List<Override>> bootstrap() async {
   }
   await handler.restore();
 
+  final initialTheme = ThemeState.decode(
+    await db.settingsDao.getThemeMode(),
+    await db.settingsDao.getThemeSeed(),
+  );
+
   return [
     databaseProvider.overrideWithValue(db),
+    initialThemeProvider.overrideWithValue(initialTheme),
+    themeSaverProvider.overrideWithValue((theme) async {
+      final (mode, seed) = theme.encode();
+      await db.settingsDao.setBatch({'theme_mode': mode, 'theme_seed': seed});
+    }),
     playbackPrefsProvider.overrideWithValue(prefs),
     searchRepositoryProvider
         .overrideWithValue(BiliSearchRepository(BiliSearchApi(http), cleaner)),

@@ -27,16 +27,43 @@ class ThemeState {
 
   ThemeState copyWith({ThemeMode? mode, Color? seed}) =>
       ThemeState(mode: mode ?? this.mode, seed: seed ?? this.seed);
+
+  /// settings 表中的存储形式: (mode 名称, ARGB 十六进制)
+  (String, String) encode() =>
+      (mode.name, seed.toARGB32().toRadixString(16).padLeft(8, '0'));
+
+  static ThemeState decode(String? mode, String? seed) {
+    final argb = int.tryParse((seed ?? '').replaceFirst('0x', ''), radix: 16);
+    return ThemeState(
+      mode: ThemeMode.values.firstWhere(
+        (m) => m.name == mode,
+        orElse: () => ThemeMode.system,
+      ),
+      seed: argb == null ? presetSeeds.first : Color(argb),
+    );
+  }
 }
 
-/// 主题状态。持久化留待 M0.3 的 settings 表接入后补上。
+/// 启动时从 settings 读出的主题; bootstrap 中 override
+final initialThemeProvider = Provider<ThemeState>((ref) => const ThemeState());
+
+/// 主题持久化回调; bootstrap 中 override 为写 settings 表
+final themeSaverProvider =
+    Provider<Future<void> Function(ThemeState)>((ref) => (_) async {});
+
+/// 主题状态 (M0.4): 修改后立即生效并持久化, 重启后保持
 class ThemeController extends Notifier<ThemeState> {
   @override
-  ThemeState build() => const ThemeState();
+  ThemeState build() => ref.read(initialThemeProvider);
 
-  void setMode(ThemeMode mode) => state = state.copyWith(mode: mode);
+  void setMode(ThemeMode mode) => _update(state.copyWith(mode: mode));
 
-  void setSeed(Color seed) => state = state.copyWith(seed: seed);
+  void setSeed(Color seed) => _update(state.copyWith(seed: seed));
+
+  void _update(ThemeState next) {
+    state = next;
+    ref.read(themeSaverProvider)(next);
+  }
 }
 
 final themeControllerProvider =

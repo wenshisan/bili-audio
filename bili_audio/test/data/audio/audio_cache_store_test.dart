@@ -84,4 +84,19 @@ void main() {
     final result = await store.ensureSpace(50, protectedKeys: {'playing'});
     expect(result.toEvict, isEmpty);
   });
+
+  test('clearUnpinned 删除文件与索引, 保留 pinned 和受保护项', () async {
+    await putComplete('a', 10);
+    await putComplete('p', 10, pinned: true);
+    await putComplete('playing', 10);
+
+    expect(await store.stats(), (3, 30));
+    final n = await store.clearUnpinned(protectedKeys: {'playing'});
+
+    expect(n, 1);
+    expect(store.completeFile('a').existsSync(), false);
+    expect(store.completeFile('p').existsSync(), true);
+    expect(store.completeFile('playing').existsSync(), true);
+    expect(await store.stats(), (2, 20));
+  });
 }

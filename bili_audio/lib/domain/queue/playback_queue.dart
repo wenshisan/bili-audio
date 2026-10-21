@@ -129,6 +129,12 @@ class PlaybackQueue {
     return current;
   }
 
+  /// 替换当前曲目的元信息 (用户编辑歌名后), 不改变顺序与历史
+  void replaceCurrent(Track track) {
+    if (_cursor >= _order.length) return;
+    _original[_order[_cursor]] = track;
+  }
+
   /// 切换播放模式
   void setMode(PlayMode newMode) {
     if (_mode == newMode) return;

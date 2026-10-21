@@ -1,15 +1,97 @@
+import 'dart:io';
+
+import 'package:bili_audio/app/app.dart';
+import 'package:bili_audio/app/providers.dart';
 import 'package:bili_audio/app/theme.dart';
-import 'package:bili_audio/features/home_page.dart';
+import 'package:bili_audio/data/audio/audio_cache_store.dart';
+import 'package:bili_audio/data/audio/cache_download_manager.dart';
+import 'package:bili_audio/data/db/app_database.dart';
+import 'package:bili_audio/data/player/bili_audio_handler.dart';
+import 'package:bili_audio/data/repositories/fake_repositories.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-void main() {
-  testWidgets('HomePage renders placeholder', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: HomePage()));
+import 'data/player/fakes.dart';
 
-    expect(find.text('项目初始化完成'), findsOneWidget);
-    expect(find.byIcon(Icons.music_note), findsOneWidget);
+void main() {
+  late AppDatabase db;
+  late Directory dir;
+  late FakeEngine engine;
+  late BiliAudioHandler handler;
+
+  setUp(() async {
+    db = AppDatabase.memory();
+    dir = Directory.systemTemp.createTempSync('widget_');
+    engine = FakeEngine();
+    handler = BiliAudioHandler(
+      engine: engine,
+      streams: CountingStreamRepository(),
+      downloads: CacheDownloadManager(
+        AudioCacheStore(db, dir, limitBytes: () async => 1 << 30),
+        Dio(),
+      ),
+    );
+  });
+
+  tearDown(() async {
+    await handler.dispose();
+    await db.close();
+    dir.deleteSync(recursive: true);
+  });
+
+  Widget app() => ProviderScope(
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          searchRepositoryProvider
+              .overrideWithValue(FakeSearchRepository(latency: Duration.zero)),
+          videoRepositoryProvider.overrideWithValue(FakeVideoRepository()),
+          audioHandlerProvider.overrideWithValue(handler),
+        ],
+        child: const BiliAudioApp(),
+      );
+
+  testWidgets('启动显示搜索页; 无播放时隐藏迷你播放栏', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SearchBar), findsOneWidget);
+    expect(find.text('输入关键词开始搜索'), findsOneWidget);
+    expect(find.byIcon(Icons.queue_music), findsNothing);
+  });
+
+  testWidgets('搜索 → 显示清洗后标题, 超长视频灰显; 点击开始播放', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), '七里香');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(find.text('七里香 - 周杰伦'), findsOneWidget);
+
+    await tester.tap(find.text('七里香 - 周杰伦'));
+    await tester.pumpAndSettle();
+
+    expect(handler.currentTrack?.bvid, 'BV1fake00001');
+    expect(engine.playing, true);
+    // 迷你播放栏出现, 显示当前曲
+    expect(find.text('七里香'), findsWidgets);
+  });
+
+  testWidgets('底部导航切换到歌单页', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('歌单').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('还没有歌单'), findsOneWidget);
+
+    // drift 的 watch 查询在取消订阅时注册 0 延迟定时器, 卸载后需推进一帧
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(Duration.zero);
   });
 
   test('ThemeController updates mode and seed', () {
@@ -25,5 +107,26 @@ void main() {
     final state = container.read(themeControllerProvider);
     expect(state.mode, ThemeMode.dark);
     expect(state.seed, presetSeeds[1]);
+  });
+
+  test('主题: 编解码往返; 修改时调用持久化回调; 默认 seed 兼容旧格式', () {
+    const theme = ThemeState(mode: ThemeMode.dark, seed: Color(0xFF00AEEC));
+    final (m, s) = theme.encode();
+    final back = ThemeState.decode(m, s);
+    expect(back.mode, ThemeMode.dark);
+    expect(back.seed, const Color(0xFF00AEEC));
+    // M0.3 默认值写的是 0xFF2196F3
+    expect(ThemeState.decode('system', '0xFF2196F3').seed, const Color(0xFF2196F3));
+    expect(ThemeState.decode(null, 'garbage').seed, presetSeeds.first);
+
+    final saved = <ThemeState>[];
+    final container = ProviderContainer(overrides: [
+      initialThemeProvider.overrideWithValue(back),
+      themeSaverProvider.overrideWithValue((t) async => saved.add(t)),
+    ]);
+    addTearDown(container.dispose);
+    expect(container.read(themeControllerProvider).mode, ThemeMode.dark);
+    container.read(themeControllerProvider.notifier).setMode(ThemeMode.light);
+    expect(saved.single.mode, ThemeMode.light);
   });
 }

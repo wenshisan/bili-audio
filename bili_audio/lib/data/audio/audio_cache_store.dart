@@ -66,6 +66,31 @@ class AudioCacheStore {
 
   Future<void> touch(String key) => _db.cacheDao.updateLastPlayed(key);
 
+  /// 缓存统计 (完整文件数, 占用字节)
+  Future<(int count, int bytes)> stats() async {
+    final rows = await _db.cacheDao.getAllCacheEntries();
+    final complete = rows.where((r) => r.complete);
+    return (
+      complete.length,
+      rows.fold<int>(0, (s, r) => s + (r.complete ? r.fileSize : r.downloadedBytes)),
+    );
+  }
+
+  /// 删除所有未 pinned 的缓存文件与索引, 跳过 [protectedKeys]; 返回删除条数
+  Future<int> clearUnpinned({Set<String> protectedKeys = const {}}) async {
+    final rows = await _db.cacheDao.getUnpinnedEntries();
+    var n = 0;
+    for (final r in rows) {
+      if (protectedKeys.contains(r.cacheKey)) continue;
+      for (final f in [completeFile(r.cacheKey), tmpFile(r.cacheKey)]) {
+        if (f.existsSync()) await f.delete();
+      }
+      await _db.cacheDao.deleteCacheEntry(r.cacheKey);
+      n++;
+    }
+    return n;
+  }
+
   /// 为写入 [incoming] 字节腾出空间; 跳过 pinned 与 [protectedKeys]
   Future<EvictionResult> ensureSpace(
     int incoming, {

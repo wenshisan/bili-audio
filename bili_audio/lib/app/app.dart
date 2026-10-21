@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../l10n/l10n.dart';
 import 'router.dart';
 import 'theme.dart';
 import 'widgets/window_title_bar.dart';
@@ -18,7 +19,10 @@ class BiliAudioApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeState = ref.watch(themeControllerProvider);
     return MaterialApp.router(
-      title: '哔哩哔哩音频播放器',
+      onGenerateTitle: (context) => context.l10n.appTitle,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
+      locale: const Locale('zh'),
       debugShowCheckedModeBanner: false,
       theme: buildTheme(themeState.seed, Brightness.light),
       darkTheme: buildTheme(themeState.seed, Brightness.dark),
