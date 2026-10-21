@@ -116,6 +116,19 @@ class PlaybackQueue {
     return null;
   }
 
+  /// 跳到 [tracks] 中第 [index] 首 (用户在列表中点选)
+  ///
+  /// 随机模式下当前位置记入历史, 便于"上一曲"回退。
+  Track? jumpTo(int index) {
+    if (index < 0 || index >= _original.length) return null;
+    final pos = _order.indexOf(index);
+    if (pos != _cursor) {
+      if (_isShuffleMode(_mode)) _history.add(_cursor);
+      _cursor = pos;
+    }
+    return current;
+  }
+
   /// 切换播放模式
   void setMode(PlayMode newMode) {
     if (_mode == newMode) return;

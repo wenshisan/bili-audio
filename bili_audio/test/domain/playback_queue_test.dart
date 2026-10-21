@@ -223,4 +223,27 @@ void main() {
       expect(played.length, 10);
     });
   });
+
+  group('jumpTo', () {
+    test('顺序模式跳到指定曲目, 之后按顺序继续', () {
+      final queue = PlaybackQueue(tracks: createTracks(5));
+      expect(queue.jumpTo(3)?.title, 'Track 3');
+      expect(queue.next()?.title, 'Track 4');
+      expect(queue.previous()?.title, 'Track 3');
+    });
+
+    test('随机模式跳转后"上一曲"回到跳转前', () {
+      final queue = PlaybackQueue(tracks: createTracks(5), mode: PlayMode.shuffle, seed: 1);
+      final before = queue.current;
+      final target = queue.tracks.indexOf(queue.orderedTracks.last);
+      queue.jumpTo(target);
+      expect(queue.previous(), before);
+    });
+
+    test('越界返回 null 且不改变当前曲', () {
+      final queue = PlaybackQueue(tracks: createTracks(2));
+      expect(queue.jumpTo(9), isNull);
+      expect(queue.current?.title, 'Track 0');
+    });
+  });
 }
