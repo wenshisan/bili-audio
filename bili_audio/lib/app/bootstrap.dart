@@ -112,7 +112,7 @@ Future<List<Override>> bootstrap() async {
   final BiliAudioHandler handler;
   if (Platform.isWindows || Platform.isLinux) {
     handler = build();
-    if (Platform.isWindows) WindowsMediaBridge(handler);
+    if (Platform.isWindows && smtcAvailable) WindowsMediaBridge(handler);
   } else {
     handler = await AudioService.init(
       builder: build,

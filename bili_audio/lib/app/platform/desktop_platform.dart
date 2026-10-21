@@ -2,10 +2,14 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:just_audio_media_kit/just_audio_media_kit.dart';
 import 'package:smtc_windows/smtc_windows.dart';
 
 import '../../data/player/bili_audio_handler.dart';
+
+/// SMTC 是否已成功初始化; 失败时 [WindowsMediaBridge] 不应创建。
+bool smtcAvailable = false;
 
 /// 桌面平台初始化 (M4.2/M4.3)
 ///
@@ -14,7 +18,13 @@ import '../../data/player/bili_audio_handler.dart';
 Future<void> initDesktopPlatform() async {
   if (Platform.isWindows) {
     JustAudioMediaKit.ensureInitialized(windows: true);
-    await SMTCWindows.initialize();
+    // SMTC 依赖 native DLL; 初始化失败时降级, 不阻断启动
+    try {
+      await SMTCWindows.initialize();
+      smtcAvailable = true;
+    } catch (e, st) {
+      debugPrint('SMTCWindows.initialize failed: $e\n$st');
+    }
   } else if (Platform.isLinux) {
     JustAudioMediaKit.ensureInitialized(linux: true);
   }
