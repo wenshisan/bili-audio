@@ -11,6 +11,7 @@ import '../audio/caching_stream_audio_source.dart';
 import '../repositories/repositories.dart';
 import 'audio_engine.dart';
 import 'queue_snapshot_store.dart';
+import 'sleep_timer.dart';
 
 /// 后台播放入口 (M3.1 / M3.4)
 ///
@@ -33,7 +34,11 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
       if (s == ProcessingState.completed) unawaited(_onCompleted());
     }));
     _publishQueue();
+    sleepTimer = SleepTimer(onFire: pause);
   }
+
+  /// 定时停止 (M3.6)
+  late final SleepTimer sleepTimer;
 
   final AudioEngine engine;
   final StreamRepository streams;
@@ -134,6 +139,15 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   }
 
   Future<void> _onCompleted() async {
+    if (sleepTimer.onTrackCompleted()) {
+      // 定时到点: 停在下一首开头, 不自动播放
+      if (_q.mode != PlayMode.singleLoop && _q.next() != null) {
+        await _loadCurrent(autoplay: false);
+      } else {
+        await engine.seek(Duration.zero);
+      }
+      return;
+    }
     if (_q.mode == PlayMode.singleLoop) {
       await engine.seek(Duration.zero);
       unawaited(engine.play());
@@ -291,6 +305,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     for (final s in _subs) {
       await s.cancel();
     }
+    await sleepTimer.dispose();
     await snapshots?.flush();
     snapshots?.dispose();
     await _errors.close();
