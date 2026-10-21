@@ -1,3 +1,6 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../l10n/l10n.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -104,3 +107,26 @@ Track trackFromRow(db.Track row) => Track(
       pageIndex: row.pageIndex,
       totalPages: row.totalPages,
     );
+
+/// M7.3 辅助: 首次因未登录降级时弹窗提示 (非阻塞)
+void promptLoginIfDowngraded(
+  BuildContext context,
+  WidgetRef ref,
+  bool downgradedForGuest,
+) async {
+  if (!downgradedForGuest) return;
+  final db = ref.read(databaseProvider);
+  final shown = await db.settingsDao.get('login_prompt_shown');
+  if (shown == 'true') return;
+  await db.settingsDao.set('login_prompt_shown', 'true');
+  if (!context.mounted) return;
+  final l10n = context.l10n;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    content: Text(l10n.loginPrompt),
+    action: SnackBarAction(
+      label: l10n.loginTitle,
+      onPressed: () => context.push('/login'),
+    ),
+    duration: const Duration(seconds: 6),
+  ));
+}

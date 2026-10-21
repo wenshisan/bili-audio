@@ -49,6 +49,10 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   final StreamRepository streams;
   final CacheDownloadManager downloads;
   final QueueSnapshotStore? snapshots;
+  final _downgradedController = StreamController<bool>.broadcast();
+
+  /// M7.3: 因未登录降级时推送 true (仅推送变化)
+  Stream<bool> get downgradedForGuest => _downgradedController.stream;
   final PlayRecorder? recorder;
   void Function(Duration position)? _recordProgress;
   final AudioQuality Function() _quality;
@@ -58,6 +62,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   final _errors = StreamController<AppError>.broadcast();
   PlaybackQueue _q = PlaybackQueue();
   int _loadToken = 0;
+  bool _lastDowngraded = false;
 
   /// 领域队列 (BaseAudioHandler.queue 是 MediaItem 列表)
   PlaybackQueue get playbackQueue => _q;
@@ -100,6 +105,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     _recordProgress?.call(engine.position);
     _recordProgress = null;
     final token = ++_loadToken;
+    _lastDowngraded = false;
     final quality = _quality();
     final key = track.cacheKey(quality);
     downloads.playingKey = key;
@@ -119,6 +125,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
       if (autoplay) {
         unawaited(engine.play());
         _recordProgress = await recorder?.call(track);
+        if (_lastDowngraded) _downgradedController.add(true);
       }
     } on AppError catch (e) {
       _errors.add(e);
@@ -139,6 +146,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
         : await streams.resolve(track, quality, loggedIn: _loggedIn());
     final selection = result.valueOrNull;
     if (selection == null) throw result.errorOrNull!;
+    _lastDowngraded = selection.downgradedForGuest;
     return selection.stream.url;
   }
 

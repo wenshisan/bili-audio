@@ -339,4 +339,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String lyricsCandidate(String title, String artist, int score) {
     return '$title - $artist（$score%）';
   }
+
+  @override
+  String get loginTitle => '登录哔哩哔哩';
+
+  @override
+  String get loginScan => '使用哔哩哔哩 App 扫描二维码';
+
+  @override
+  String get loginWaiting => '等待扫描…';
+
+  @override
+  String get loginScanned => '已扫描，请在手机上确认';
+
+  @override
+  String get loginExpired => '二维码已过期';
+
+  @override
+  String get loginRetry => '重试';
+
+  @override
+  String get loginSuccess => '登录成功';
+
+  @override
+  String get logout => '退出登录';
+
+  @override
+  String get logoutConfirm => '确定退出登录？';
+
+  @override
+  String get loginPrompt => '当前音质受限，登录后可使用更高音质';
 }

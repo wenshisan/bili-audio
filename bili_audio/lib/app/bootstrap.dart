@@ -14,6 +14,7 @@ import '../core/storage/path_manager.dart';
 import '../core/storage/secure_store.dart';
 import '../data/audio/audio_cache_store.dart';
 import '../data/audio/cache_download_manager.dart';
+import '../data/bili/bili_login_api.dart';
 import '../data/bili/bili_search_api.dart';
 import '../data/bili/bili_stream_api.dart';
 import '../data/bili/bili_video_api.dart';
@@ -29,6 +30,7 @@ import '../domain/entities/audio_track.dart';
 import '../domain/title/title_cleaner.dart';
 import 'platform/desktop_platform.dart';
 import 'theme.dart';
+import '../features/login/login_controller.dart';
 import '../features/lyrics/lyrics_controller.dart';
 import 'providers.dart';
 
@@ -137,6 +139,7 @@ Future<List<Override>> bootstrap() async {
   return [
     databaseProvider.overrideWithValue(db),
     lyricsManagerProvider.overrideWithValue(lyricsManager),
+    loginApiProvider.overrideWithValue(BiliLoginApi(http, store)),
     initialThemeProvider.overrideWithValue(initialTheme),
     themeSaverProvider.overrideWithValue((theme) async {
       final (mode, seed) = theme.encode();

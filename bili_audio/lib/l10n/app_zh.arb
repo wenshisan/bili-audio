@@ -210,5 +210,15 @@
         "type": "int"
       }
     }
-  }
+  },
+  "loginTitle": "登录哔哩哔哩",
+  "loginScan": "使用哔哩哔哩 App 扫描二维码",
+  "loginWaiting": "等待扫描…",
+  "loginScanned": "已扫描，请在手机上确认",
+  "loginExpired": "二维码已过期",
+  "loginRetry": "重试",
+  "loginSuccess": "登录成功",
+  "logout": "退出登录",
+  "logoutConfirm": "确定退出登录？",
+  "loginPrompt": "当前音质受限，登录后可使用更高音质"
 }

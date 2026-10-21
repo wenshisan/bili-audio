@@ -705,6 +705,66 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{title} - {artist}（{score}%）'**
   String lyricsCandidate(String title, String artist, int score);
+
+  /// No description provided for @loginTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录哔哩哔哩'**
+  String get loginTitle;
+
+  /// No description provided for @loginScan.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用哔哩哔哩 App 扫描二维码'**
+  String get loginScan;
+
+  /// No description provided for @loginWaiting.
+  ///
+  /// In zh, this message translates to:
+  /// **'等待扫描…'**
+  String get loginWaiting;
+
+  /// No description provided for @loginScanned.
+  ///
+  /// In zh, this message translates to:
+  /// **'已扫描，请在手机上确认'**
+  String get loginScanned;
+
+  /// No description provided for @loginExpired.
+  ///
+  /// In zh, this message translates to:
+  /// **'二维码已过期'**
+  String get loginExpired;
+
+  /// No description provided for @loginRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试'**
+  String get loginRetry;
+
+  /// No description provided for @loginSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录成功'**
+  String get loginSuccess;
+
+  /// No description provided for @logout.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出登录'**
+  String get logout;
+
+  /// No description provided for @logoutConfirm.
+  ///
+  /// In zh, this message translates to:
+  /// **'确定退出登录？'**
+  String get logoutConfirm;
+
+  /// No description provided for @loginPrompt.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前音质受限，登录后可使用更高音质'**
+  String get loginPrompt;
 }
 
 class _AppLocalizationsDelegate

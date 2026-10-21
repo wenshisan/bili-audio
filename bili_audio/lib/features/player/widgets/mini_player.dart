@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,13 +7,35 @@ import 'package:go_router/go_router.dart';
 import '../../../app/providers.dart';
 import '../../../l10n/l10n.dart';
 import '../../common/cover_image.dart';
+import '../player_actions.dart';
 
 /// 底部常驻迷你播放栏 (M0.4 / M6.2); 无播放内容时隐藏
-class MiniPlayer extends ConsumerWidget {
+class MiniPlayer extends ConsumerStatefulWidget {
   const MiniPlayer({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MiniPlayer> createState() => _MiniPlayerState();
+}
+
+class _MiniPlayerState extends ConsumerState<MiniPlayer> {
+  StreamSubscription<bool>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _sub = ref.read(audioHandlerProvider).downgradedForGuest.listen((downgraded) {
+      if (mounted) promptLoginIfDowngraded(context, ref, downgraded);
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final item = ref.watch(mediaItemProvider).value;
     if (item == null) return const SizedBox.shrink();
     final state = ref.watch(playbackStateProvider).value;

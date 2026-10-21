@@ -6,6 +6,8 @@ import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../domain/entities/audio_track.dart';
 import '../../l10n/l10n.dart';
+import '../common/cover_image.dart';
+import '../login/login_controller.dart';
 
 /// 设置 (M6.6)
 class SettingsPage extends ConsumerWidget {
@@ -18,16 +20,7 @@ class SettingsPage extends ConsumerWidget {
     final prefs = ref.watch(playbackPrefsProvider);
     return ListView(
       children: [
-        ListTile(
-          leading: const Icon(Icons.account_circle_outlined),
-          title: Text(l10n.settingsAccount),
-          subtitle: Text(prefs.loggedIn ? 'SESSDATA' : l10n.settingsNotLoggedIn),
-          onTap: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('登录功能开发中 (M7)')),
-            );
-          },
-        ),
+        const _AccountTile(),
         const Divider(),
         ListTile(
           leading: const Icon(Icons.music_note_outlined),
@@ -213,6 +206,54 @@ class _SeedColorRow extends ConsumerWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// 账号 (M7.2): 未登录显示"点击登录", 已登录显示头像/昵称/退出
+class _AccountTile extends ConsumerWidget {
+  const _AccountTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final user = ref.watch(loginControllerProvider);
+    final u = user.value;
+    if (u == null) {
+      return ListTile(
+        leading: const Icon(Icons.account_circle_outlined),
+        title: Text(l10n.settingsAccount),
+        subtitle: Text(user.isLoading ? '…' : l10n.settingsNotLoggedIn),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => context.push('/login'),
+      );
+    }
+    return ListTile(
+      leading: CoverImage(u.face, size: 40, radius: 20),
+      title: Text(u.name),
+      subtitle: Text('Lv${u.level}${u.vip ? ' · VIP' : ''}'),
+      trailing: TextButton(
+        child: Text(l10n.logout),
+        onPressed: () async {
+          final ok = await showDialog<bool>(
+            context: context,
+            builder: (c) => AlertDialog(
+              content: Text(l10n.logoutConfirm),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(c, false),
+                    child: Text(l10n.cancel)),
+                FilledButton(
+                    onPressed: () => Navigator.pop(c, true),
+                    child: Text(l10n.confirm)),
+              ],
+            ),
+          );
+          if (ok == true) {
+            await ref.read(loginControllerProvider.notifier).logout();
+          }
+        },
       ),
     );
   }

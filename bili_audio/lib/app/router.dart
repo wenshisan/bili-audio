@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../features/home/home_shell.dart';
 import '../features/library/library_page.dart';
 import '../features/library/playlist_detail_page.dart';
+import '../features/login/login_page.dart';
 import '../features/player/player_page.dart';
 import '../features/queue/queue_page.dart';
 import '../features/search/search_page.dart';
@@ -41,5 +42,6 @@ final appRouter = GoRouter(
           PlaylistDetailPage(id: int.parse(state.pathParameters['id']!)),
     ),
     GoRoute(path: '/cache', builder: (_, _) => const CachePage()),
+    GoRoute(path: '/login', builder: (_, _) => const LoginPage()),
   ],
 );
