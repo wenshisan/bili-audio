@@ -73,4 +73,14 @@ class SettingsDao extends DatabaseAccessor<AppDatabase> with _$SettingsDaoMixin 
 
   Future<void> setDefaultQuality(int quality) =>
       set('default_quality', quality.toString());
+
+  /// 自定义缓存目录 (M3.5); null 表示使用默认目录
+  Future<String?> getCacheDir() async {
+    final v = await get('cache_dir');
+    return v == null || v.isEmpty ? null : v;
+  }
+
+  Future<void> setCacheDir(String? path) => path == null
+      ? remove('cache_dir').then((_) {})
+      : set('cache_dir', path);
 }
