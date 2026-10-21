@@ -76,7 +76,8 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
 
   /// 设置新队列并从 [startIndex] 开始。
   ///
-  /// 随机模式下以 [startIndex] 为当前曲重新打乱, 下一首从其余曲目中随机选取。
+  /// 随机模式下以 [startIndex] 为当前曲, 列表保持原顺序。
+  /// 点下一首时再从本轮其余未播曲目中随机选取。
   Future<void> setTracks(
     List<Track> tracks, {
     int startIndex = 0,

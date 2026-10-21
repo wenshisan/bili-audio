@@ -23,6 +23,7 @@ enum PlayMode {
 /// 播放队列 (M1.6)
 ///
 /// 管理播放顺序、模式切换、随机逻辑。
+/// 随机播放不预先打乱列表: 点下一首时才在本轮未播曲目里选取。
 /// 支持持久化和恢复。
 class PlaybackQueue {
   PlaybackQueue({
@@ -37,9 +38,6 @@ class PlaybackQueue {
     if (startIndex > 0 && startIndex < _original.length) {
       _cursor = startIndex;
     }
-    if (_isShuffleMode(mode)) {
-      _shuffleOrder();
-    }
   }
 
   final List<Track> _original;
@@ -49,10 +47,28 @@ class PlaybackQueue {
   int _seed;
   final List<int> _history = [];
 
+  /// 本轮已经离开过的曲目 (original 下标)。点下一首时不再选中它们。
+  Set<int> _played = {};
+
+  /// 「下一首播放」插入的曲目, 最近插入的排在前面。
+  final List<int> _pinned = [];
+
   Track? get current =>
       _cursor < _order.length ? _original[_order[_cursor]] : null;
 
-  Track? get nextTrack => _hasNext() ? _original[_order[_nextCursor()]] : null;
+  /// 顺序模式下是列表中的下一首。
+  /// 随机模式下只有「下一首播放」已指定曲目时才有值, 避免在点击之前就决定随机结果。
+  Track? get nextTrack {
+    if (_isShuffleMode(_mode)) {
+      for (final original in _pinned) {
+        if (original >= 0 && original < _original.length) {
+          return _original[original];
+        }
+      }
+      return null;
+    }
+    return _hasNext() ? _original[_order[_nextCursor()]] : null;
+  }
 
   PlayMode get mode => _mode;
   int get length => _original.length;
@@ -73,8 +89,7 @@ class PlaybackQueue {
     }
 
     if (_isShuffleMode(_mode)) {
-      // 队列仍按原顺序往后排时, 先打乱未播放部分
-      _shuffleUpcomingIfOriginalOrder();
+      return _shuffleNext();
     }
 
     if (!_hasNext()) {
@@ -82,9 +97,6 @@ class PlaybackQueue {
         // 列表循环: 回到开头
         _cursor = 0;
         _history.clear();
-      } else if (_isShuffleMode(_mode)) {
-        // 一轮结束: 换种子重排, 下一首不与本轮最后一首相同
-        _startNextRound();
       } else {
         // 顺序播放到头: 返回null
         return null;
@@ -131,7 +143,10 @@ class PlaybackQueue {
     if (index < 0 || index >= _original.length) return null;
     final pos = _order.indexOf(index);
     if (pos != _cursor) {
-      if (_isShuffleMode(_mode)) _history.add(_cursor);
+      if (_isShuffleMode(_mode)) {
+        _history.add(_cursor);
+        if (_cursor < _order.length) _played.add(_order[_cursor]);
+      }
       _cursor = pos;
     }
     return current;
@@ -147,38 +162,40 @@ class PlaybackQueue {
   void setMode(PlayMode newMode) {
     if (_mode == newMode) return;
 
+    final wasShuffle = _isShuffleMode(_mode);
     final currentTrack = current;
     _mode = newMode;
+    final nowShuffle = _isShuffleMode(newMode);
 
-    if (_isShuffleMode(newMode)) {
-      // 切换到随机: 换种子, 以当前曲为首重建 order
+    if (nowShuffle && !wasShuffle) {
+      // 进入随机: 列表保持原顺序, 本轮从当前曲重新计
       _seed++;
-      _shuffleOrder();
       _history.clear();
-    } else {
-      // 切换到顺序: 定位当前曲在original中的位置
+      _played.clear();
+    } else if (!nowShuffle && wasShuffle) {
+      // 切换到顺序: 定位当前曲在 original 中的位置
       _order = List.generate(_original.length, (i) => i);
       if (currentTrack != null) {
         _cursor = _original.indexOf(currentTrack);
       }
       _history.clear();
+      _played.clear();
+      _pinned.clear();
     }
   }
 
-  /// 添加到队尾。随机模式下若未播放部分仍是原顺序, 打乱它们。
+  /// 添加到队尾。随机模式下它加入未播曲目, 等下一次点下一首时才可能被选中。
   void append(Track track) {
     _original.add(track);
     _order.add(_original.length - 1);
-    if (_isShuffleMode(_mode)) {
-      _shuffleUpcomingIfOriginalOrder();
-    }
   }
 
-  /// 插入到下一首
+  /// 插入到下一首。随机模式下这次插入优先于随机选择。
   void insertNext(Track track) {
     _original.add(track);
     final newIndex = _original.length - 1;
     _order.insert(_cursor + 1, newIndex);
+    _pinned.insert(0, newIndex);
   }
 
   /// 移除指定索引
@@ -193,6 +210,7 @@ class PlaybackQueue {
         .where((i) => i != index)
         .map((i) => i > index ? i - 1 : i)
         .toList();
+    _remapAfterRemoval(index);
 
     // 历史记录中的位置失效，直接清空
     _history.clear();
@@ -230,6 +248,8 @@ class PlaybackQueue {
       _order.clear();
       _cursor = 0;
       _history.clear();
+      _played.clear();
+      _pinned.clear();
       return;
     }
 
@@ -238,6 +258,8 @@ class PlaybackQueue {
     _order = [0];
     _cursor = 0;
     _history.clear();
+    _played.clear();
+    _pinned.clear();
   }
 
   /// 序列化为快照
@@ -249,6 +271,8 @@ class PlaybackQueue {
       'mode': _mode.name,
       'seed': _seed,
       'history': _history,
+      'played': _played.toList(),
+      'pinned': _pinned,
     };
   }
 
@@ -267,107 +291,116 @@ class PlaybackQueue {
     final history = List<int>.from(snapshot['history'] as List);
 
     final queue = PlaybackQueue(tracks: tracks, mode: mode, seed: seed);
-    queue._order = order;
-    queue._cursor = cursor;
-    queue._history.addAll(history);
+    final played = _intList(snapshot['played']);
+    final pinned = _intList(snapshot['pinned']);
+
+    if (_isShuffleMode(mode)) {
+      // 旧快照里的 order 是预先打乱的结果。恢复时回到原列表顺序,
+      // 光标和历史上的位置都换算成 original 下标。
+      queue._order = List.generate(tracks.length, (i) => i);
+      if (order.isNotEmpty && cursor >= 0 && cursor < order.length) {
+        queue._cursor = order[cursor];
+      }
+      if (queue._cursor >= queue._order.length) queue._cursor = 0;
+      for (final pos in history) {
+        if (pos >= 0 && pos < order.length) queue._history.add(order[pos]);
+      }
+    } else {
+      queue._order = order;
+      queue._cursor = cursor;
+      queue._history.addAll(history);
+    }
+
+    queue._played.addAll(played.where((i) => i >= 0 && i < tracks.length));
+    queue._pinned.addAll(pinned.where((i) => i >= 0 && i < tracks.length));
     return queue;
+  }
+
+  static List<int> _intList(Object? value) {
+    if (value is! List) return const [];
+    return value.map((e) => (e as num).toInt()).toList();
   }
 
   bool _hasNext() => _cursor + 1 < _order.length;
 
   int _nextCursor() => _cursor + 1;
 
-  bool _isShuffleMode(PlayMode mode) =>
+  static bool _isShuffleMode(PlayMode mode) =>
       mode == PlayMode.shuffle || mode == PlayMode.smartShuffle;
 
-  /// 未播放部分仍是「当前曲在原列表中的后继」时打乱, 避免随机模式却顺序切歌。
-  ///
-  /// 只动光标之后的曲目, 已播放的不重复插入。用户点「下一首播放」插入的曲
-  /// 不在这条连续后继上, 因此不会被打乱。
-  void _shuffleUpcomingIfOriginalOrder() {
-    final start = _cursor + 1;
-    if (_order.length - start < 2 || _cursor >= _order.length) return;
-    final currentIndex = _order[_cursor];
-    for (var i = start; i < _order.length; i++) {
-      if (_order[i] != currentIndex + (i - _cursor)) return;
+  /// 点下一首时才选歌。本轮未播过的曲目里均匀随机;
+  /// 还有其他选择时, 不选原列表中紧挨着的下一首。
+  /// 智能随机再优先换一个歌手。一轮播完后重开, 不立刻重播刚离开的那首。
+  Track? _shuffleNext() {
+    if (_cursor >= _order.length) return null;
+    final leaving = _order[_cursor];
+
+    final pinnedPos = _takePinned();
+    if (pinnedPos != null) {
+      _history.add(_cursor);
+      _played.add(leaving);
+      _cursor = pinnedPos;
+      return current;
     }
+
+    _played.add(leaving);
+    var candidates = _candidatePositions(leaving);
+    if (candidates.isEmpty && _order.length > 1) {
+      _played
+        ..clear()
+        ..add(leaving);
+      candidates = _candidatePositions(leaving);
+    }
+    if (candidates.isEmpty) return current;
+
+    _history.add(_cursor);
     _seed++;
-    final random = Random(_seed);
-    for (var i = _order.length - 1; i > start; i--) {
-      final j = start + random.nextInt(i - start + 1);
-      final temp = _order[i];
-      _order[i] = _order[j];
-      _order[j] = temp;
-    }
-    _avoidSequentialSuccessor(random);
+    _cursor = candidates[Random(_seed).nextInt(candidates.length)];
+    return current;
   }
 
-  /// 一轮随机耗尽后重排。新一轮第一首不与上一轮最后一首相同。
-  void _startNextRound() {
-    final last = current;
-    _seed++;
-    final random = Random(_seed);
-    _order = _fisherYates(random);
-
-    if (last != null && _order.length > 1) {
-      final lastIndex = _original.indexOf(last);
-      if (lastIndex >= 0 && _order[0] == lastIndex) {
-        final j = 1 + random.nextInt(_order.length - 1);
-        final temp = _order[0];
-        _order[0] = _order[j];
-        _order[j] = temp;
-      }
+  int? _takePinned() {
+    while (_pinned.isNotEmpty) {
+      final original = _pinned.removeAt(0);
+      final pos = _order.indexOf(original);
+      if (pos >= 0 && pos != _cursor) return pos;
     }
-
-    _cursor = 0;
-    _avoidSequentialSuccessor(random);
-    _history.clear();
-    if (last != null && _order.length > 1) {
-      final back = _order.indexOf(_original.indexOf(last));
-      if (back > 0) _history.add(back);
-    }
+    return null;
   }
 
-  List<int> _fisherYates(Random random) {
-    final order = List.generate(_original.length, (i) => i);
-    for (var i = order.length - 1; i > 0; i--) {
-      final j = random.nextInt(i + 1);
-      final temp = order[i];
-      order[i] = order[j];
-      order[j] = temp;
+  List<int> _candidatePositions(int leaving) {
+    final positions = <int>[];
+    for (var i = 0; i < _order.length; i++) {
+      final original = _order[i];
+      if (original == leaving || _played.contains(original)) continue;
+      positions.add(i);
     }
-    return order;
+    final preferred = _preferOtherArtists(positions);
+    if (preferred.length <= 1) return preferred;
+    final withoutSuccessor = preferred
+        .where((i) => _order[i] != leaving + 1)
+        .toList();
+    return withoutSuccessor.isEmpty ? preferred : withoutSuccessor;
   }
 
-  /// Fisher-Yates 随机打乱, 当前曲固定在首位。
-  /// 若紧接着的一首刚好是原列表的下一首, 再和后面交换, 避免切歌仍像顺序播放。
-  void _shuffleOrder() {
-    final currentTrack = current;
-    final random = Random(_seed);
-    _order = _fisherYates(random);
-
-    if (currentTrack != null) {
-      final currentIndex = _original.indexOf(currentTrack);
-      final orderIndex = currentIndex < 0 ? -1 : _order.indexOf(currentIndex);
-      if (orderIndex > 0) {
-        _order[orderIndex] = _order[0];
-        _order[0] = currentIndex;
-      }
+  List<int> _preferOtherArtists(List<int> positions) {
+    if (_mode != PlayMode.smartShuffle || positions.length <= 1) {
+      return positions;
     }
-
-    _cursor = 0;
-    _avoidSequentialSuccessor(random);
+    final artist = current?.artist;
+    if (artist == null || artist.isEmpty) return positions;
+    final others = positions.where((i) {
+      return _original[_order[i]].artist != artist;
+    }).toList();
+    return others.isEmpty ? positions : others;
   }
 
-  void _avoidSequentialSuccessor(Random random) {
-    if (_order.length < 3 || _cursor >= _order.length) return;
-    final successor = _order[_cursor] + 1;
-    final nextPos = _cursor + 1;
-    if (successor >= _original.length || _order[nextPos] != successor) return;
-    if (nextPos + 1 >= _order.length) return;
-    final j = nextPos + 1 + random.nextInt(_order.length - nextPos - 1);
-    final temp = _order[nextPos];
-    _order[nextPos] = _order[j];
-    _order[j] = temp;
+  void _remapAfterRemoval(int index) {
+    _played.remove(index);
+    _played = _played.map((i) => i > index ? i - 1 : i).toSet();
+    _pinned.removeWhere((i) => i == index);
+    for (var i = 0; i < _pinned.length; i++) {
+      if (_pinned[i] > index) _pinned[i]--;
+    }
   }
 }

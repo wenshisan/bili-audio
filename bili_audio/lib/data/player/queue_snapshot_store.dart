@@ -35,7 +35,9 @@ class QueueSnapshotStore {
 
   Future<void> save(PlaybackQueue queue, Duration position) async {
     final s = queue.toSnapshot();
-    await _db.into(_db.queueSnapshot).insertOnConflictUpdate(
+    await _db
+        .into(_db.queueSnapshot)
+        .insertOnConflictUpdate(
           QueueSnapshotCompanion.insert(
             id: const Value(1),
             originalQueue: jsonEncode(s['original']),
@@ -43,7 +45,12 @@ class QueueSnapshotStore {
             cursor: s['cursor'] as int,
             mode: s['mode'] as String,
             seed: s['seed'] as int,
-            history: jsonEncode(s['history']),
+            // history 列同时带上本轮已播和下一条指定, 避免给旧库加列。
+            history: jsonEncode({
+              'cursors': s['history'],
+              'played': s['played'],
+              'pinned': s['pinned'],
+            }),
             positionMs: Value(position.inMilliseconds),
             updatedAt: Value(DateTime.now()),
           ),
@@ -52,19 +59,27 @@ class QueueSnapshotStore {
 
   /// 读取快照; 不存在或损坏时返回 null
   Future<(PlaybackQueue, Duration)?> load() async {
-    final row = await (_db.select(_db.queueSnapshot)
-          ..where((t) => t.id.equals(1)))
-        .getSingleOrNull();
+    final row = await (_db.select(
+      _db.queueSnapshot,
+    )..where((t) => t.id.equals(1))).getSingleOrNull();
     if (row == null) return null;
     try {
-      final queue = PlaybackQueue.fromSnapshot({
+      final historyRaw = jsonDecode(row.history);
+      final snapshot = <String, dynamic>{
         'original': jsonDecode(row.originalQueue),
         'order': jsonDecode(row.currentOrder),
         'cursor': row.cursor,
         'mode': row.mode,
         'seed': row.seed,
-        'history': jsonDecode(row.history),
-      });
+      };
+      if (historyRaw is Map) {
+        snapshot['history'] = historyRaw['cursors'] ?? const [];
+        snapshot['played'] = historyRaw['played'];
+        snapshot['pinned'] = historyRaw['pinned'];
+      } else {
+        snapshot['history'] = historyRaw;
+      }
+      final queue = PlaybackQueue.fromSnapshot(snapshot);
       return (queue, Duration(milliseconds: row.positionMs));
     } catch (_) {
       return null;

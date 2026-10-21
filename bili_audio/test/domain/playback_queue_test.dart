@@ -79,7 +79,7 @@ void main() {
   });
 
   group('PlaybackQueue 模式切换', () {
-    test('顺序 → 随机: 当前曲保持，order重建', () {
+    test('顺序 → 随机: 当前曲保持, 列表不提前打乱', () {
       final tracks = createTracks(5);
       final queue = PlaybackQueue(tracks: tracks);
 
@@ -89,6 +89,10 @@ void main() {
 
       queue.setMode(PlayMode.shuffle);
       expect(queue.current, current); // 当前曲不变
+      expect(queue.orderedTracks.map((t) => t.title).toList(), [
+        for (var i = 0; i < 5; i++) 'Track $i',
+      ]);
+      expect(queue.nextTrack, isNull);
     });
 
     test('顺序 → 随机: 下一首不是原列表的下一首', () {
@@ -147,6 +151,54 @@ void main() {
         );
       }
       expect(queue.next()?.title, isNot('Track 1'));
+    });
+
+    test('点下一首时才随机, 不同种子选到的歌不完全相同', () {
+      final picks = <String>{};
+      for (var seed = 1; seed <= 20; seed++) {
+        final queue = PlaybackQueue(
+          tracks: createTracks(8),
+          mode: PlayMode.shuffle,
+          seed: seed,
+        );
+        expect(queue.nextTrack, isNull);
+        final next = queue.next();
+        picks.add(next!.title);
+        expect(queue.orderedTracks.map((t) => t.cid).toList(), [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+        ]);
+        expect(next.title, isNot('Track 0'));
+        expect(next.title, isNot('Track 1'));
+      }
+      expect(picks.length, greaterThan(1));
+    });
+
+    test('智能随机优先换歌手', () {
+      final tracks = [
+        for (var i = 0; i < 3; i++)
+          Track(
+            bvid: 'BV$i',
+            cid: i,
+            title: 'Track $i',
+            artist: i == 2 ? '乙' : '甲',
+            duration: const Duration(minutes: 3),
+          ),
+      ];
+      for (var seed = 1; seed <= 15; seed++) {
+        final queue = PlaybackQueue(
+          tracks: tracks,
+          mode: PlayMode.smartShuffle,
+          seed: seed,
+        );
+        expect(queue.next()?.artist, '乙');
+      }
     });
 
     test('随机模式「下一首播放」仍插到紧接着的位置', () {
@@ -264,6 +316,28 @@ void main() {
       expect(restored.current?.bvid, queue.current?.bvid);
       expect(restored.mode, queue.mode);
       expect(restored.length, queue.length);
+      expect(
+        restored.orderedTracks.map((t) => t.cid),
+        queue.orderedTracks.map((t) => t.cid),
+      );
+      expect(restored.next()?.bvid, queue.next()?.bvid);
+    });
+
+    test('旧的打乱顺序快照恢复后回到原列表, 当前曲不变', () {
+      final queue = PlaybackQueue(
+        tracks: createTracks(4),
+        mode: PlayMode.shuffle,
+        seed: 1,
+      );
+      final snapshot = queue.toSnapshot();
+      snapshot['order'] = [2, 0, 3, 1];
+      snapshot['cursor'] = 1;
+      snapshot['history'] = [0];
+
+      final restored = PlaybackQueue.fromSnapshot(snapshot);
+      expect(restored.current?.title, 'Track 0');
+      expect(restored.orderedTracks.map((t) => t.cid).toList(), [0, 1, 2, 3]);
+      expect(restored.previous()?.title, 'Track 2');
     });
   });
 
