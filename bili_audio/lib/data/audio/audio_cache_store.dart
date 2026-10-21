@@ -14,12 +14,10 @@ class AudioCacheStore {
   AudioCacheStore(
     this._db,
     this.dir, {
-    required Future<int> Function() limitBytes,
-    LruPolicy policy = const LruPolicy(),
+    required this._limitBytes,
+    this._policy = const LruPolicy(),
     DateTime Function()? clock,
-  })  : _limitBytes = limitBytes,
-        _policy = policy,
-        _clock = clock ?? DateTime.now;
+  })  : _clock = clock ?? DateTime.now;
 
   final AppDatabase _db;
   final Directory dir;
