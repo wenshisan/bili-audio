@@ -9,6 +9,7 @@
         android:label="bili_audio"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- 不锁方向、不设置 resizeableActivity=false，大屏和分屏按窗口尺寸重排。 -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

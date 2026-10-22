@@ -69,6 +69,27 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('iPad 三分屏宽度使用底栏', (tester) async {
+    await pumpAt(tester, const Size(375, 800));
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('768 宽使用侧栏', (tester) async {
+    await pumpAt(tester, const Size(768, 1024));
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byKey(const Key('now-playing-pane')), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('iPad 全屏横屏使用主从栏', (tester) async {
+    await pumpAt(tester, const Size(1194, 834));
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byKey(const Key('now-playing-pane')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('1280 宽使用右播放栏', (tester) async {
     await pumpAt(tester, const Size(1280, 800));
     expect(find.byType(NavigationRail), findsOneWidget);
