@@ -7,7 +7,9 @@ import '../../domain/lyrics/lyrics_scorer.dart';
 import '../../domain/title/title_cleaner.dart';
 import 'lyrics_http.dart';
 
-/// 网易云歌词。搜索曲目后只拉取得分最高的一首同步歌词。
+/// 网易云歌词。搜索曲目后只拉取得分最高的几首同步歌词。
+///
+/// 优先级排在 B 站字幕和 LRCLIB 前面。得分够了就用网易云，不再继续问后面的源。
 class NeteaseLyricsProvider implements LyricsProvider {
   NeteaseLyricsProvider({Dio? dio, LyricsScorer? scorer})
     : _dio =
@@ -28,7 +30,7 @@ class NeteaseLyricsProvider implements LyricsProvider {
   String get name => 'netease';
 
   @override
-  int get priority => 8;
+  int get priority => 4;
 
   @override
   Future<List<LyricsCandidate>> search(LyricsQuery query) async {

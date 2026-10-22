@@ -15,6 +15,7 @@ class PathManager {
   static Directory get audioDir => Directory('${_cacheRoot.path}/audio');
   static Directory get coversDir => Directory('${_cacheRoot.path}/covers');
   static Directory get lyricsDir => Directory('${_supportRoot.path}/lyrics');
+  static Directory get albumDir => Directory('${_supportRoot.path}/album');
   static Directory get logsDir => Directory('${_supportRoot.path}/logs');
   static File get databaseFile =>
       File('${_supportRoot.path}/bili_audio.sqlite');
@@ -25,7 +26,7 @@ class PathManager {
         ? Directory(customCacheRoot)
         : await getApplicationCacheDirectory();
 
-    for (final dir in [audioDir, coversDir, lyricsDir]) {
+    for (final dir in [audioDir, coversDir, lyricsDir, albumDir]) {
       if (!dir.existsSync()) {
         await dir.create(recursive: true);
       }

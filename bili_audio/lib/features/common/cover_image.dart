@@ -4,9 +4,18 @@ import '../../core/utils/cover_url.dart';
 
 /// 封面图; 缺失或加载失败时显示音符占位
 class CoverImage extends StatelessWidget {
-  const CoverImage(this.url, {super.key, this.size = 48, this.radius = 6});
+  const CoverImage(
+    this.url, {
+    super.key,
+    this.fallbackUrl,
+    this.size = 48,
+    this.radius = 6,
+  });
 
   final String? url;
+
+  /// 主图加载失败时改用这张，例如官方专辑图失败后回到 B 站封面。
+  final String? fallbackUrl;
   final double size;
   final double radius;
 
@@ -33,7 +42,15 @@ class CoverImage extends StatelessWidget {
                 absoluteCoverUrl(u) ?? u,
                 fit: BoxFit.cover,
                 semanticLabel: '',
-                errorBuilder: (_, _, _) => placeholder,
+                errorBuilder: (_, _, _) {
+                  final fallback = fallbackUrl;
+                  if (fallback != null &&
+                      fallback.isNotEmpty &&
+                      fallback != u) {
+                    return CoverImage(fallback, size: size, radius: radius);
+                  }
+                  return placeholder;
+                },
               ),
       ),
     );

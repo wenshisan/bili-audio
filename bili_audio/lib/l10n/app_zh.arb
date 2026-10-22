@@ -84,6 +84,18 @@
   "playerViewOriginalTitle": "查看原始标题",
   "playerEditTitle": "编辑歌名/歌手",
   "playerLyricsPlaceholder": "暂无歌词",
+  "albumLine": "{album} · {year}",
+  "@albumLine": {
+    "placeholders": {
+      "album": {
+        "type": "String"
+      },
+      "year": {
+        "type": "int"
+      }
+    }
+  },
+  "albumIntro": "专辑介绍",
   "sleepOff": "关闭",
   "sleepMinutes": "{minutes} 分钟",
   "@sleepMinutes": {

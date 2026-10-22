@@ -7,6 +7,7 @@ import '../../app/adaptive/window_metrics.dart';
 import '../../app/providers.dart';
 import '../../l10n/l10n.dart';
 import '../common/add_to_playlist_sheet.dart';
+import '../album/album_controller.dart';
 import '../lyrics/lyrics_controller.dart';
 import '../lyrics/lyrics_view.dart';
 import 'widgets/player_transport.dart';
@@ -29,44 +30,48 @@ class PlayerPage extends ConsumerWidget {
           icon: const Icon(Icons.keyboard_arrow_down),
           onPressed: () => context.pop(),
         ),
-        actions: [
-          if (track != null) _MoreMenu(),
-        ],
+        actions: [if (track != null) _MoreMenu()],
       ),
       body: item == null || track == null
           ? Center(child: Text(l10n.nothingPlaying))
           : SafeArea(
-              child: LayoutBuilder(builder: (context, c) {
-                final metrics = WindowMetrics.fromSize(c.biggest);
-                if (metrics.isShort) return _ShortPlayer(item: item);
-                final cover = PlayerCoverSection(item: item);
-                const lyrics = LyricsView();
-                final sideBySide = metrics.width.index >= WindowWidth.expanded.index;
-                return Column(
-                  children: [
-                    Expanded(
-                      child: sideBySide
-                          ? Row(children: [
-                              Expanded(child: cover),
-                              const Expanded(child: lyrics),
-                            ])
-                          : Column(children: [
-                              Expanded(flex: 3, child: cover),
-                              const Expanded(flex: 2, child: lyrics),
-                            ]),
-                    ),
-                    const PlayerProgressBar(),
-                    const PlayerControls(),
-                    const PlayerSleepIndicator(),
-                    const SizedBox(height: 16),
-                  ],
-                );
-              }),
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final metrics = WindowMetrics.fromSize(c.biggest);
+                  if (metrics.isShort) return _ShortPlayer(item: item);
+                  final cover = PlayerCoverSection(item: item);
+                  const lyrics = LyricsView();
+                  final sideBySide =
+                      metrics.width.index >= WindowWidth.expanded.index;
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: sideBySide
+                            ? Row(
+                                children: [
+                                  Expanded(child: cover),
+                                  const Expanded(child: lyrics),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  Expanded(flex: 3, child: cover),
+                                  const Expanded(flex: 2, child: lyrics),
+                                ],
+                              ),
+                      ),
+                      const PlayerProgressBar(),
+                      const PlayerControls(),
+                      const PlayerSleepIndicator(),
+                      const SizedBox(height: 16),
+                    ],
+                  );
+                },
+              ),
             ),
     );
   }
 }
-
 
 class _ShortPlayer extends StatelessWidget {
   const _ShortPlayer({required this.item});
@@ -79,7 +84,7 @@ class _ShortPlayer extends StatelessWidget {
       children: [
         SizedBox(
           width: 120,
-          child: PlayerCoverSection(item: item, padding: 8),
+          child: PlayerCoverSection(item: item, padding: 8, compact: true),
         ),
         const Expanded(
           child: Column(
@@ -95,7 +100,6 @@ class _ShortPlayer extends StatelessWidget {
     );
   }
 }
-
 
 class _MoreMenu extends ConsumerWidget {
   @override
@@ -129,7 +133,10 @@ class _MoreMenu extends ConsumerWidget {
         PopupMenuItem(value: 'speed', child: Text(l10n.playerSpeed)),
         PopupMenuItem(value: 'sleep', child: Text(l10n.playerSleepTimer)),
         PopupMenuItem(value: 'playlist', child: Text(l10n.actionAddToPlaylist)),
-        PopupMenuItem(value: 'original', child: Text(l10n.playerViewOriginalTitle)),
+        PopupMenuItem(
+          value: 'original',
+          child: Text(l10n.playerViewOriginalTitle),
+        ),
         PopupMenuItem(value: 'edit', child: Text(l10n.playerEditTitle)),
       ],
     );
@@ -168,7 +175,10 @@ class _MoreMenu extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(title: Text(l10n.sleepOff), onTap: () => Navigator.pop(c, 0)),
+            ListTile(
+              title: Text(l10n.sleepOff),
+              onTap: () => Navigator.pop(c, 0),
+            ),
             for (final m in const [15, 30, 60])
               ListTile(
                 title: Text(l10n.sleepMinutes(m)),
@@ -224,16 +234,23 @@ class _MoreMenu extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(c, false), child: Text(l10n.cancel)),
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(l10n.cancel),
+          ),
           FilledButton(
-              onPressed: () => Navigator.pop(c, true), child: Text(l10n.save)),
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(l10n.save),
+          ),
         ],
       ),
     );
     if (ok != true) return;
     final newName = name.text.trim().isEmpty ? null : name.text.trim();
     final newArtist = artist.text.trim().isEmpty ? null : artist.text.trim();
-    await ref.read(databaseProvider).tracksDao.updateTrackByUser(
+    await ref
+        .read(databaseProvider)
+        .tracksDao
+        .updateTrackByUser(
           bvid: track.bvid,
           cid: track.cid,
           cleanedName: newName,
@@ -242,7 +259,8 @@ class _MoreMenu extends ConsumerWidget {
     handler.updateCurrentTrack(
       track.copyWith(cleanedName: newName, artist: newArtist),
     );
-    // 歌名变化后清除歌词缓存并按新歌名重新匹配
+    // 歌名变化后清除歌词和专辑缓存，按新歌名重新匹配
     await ref.read(lyricsControllerProvider.notifier).rematch();
+    await ref.read(albumControllerProvider.notifier).rematch();
   }
 }

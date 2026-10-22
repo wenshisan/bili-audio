@@ -168,6 +168,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playerLyricsPlaceholder => '暂无歌词';
 
   @override
+  String albumLine(String album, int year) {
+    return '$album · $year';
+  }
+
+  @override
+  String get albumIntro => '专辑介绍';
+
+  @override
   String get sleepOff => '关闭';
 
   @override

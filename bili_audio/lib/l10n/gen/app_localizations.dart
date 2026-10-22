@@ -394,6 +394,18 @@ abstract class AppLocalizations {
   /// **'暂无歌词'**
   String get playerLyricsPlaceholder;
 
+  /// No description provided for @albumLine.
+  ///
+  /// In zh, this message translates to:
+  /// **'{album} · {year}'**
+  String albumLine(String album, int year);
+
+  /// No description provided for @albumIntro.
+  ///
+  /// In zh, this message translates to:
+  /// **'专辑介绍'**
+  String get albumIntro;
+
   /// No description provided for @sleepOff.
   ///
   /// In zh, this message translates to:

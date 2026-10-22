@@ -23,6 +23,10 @@ import '../data/bili/bili_search_api.dart';
 import '../data/bili/bili_stream_api.dart';
 import '../data/bili/bili_video_api.dart';
 import '../data/db/app_database.dart' hide Track;
+import '../data/album/album_manager.dart';
+import '../data/album/itunes_album_provider.dart';
+import '../data/album/netease_album_provider.dart';
+import '../data/album/qq_album_provider.dart';
 import '../data/lyrics/bili_subtitle_provider.dart';
 import '../data/lyrics/lrclib_provider.dart';
 import '../data/lyrics/lyrics_manager.dart';
@@ -41,6 +45,7 @@ import 'theme.dart';
 import '../data/update/app_version_source.dart';
 import '../data/update/local_update_installer.dart';
 import '../data/update/release_source.dart';
+import '../features/album/album_controller.dart';
 import '../features/login/login_controller.dart';
 import '../features/lyrics/lyrics_controller.dart';
 import '../features/settings/update_controller.dart';
@@ -170,12 +175,22 @@ Future<List<Override>> bootstrap() async {
     ],
     cleaner: cleaner,
   );
+  final albumManager = AlbumManager(
+    PathManager.albumDir,
+    providers: [
+      NeteaseAlbumProvider(),
+      QqAlbumProvider(),
+      ItunesAlbumProvider(),
+    ],
+    cleaner: cleaner,
+  );
 
   final videoApi = BiliVideoApi(http);
 
   return [
     databaseProvider.overrideWithValue(db),
     lyricsManagerProvider.overrideWithValue(lyricsManager),
+    albumManagerProvider.overrideWithValue(albumManager),
     loginApiProvider.overrideWithValue(BiliLoginApi(http, store)),
     initialThemeProvider.overrideWithValue(initialTheme),
     themeSaverProvider.overrideWithValue((theme) async {

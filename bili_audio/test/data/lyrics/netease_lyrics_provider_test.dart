@@ -1,3 +1,5 @@
+import 'package:bili_audio/data/lyrics/bili_subtitle_provider.dart';
+import 'package:bili_audio/data/lyrics/lrclib_provider.dart';
 import 'package:bili_audio/data/lyrics/netease_lyrics_provider.dart';
 import 'package:bili_audio/domain/lyrics/lyrics_provider.dart';
 import 'package:dio/dio.dart';
@@ -5,6 +7,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 void main() {
+  test('网易云排在 B 站字幕和 LRCLIB 前面', () {
+    final netease = NeteaseLyricsProvider().priority;
+    expect(netease, lessThan(BiliSubtitleProvider(api: Dio()).priority));
+    expect(netease, lessThan(LrclibProvider().priority));
+  });
+
   test('按歌名歌手选中曲目并解析同步歌词', () async {
     final dio = Dio(BaseOptions(baseUrl: 'https://music.163.com'));
     final adapter = DioAdapter(dio: dio);
