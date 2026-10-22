@@ -35,6 +35,7 @@ import '../data/repositories/stream_url_manager.dart';
 import '../domain/entities/audio_track.dart';
 import '../domain/title/title_cleaner.dart';
 import 'platform/desktop_platform.dart';
+import 'platform/window_frame.dart';
 import 'theme.dart';
 import '../features/login/login_controller.dart';
 import '../features/lyrics/lyrics_controller.dart';
@@ -137,6 +138,13 @@ Future<List<Override>> bootstrap() async {
   }
   final restored = await handler.restore();
   AppLogger.i('queue restored=$restored', tag: 'boot');
+
+  if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+    await restoreWindowFrame(db.settingsDao);
+    WindowFrameStore.attach(db.settingsDao);
+  }
+  // macOS 的播放/暂停/上下首/进度由 audio_service 写到 MPNowPlayingInfoCenter。
+  // 上面非 Windows/Linux 分支已经 AudioService.init，不另建桥。
 
   final initialTheme = ThemeState.decode(
     await db.settingsDao.getThemeMode(),

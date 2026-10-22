@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/adaptive/max_width_box.dart';
+import '../../app/adaptive/player_shortcuts.dart';
 import '../../app/adaptive/window_metrics.dart';
 import '../../app/providers.dart';
 import '../../core/utils/result.dart';
@@ -86,6 +87,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: SearchBar(
+            focusNode: ref.watch(searchFocusNodeProvider),
             controller: _text,
             hintText: l10n.searchHint,
             leading: const Icon(Icons.search),

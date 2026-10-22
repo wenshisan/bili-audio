@@ -9,6 +9,7 @@ import 'package:tray_manager/tray_manager.dart';
 
 import 'app/app.dart';
 import 'app/bootstrap.dart';
+import 'app/platform/window_frame.dart';
 import 'core/logging/app_logger.dart';
 import 'core/storage/path_manager.dart';
 
@@ -50,6 +51,7 @@ Future<void> _updateTrayMenu() async {
         key: 'exit',
         label: '退出',
         onClick: (menuItem) async {
+          await WindowFrameStore.instance?.persist();
           await trayManager.destroy();
           exit(0);
         },
@@ -169,8 +171,8 @@ Future<void> _runApp(Zone rootZone) async {
     await windowManager.ensureInitialized();
 
     const WindowOptions windowOptions = WindowOptions(
-      size: Size(1440, 900),
-      minimumSize: Size(800, 600),
+      size: Size(1280, 800),
+      minimumSize: Size(360, 640),
       center: true,
       backgroundColor: Colors.transparent,
       skipTaskbar: false,

@@ -3,8 +3,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../l10n/l10n.dart';
+import 'adaptive/player_shortcuts.dart';
+import 'platform/window_frame.dart';
+import 'providers.dart';
 import 'router.dart';
 import 'theme.dart';
 import 'widgets/window_title_bar.dart';
@@ -30,8 +34,12 @@ class BiliAudioApp extends ConsumerWidget {
       routerConfig: appRouter,
       // 桌面端套一层无边框窗口外壳: 8px 圆角 + 自定义标题栏
       builder: (context, child) {
-        final content = child ?? const SizedBox.shrink();
-        return isDesktop ? _DesktopWindowShell(child: content) : content;
+        Widget content = PlayerShortcutLayer(child: child ?? const SizedBox.shrink());
+        if (isDesktop) content = _DesktopWindowShell(child: content);
+        if (!kIsWeb && Platform.isMacOS) {
+          content = _MacPlaybackMenu(child: content);
+        }
+        return content;
       },
     );
   }
@@ -48,8 +56,10 @@ class _DesktopWindowShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+    return ValueListenableBuilder<bool>(
+      valueListenable: desktopWindowRounded,
+      builder: (context, rounded, _) => ClipRRect(
+      borderRadius: BorderRadius.circular(rounded ? 8 : 0),
       clipBehavior: Clip.antiAlias,
       child: ColoredBox(
         color: Theme.of(context).colorScheme.surface,
@@ -60,6 +70,45 @@ class _DesktopWindowShell extends StatelessWidget {
           ],
         ),
       ),
+    ),
+    );
+  }
+}
+
+class _MacPlaybackMenu extends ConsumerWidget {
+  const _MacPlaybackMenu({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final handler = ref.read(audioHandlerProvider);
+    return PlatformMenuBar(
+      menus: [
+        PlatformMenu(
+          label: l10n.appTitle,
+          menus: [
+            PlatformMenuItem(
+              label: l10n.actionPlay,
+              onSelected: () => togglePlay(handler),
+            ),
+            PlatformMenuItem(
+              label: '上一首',
+              onSelected: handler.skipToPrevious,
+            ),
+            PlatformMenuItem(
+              label: '下一首',
+              onSelected: handler.skipToNext,
+            ),
+            PlatformMenuItem(
+              label: l10n.settingsTitle,
+              onSelected: () => context.go('/settings'),
+            ),
+          ],
+        ),
+      ],
+      child: child,
     );
   }
 }
