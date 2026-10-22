@@ -8,6 +8,9 @@ on:
       - "bili_audio/assets/app_icon.png"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Build installers"]
+    types: [completed]
 
 permissions:
   contents: read
@@ -23,15 +26,74 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Assemble site
         run: |
           mkdir -p _site
           cp site/index.html _site/index.html
           cp bili_audio/assets/app_icon.png _site/icon.png
+          ipa_url="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-ios.ipa"
+          version=$(awk '/^version:/ {print $2; exit}' bili_audio/pubspec.yaml)
+          version=${version%%+*}
+          for api in \
+            "https://api.github.com/repos/wenshisan/bili-audio/releases/latest" \
+            "https://api.github.com/repos/wenshisan/bili-audio/releases/tags/continuous"
+          do
+            code=$(curl -sS -o /tmp/rel.json -w "%{http_code}" -H "Accept: application/vnd.github+json" "$api" || true)
+            if [ "$code" != "200" ]; then
+              continue
+            fi
+            found=$(python3 -c 'import json; d=json.load(open("/tmp/rel.json")); print(next((a["browser_download_url"] for a in d.get("assets", []) if a.get("name")=="bili_audio-ios.ipa"), ""))')
+            if [ -n "$found" ]; then
+              ipa_url="$found"
+              tag=$(python3 -c 'import json; print(json.load(open("/tmp/rel.json")).get("tag_name",""))')
+              tag=${tag#v}
+              case "$tag" in
+                [0-9]*) version="$tag" ;;
+              esac
+              break
+            fi
+          done
+          cat > _site/manifest.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>items</key>
+            <array>
+              <dict>
+                <key>assets</key>
+                <array>
+                  <dict>
+                    <key>kind</key>
+                    <string>software-package</string>
+                    <key>url</key>
+                    <string>${ipa_url}</string>
+                  </dict>
+                </array>
+                <key>metadata</key>
+                <dict>
+                  <key>bundle-identifier</key>
+                  <string>com.bilimusic.biliAudio</string>
+                  <key>bundle-version</key>
+                  <string>${version}</string>
+                  <key>kind</key>
+                  <string>software</string>
+                  <key>title</key>
+                  <string>哔哩哔哩音频播放器</string>
+                </dict>
+              </dict>
+            </array>
+          </dict>
+          </plist>
+          EOF
+          sed -i 's/^          //' _site/manifest.plist
 
       - uses: actions/upload-pages-artifact@v3
         with:

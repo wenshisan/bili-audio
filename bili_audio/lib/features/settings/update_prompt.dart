@@ -108,7 +108,11 @@ class _UpdateDialog extends ConsumerWidget {
             ],
             if (state.phase == UpdatePhase.launched) ...[
               const SizedBox(height: 12),
-              Text(l10n.updateLaunched),
+              Text(
+                state.asset?.name.endsWith('.ipa') == true
+                    ? l10n.updateLaunchedIos
+                    : l10n.updateLaunched,
+              ),
             ],
           ],
         ),
@@ -129,7 +133,11 @@ class _UpdateDialog extends ConsumerWidget {
                 : () => ref
                       .read(updateControllerProvider.notifier)
                       .downloadAndInstall(),
-            child: Text(l10n.updateDownload),
+            child: Text(
+              state.asset?.name.endsWith('.ipa') == true
+                  ? l10n.updateInstallIos
+                  : l10n.updateDownload,
+            ),
           ),
         if (state.phase == UpdatePhase.launched ||
             state.phase == UpdatePhase.unsupported)

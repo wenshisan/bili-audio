@@ -36,6 +36,9 @@ jobs:
           - name: macOS
             os: macos-latest
             target: macos
+          - name: iOS
+            os: macos-latest
+            target: ios
     steps:
       - uses: actions/checkout@v4
 
@@ -132,7 +135,20 @@ jobs:
             -ov -format UDZO \
             "dist/bili_audio-macos-arm64.dmg"
 
+      - name: Build iOS package
+        if: matrix.target == 'ios'
+        working-directory: bili_audio
+        env:
+          IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          IOS_EXPORT_METHOD: ${{ secrets.IOS_EXPORT_METHOD }}
+        run: |
+          sed -i '' $'s/\r$//' packaging/ios/build-ipa.sh
+          bash packaging/ios/build-ipa.sh
+
       - uses: actions/upload-artifact@v4
+        if: matrix.target != 'ios' || hashFiles('bili_audio/dist/bili_audio-ios.ipa') != ''
         with:
           name: installer-${{ matrix.target }}
           path: bili_audio/dist/*
@@ -182,6 +198,7 @@ jobs:
           | Windows | \`bili_audio-windows-x64-setup.exe\` |
           | Linux | \`bili_audio-linux-amd64.deb\` |
           | macOS (Apple 芯片) | \`bili_audio-macos-arm64.dmg\` |
+          | iOS | \`bili_audio-ios.ipa\`（描述文件安装，需签名 secrets） |
 
           应用内升级只认 \`v*\` 正式版。\`continuous\` 是每次推送到 main 的预发布，介绍页在没有正式版时用它提供下载。
 

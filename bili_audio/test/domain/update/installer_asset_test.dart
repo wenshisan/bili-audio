@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('installerAssetName', () {
-    test('四个已打包平台对上 Release 文件名', () {
+    test('已打包平台对上 Release 文件名', () {
       expect(
         installerAssetName(operatingSystem: 'android', architecture: 'arm64'),
         androidInstaller,
@@ -20,13 +20,13 @@ void main() {
         installerAssetName(operatingSystem: 'linux', architecture: 'x64'),
         linuxAmd64Installer,
       );
+      expect(
+        installerAssetName(operatingSystem: 'ios', architecture: 'arm64'),
+        iosInstaller,
+      );
     });
 
     test('没有安装包的平台返回空', () {
-      expect(
-        installerAssetName(operatingSystem: 'ios', architecture: 'arm64'),
-        isNull,
-      );
       expect(
         installerAssetName(operatingSystem: 'macos', architecture: 'x64'),
         isNull,
@@ -43,6 +43,7 @@ void main() {
     expect(installerKind(windowsInstaller), InstallerKind.windowsSetup);
     expect(installerKind(macosArm64Installer), InstallerKind.macosDisk);
     expect(installerKind(linuxAmd64Installer), InstallerKind.linuxPackage);
+    expect(installerKind(iosInstaller), InstallerKind.iosProfile);
     expect(installerKind('notes.txt'), isNull);
   });
 }

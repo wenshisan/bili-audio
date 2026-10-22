@@ -439,6 +439,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateDownload => '下载并安装';
 
   @override
+  String get updateInstallIos => '通过描述文件安装';
+
+  @override
+  String get updateLaunchedIos =>
+      '已打开安装页。请按系统提示安装，然后到「设置 → 通用 → VPN 与设备管理」信任描述文件';
+
+  @override
   String get updateLaunched => '已打开安装包，请按系统提示完成安装';
 
   @override

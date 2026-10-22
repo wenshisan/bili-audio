@@ -49,6 +49,161 @@
     footer { margin-top: 40px; font-size: 14px; }
     footer a { color: var(--accent); }
     #status { min-height: 1.6em; }
+    a.card.disabled { opacity: 0.55; pointer-events: none; }
+    .demo {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 28px;
+      align-items: center;
+      margin: 8px 0 12px;
+    }
+    .phone {
+      position: relative;
+      height: 560px;
+      border: 8px solid #2c2823;
+      border-radius: 36px;
+      background: #171513;
+      overflow: hidden;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+    }
+    .scene {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 18px 16px 12px;
+      opacity: 0;
+    }
+    .is-playing .scene-search { animation: scene-a 12s infinite; }
+    .is-playing .scene-player { animation: scene-b 12s infinite; }
+    .is-playing .scene-parts { animation: scene-c 12s infinite; }
+    @keyframes scene-a { 0%, 28% { opacity: 1; } 33%, 100% { opacity: 0; } }
+    @keyframes scene-b { 0%, 33% { opacity: 0; } 38%, 61% { opacity: 1; } 66%, 100% { opacity: 0; } }
+    @keyframes scene-c { 0%, 66% { opacity: 0; } 71%, 96% { opacity: 1; } 100% { opacity: 0; } }
+    .is-static .scene-player { opacity: 1; }
+    .bar-top, .nav {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .nav { margin-top: auto; padding-top: 10px; }
+    .nav b { color: #fb7299; font-weight: 650; }
+    .search {
+      margin-top: 22px;
+      background: #241f1b;
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: var(--muted);
+    }
+    .typed {
+      display: inline-block;
+      width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      color: var(--text);
+      vertical-align: bottom;
+    }
+    .is-playing .typed { animation: typing 12s infinite; }
+    @keyframes typing {
+      0%, 4% { width: 0; }
+      14%, 30% { width: 3.2em; }
+      34%, 100% { width: 0; }
+    }
+    .hit {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-top: 14px;
+      opacity: 0;
+    }
+    .is-playing .hit { animation: rise 12s infinite; }
+    .is-playing .hit:nth-child(2) { animation-delay: 0.15s; }
+    .is-playing .hit.dim { animation-delay: 0.3s; }
+    @keyframes rise {
+      0%, 12% { opacity: 0; transform: translateY(8px); }
+      18%, 30% { opacity: 1; transform: none; }
+      34%, 100% { opacity: 0; }
+    }
+    .cover, .thumb {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #fb7299, #7a3148);
+      flex: none;
+    }
+    .hit strong, .song { display: block; }
+    .hit span, .artist { color: var(--muted); font-size: 13px; }
+    .hit.dim { opacity: 0.4; }
+    .tag { color: #fb7299; font-size: 12px; }
+    .art {
+      width: 168px;
+      height: 168px;
+      margin: 28px auto 16px;
+      border-radius: 18px;
+      background: linear-gradient(160deg, #fb7299, #3a1d28 70%);
+    }
+    .song { text-align: center; font-size: 22px; }
+    .artist { text-align: center; }
+    .progress {
+      height: 4px;
+      margin: 22px 8px 8px;
+      border-radius: 4px;
+      background: #3a332b;
+      overflow: hidden;
+    }
+    .progress i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: #fb7299;
+    }
+    .is-playing .progress i { animation: grow 12s infinite; }
+    @keyframes grow {
+      0%, 36% { width: 0; }
+      62% { width: 68%; }
+      66%, 100% { width: 0; }
+    }
+    .lyric { text-align: center; color: #6f655b; margin: 4px 0; }
+    .lyric.on { color: var(--text); }
+    .is-playing .lyric.a { animation: line-a 12s infinite; }
+    .is-playing .lyric.b { animation: line-b 12s infinite; }
+    .is-playing .lyric.c { animation: line-c 12s infinite; }
+    @keyframes line-a { 0%, 40% { color: #f4efe6; } 48%, 100% { color: #6f655b; } }
+    @keyframes line-b { 0%, 40% { color: #6f655b; } 48%, 58% { color: #f4efe6; } 64%, 100% { color: #6f655b; } }
+    @keyframes line-c { 0%, 56% { color: #6f655b; } 62%, 66% { color: #f4efe6; } 70%, 100% { color: #6f655b; } }
+    .part {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #241f1b;
+    }
+    .is-playing .part.p2 { animation: pick 12s infinite; }
+    @keyframes pick {
+      0%, 72% { outline: 0 solid transparent; }
+      78%, 96% { outline: 2px solid #fb7299; }
+      100% { outline: 0 solid transparent; }
+    }
+    .caption { font-size: 22px; margin: 0 0 8px; }
+    #demo-text { color: var(--muted); min-height: 3.2em; }
+    button.replay {
+      margin-top: 16px;
+      background: transparent;
+      color: var(--accent);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 16px;
+      font: inherit;
+      cursor: pointer;
+    }
+    @media (max-width: 720px) {
+      .demo { grid-template-columns: 1fr; justify-items: center; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .scene, .hit, .typed, .progress i, .lyric, .part { animation: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -61,6 +216,44 @@
       </div>
     </header>
     <p class="lede">只听 B 站音乐视频的音频。搜索短音乐、连续播放分 P、匹配歌词，并在后台接着播。</p>
+    <h2>看它怎么用</h2>
+    <div class="demo is-playing" id="demo">
+      <div class="phone" aria-hidden="true">
+        <div class="scene scene-search">
+          <div class="bar-top"><span>9:41</span><span>发现</span></div>
+          <div class="search">搜索 <span class="typed">七里香</span></div>
+          <div class="hit"><i class="thumb"></i><div><strong>七里香</strong><span>周杰伦</span></div></div>
+          <div class="hit"><i class="thumb"></i><div><strong>七里香</strong><span>翻唱 · 3:58</span></div></div>
+          <div class="hit dim"><i class="thumb"></i><div><strong>演唱会回顾</strong><span class="tag">超过 15 分钟</span></div></div>
+          <div class="nav"><b>发现</b><span>歌单</span><span>我的</span></div>
+        </div>
+        <div class="scene scene-player">
+          <div class="bar-top"><span>正在播放</span><span>歌词</span></div>
+          <div class="art"></div>
+          <strong class="song">晴天</strong>
+          <div class="artist">周杰伦</div>
+          <div class="progress"><i></i></div>
+          <p class="lyric a">故事的小黄花</p>
+          <p class="lyric b on">从出生那年就飘着</p>
+          <p class="lyric c">童年的荡秋千</p>
+          <div class="nav"><span>发现</span><b>播放</b><span>我的</span></div>
+        </div>
+        <div class="scene scene-parts">
+          <div class="bar-top"><span>合集</span><span>3 P</span></div>
+          <strong class="song" style="text-align:left;font-size:18px;margin-top:18px">夜曲</strong>
+          <div class="artist" style="text-align:left">周杰伦</div>
+          <div class="part"><span>P1 夜曲</span><span>3:47</span></div>
+          <div class="part p2"><span>P2 夜曲 · 现场</span><span>4:12</span></div>
+          <div class="part"><span>P3 夜曲 · 伴奏</span><span>3:46</span></div>
+          <div class="nav"><span>发现</span><span>歌单</span><b>播放</b></div>
+        </div>
+      </div>
+      <div>
+        <p class="caption" id="demo-title">搜索</p>
+        <p id="demo-text">输入歌名。超过 15 分钟的视频会被滤掉，留下能当歌听的结果。</p>
+        <button class="replay" type="button" id="replay">再看一遍</button>
+      </div>
+    </div>
     <h2>能做什么</h2>
     <ul>
       <li>搜索音乐内容，过滤超过 15 分钟的视频。</li>
@@ -86,8 +279,12 @@
         <strong>Android</strong>
         <span>直接安装的 APK。需要允许安装未知应用。</span>
       </a>
+      <a class="card disabled" id="ios" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fwenshisan.github.io%2Fbili-audio%2Fmanifest.plist">
+        <strong>iOS</strong>
+        <span>用 iPhone 自带的 Safari 打开本页。系统按描述文件安装，完成后到「设置 → 通用 → VPN 与设备管理」里信任。</span>
+      </a>
     </div>
-    <p class="note">iOS 需要 Apple 开发者证书才能安装，当前不提供安装包。安装包由 GitHub Actions 在推送到 main 后生成；第一次构建完成前，上面的链接会暂时打不开。</p>
+    <p class="note">安装包由 GitHub Actions 在推送到 main 后生成；第一次构建完成前，上面的链接会暂时打不开。iOS 描述文件安装还需要仓库里配置好的 Apple 签名，没有签名时这个按钮不可用。</p>
     <p class="note">应用内“检查更新”只提示带 <code>v</code> 版本号的正式发布。上面的按钮在还没有正式版时，会下载名为 continuous 的预发布包。</p>
     <footer>
       <p>源码与全部发布：<a href="https://github.com/wenshisan/bili-audio">wenshisan/bili-audio</a></p>
@@ -102,6 +299,53 @@
       linux: "bili_audio-linux-amd64.deb",
       android: "bili_audio-android.apk",
     };
+    const scenes = [
+      ["搜索", "输入歌名。超过 15 分钟的视频会被滤掉，留下能当歌听的结果。"],
+      ["播放", "只放音频。进度往前走的时候，歌词跟着换行。"],
+      ["分 P", "合集按分 P 连着播，标题整理成歌名和歌手。"],
+    ];
+
+    const demo = document.getElementById("demo");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      demo.classList.remove("is-playing");
+      demo.classList.add("is-static");
+    }
+
+    function showScene(index) {
+      document.getElementById("demo-title").textContent = scenes[index][0];
+      document.getElementById("demo-text").textContent = scenes[index][1];
+    }
+
+    let sceneTimer = 0;
+    function playDemo() {
+      window.clearInterval(sceneTimer);
+      if (reduced) {
+        showScene(1);
+        return;
+      }
+      demo.classList.remove("is-playing");
+      void demo.offsetWidth;
+      demo.classList.add("is-playing");
+      let index = 0;
+      showScene(0);
+      sceneTimer = window.setInterval(() => {
+        index = (index + 1) % scenes.length;
+        showScene(index);
+      }, 4000);
+    }
+
+    document.getElementById("replay").addEventListener("click", playDemo);
+    playDemo();
+
+    const iosLink = document.getElementById("ios");
+    iosLink.addEventListener("click", (event) => {
+      const apple = /iPhone|iPad|iPod/.test(navigator.userAgent);
+      if (!apple) {
+        event.preventDefault();
+        document.getElementById("status").textContent = "请用 iPhone 自带的 Safari 打开本页，再点 iOS 安装。";
+      }
+    });
 
     async function load() {
       const status = document.getElementById("status");
@@ -109,6 +353,8 @@
         "https://api.github.com/repos/" + repo + "/releases/latest",
         "https://api.github.com/repos/" + repo + "/releases/tags/continuous",
       ];
+      let chosen = null;
+      let iosReady = false;
       for (const url of urls) {
         let data;
         try {
@@ -121,18 +367,28 @@
           continue;
         }
         const assets = new Map((data.assets || []).map((asset) => [asset.name, asset]));
-        const found = Object.values(files).some((name) => assets.has(name));
-        if (!found) continue;
-        for (const [id, name] of Object.entries(files)) {
-          const asset = assets.get(name);
-          if (!asset) continue;
-          document.getElementById(id).href = asset.browser_download_url;
-        }
-        const kind = data.prerelease ? "预发布" : "正式版";
-        status.textContent = kind + " " + data.tag_name + " · " + new Date(data.published_at).toLocaleString();
+        if (assets.has("bili_audio-ios.ipa")) iosReady = true;
+        if (chosen) continue;
+        if (!Object.values(files).some((name) => assets.has(name))) continue;
+        chosen = { data, assets };
+      }
+      if (iosReady) {
+        iosLink.classList.remove("disabled");
+      } else {
+        iosLink.classList.add("disabled");
+        iosLink.querySelector("span").textContent = "描述文件安装包还没有生成。需要先在 Actions 里配好 Apple 签名。";
+      }
+      if (!chosen) {
+        status.textContent = "还没有可下载的构建。推送到 main 后，Actions 会生成安装包。";
         return;
       }
-      status.textContent = "还没有可下载的构建。推送到 main 后，Actions 会生成安装包。";
+      for (const [id, name] of Object.entries(files)) {
+        const asset = chosen.assets.get(name);
+        if (!asset) continue;
+        document.getElementById(id).href = asset.browser_download_url;
+      }
+      const kind = chosen.data.prerelease ? "预发布" : "正式版";
+      status.textContent = kind + " " + chosen.data.tag_name + " · " + new Date(chosen.data.published_at).toLocaleString();
     }
 
     load();

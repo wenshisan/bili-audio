@@ -79,6 +79,11 @@ class LocalUpdateInstaller implements UpdateInstaller {
     if (kind == null) {
       throw const InstallLaunchException('无法识别安装包');
     }
+    if (kind == InstallerKind.iosProfile) {
+      onProgress(1);
+      await _openUrl(iosInstallUrl);
+      return;
+    }
     final root = await getTemporaryDirectory();
     final file = File(p.join(root.path, 'updates', asset.name));
     await file.parent.create(recursive: true);
@@ -110,7 +115,17 @@ class LocalUpdateInstaller implements UpdateInstaller {
         await Process.start('xdg-open', [
           path,
         ], mode: ProcessStartMode.detached);
+      case InstallerKind.iosProfile:
+        await _openUrl(iosInstallUrl);
     }
+  }
+}
+
+Future<void> _openUrl(String url) async {
+  try {
+    await _installChannel.invokeMethod<void>('openUrl', url);
+  } on PlatformException catch (error) {
+    throw InstallLaunchException(error.message ?? error.code);
   }
 }
 

@@ -13,6 +13,17 @@ const String macosArm64Installer = 'bili_audio-macos-arm64.dmg';
 /// Linux x64 安装包在 Release 里的文件名。
 const String linuxAmd64Installer = 'bili_audio-linux-amd64.deb';
 
+/// iOS 安装包在 Release 里的文件名。
+const String iosInstaller = 'bili_audio-ios.ipa';
+
+/// 介绍页上的 iOS 安装清单。用 Safari 打开后，系统按描述文件安装。
+const String iosManifestUrl =
+    'https://wenshisan.github.io/bili-audio/manifest.plist';
+
+/// iOS 上交给系统安装描述文件的地址。
+const String iosInstallUrl =
+    'itms-services://?action=download-manifest&url=https%3A%2F%2Fwenshisan.github.io%2Fbili-audio%2Fmanifest.plist';
+
 /// 按操作系统和 CPU 选择 Release 里的安装包文件名。
 ///
 /// [operatingSystem] 使用 `Platform.operatingSystem` 的取值。
@@ -25,6 +36,7 @@ String? installerAssetName({
   'windows' when architecture == 'x64' => windowsInstaller,
   'macos' when architecture == 'arm64' => macosArm64Installer,
   'linux' when architecture == 'x64' => linuxAmd64Installer,
+  'ios' when architecture == 'arm64' => iosInstaller,
   _ => null,
 };
 
@@ -41,6 +53,9 @@ enum InstallerKind {
 
   /// 交给桌面环境打开软件包。
   linuxPackage,
+
+  /// 打开 iOS 描述文件安装地址，不在应用内下载 IPA。
+  iosProfile,
 }
 
 /// 根据文件名判断怎么打开安装包。无法识别时返回 `null`。
@@ -49,5 +64,6 @@ InstallerKind? installerKind(String assetName) {
   if (assetName.endsWith('.exe')) return InstallerKind.windowsSetup;
   if (assetName.endsWith('.dmg')) return InstallerKind.macosDisk;
   if (assetName.endsWith('.deb')) return InstallerKind.linuxPackage;
+  if (assetName.endsWith('.ipa')) return InstallerKind.iosProfile;
   return null;
 }

@@ -12,7 +12,7 @@
 | Windows x64 | `bili_audio-windows-x64-setup.exe` | Inno Setup 安装程序，装到当前用户目录。未做代码签名 |
 | Linux x64 | `bili_audio-linux-amd64.deb` | 安装到 `/opt/bili_audio` |
 | macOS Apple 芯片 | `bili_audio-macos-arm64.dmg` | 未公证。Intel Mac 暂不打包 |
-| iOS | 无 | 没有 Apple 开发者证书，打不出可安装的 IPA |
+| iOS | `bili_audio-ios.ipa` | 用 Safari 打开介绍页，走 `itms-services` 描述文件安装。签名 secrets 没配时不产出这个文件 |
 
 Windows 若被 SmartScreen 拦住，选择仍要运行。macOS 在“系统设置 → 隐私与安全性”里允许打开。Android 需允许本应用安装未知应用。
 
@@ -25,9 +25,13 @@ keyAlias=...
 storeFile=ci-release.keystore
 ```
 
+iOS 描述文件安装用三个 Actions secrets：`IOS_CERTIFICATE_P12_BASE64`（分发证书 p12 的 base64）、`IOS_CERTIFICATE_PASSWORD`、`IOS_PROVISIONING_PROFILE_BASE64`（`.mobileprovision` 的 base64）。可选 `IOS_EXPORT_METHOD`，默认 `ad-hoc`。描述文件里要包含要安装的设备。企业签名则把导出方式设为 `enterprise`。
+
+介绍页上的 iOS 按钮打开 `https://wenshisan.github.io/bili-audio/manifest.plist`。装完后到「设置 → 通用 → VPN 与设备管理」信任该描述文件。应用内升级在 iPhone 上打开同一条安装地址，不在应用里下载 IPA。
+
 ## Actions
 
-- `.github/workflows/release.yml`：推送到 `main` 且改动了 `bili_audio/` 或该 workflow 时，构建上表四个包，并更新预发布标签 `continuous`。
+- `.github/workflows/release.yml`：推送到 `main` 且改动了 `bili_audio/` 或该 workflow 时，构建上表的安装包，并更新预发布标签 `continuous`。iOS 只在签名 secrets 齐全时产出 IPA。
 - `.github/workflows/release-tag.yml`：推送 `v*` 标签（例如 `v0.2.0`）时走同一套构建，发布为正式版，并标成 Latest。
 - 也可以在 Actions 页手动运行 Build installers。
 
@@ -39,7 +43,9 @@ storeFile=ci-release.keystore
 
 `https://wenshisan.github.io/bili-audio/`
 
-页面先请求 Latest 正式版；没有正式版，或正式版里没有安装包时，改用 `continuous`。按钮在第一次构建完成前会 404。
+页面先请求 Latest 正式版；没有正式版，或正式版里没有安装包时，改用 `continuous`。按钮在第一次构建完成前会 404。页首有一段循环播放的功能演示。
+
+iOS 按钮只在 Release 里已经有 `bili_audio-ios.ipa` 时可以点，并且只在 iPhone 的 Safari 里开始安装。安装清单 `manifest.plist` 在每次部署介绍页时重写：优先用正式版里的 IPA 地址，否则用 `continuous`。安装包构建成功后会再部署一次介绍页，让清单跟上新文件。
 
 ## 应用内升级
 
@@ -61,7 +67,7 @@ storeFile=ci-release.keystore
 - Windows：运行下载的安装程序。
 - macOS：`open` 磁盘映像。
 - Linux：`xdg-open` 打开 deb。
-- iOS、Intel Mac、Windows ARM 没有对应附件，只说明有新版本并给出发布页地址。
+- iOS：打开介绍页上的描述文件安装地址。Intel Mac、Windows ARM 没有对应附件，只说明有新版本并给出发布页地址。
 
 发一个用户能在软件里看到的升级：
 

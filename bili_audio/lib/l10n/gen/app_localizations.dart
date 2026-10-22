@@ -886,6 +886,18 @@ abstract class AppLocalizations {
   /// **'下载并安装'**
   String get updateDownload;
 
+  /// No description provided for @updateInstallIos.
+  ///
+  /// In zh, this message translates to:
+  /// **'通过描述文件安装'**
+  String get updateInstallIos;
+
+  /// No description provided for @updateLaunchedIos.
+  ///
+  /// In zh, this message translates to:
+  /// **'已打开安装页。请按系统提示安装，然后到「设置 → 通用 → VPN 与设备管理」信任描述文件'**
+  String get updateLaunchedIos;
+
   /// No description provided for @updateLaunched.
   ///
   /// In zh, this message translates to:

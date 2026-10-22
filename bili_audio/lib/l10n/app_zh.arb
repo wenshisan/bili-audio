@@ -261,6 +261,8 @@
   },
   "updateLater": "稍后",
   "updateDownload": "下载并安装",
+  "updateInstallIos": "通过描述文件安装",
+  "updateLaunchedIos": "已打开安装页。请按系统提示安装，然后到「设置 → 通用 → VPN 与设备管理」信任描述文件",
   "updateLaunched": "已打开安装包，请按系统提示完成安装",
   "updateCheckFailed": "检查更新失败",
   "updateDownloadFailed": "下载或打开安装包失败",
