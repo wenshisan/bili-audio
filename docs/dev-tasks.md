@@ -8,6 +8,7 @@
 - **估时**：单人日（d），含单元测试，不含联调等待。
 - **完成定义（DoD）**：`flutter analyze` 0 warning；新增逻辑有单测；`domain/` 下模块覆盖率 ≥ 90%；在 Android + Windows 至少各跑通一次。
 - **分支**：`feat/M{x}.{y}-short-name`，一个任务一个 PR。
+- **Agent skills**：正文在 `.claude/skills`，Cursor 通过目录联接读取。换电脑后的重建方式见 `docs/skills.md`。
 
 ## 1. 关键技术决策（含对 PRD 的澄清）
 

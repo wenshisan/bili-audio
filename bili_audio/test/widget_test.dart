@@ -104,8 +104,18 @@ void main() {
 
     expect(handler.currentTrack?.bvid, 'BV1fake00001');
     expect(engine.playing, true);
-    // 迷你播放栏出现, 显示当前曲
+    // 标题栏和迷你播放栏都有上一首/下一首
     expect(find.text('七里香'), findsWidgets);
+    expect(find.byIcon(Icons.skip_previous), findsNWidgets(2));
+    expect(find.byIcon(Icons.skip_next), findsNWidgets(2));
+    expect(find.byTooltip('上一首'), findsOneWidget);
+    expect(find.byTooltip('下一首'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('下一首'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('上一首'));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.skip_previous), findsNWidgets(2));
   });
 
   testWidgets('超过 15 分钟的搜索结果不显示', (tester) async {

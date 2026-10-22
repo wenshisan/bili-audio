@@ -81,9 +81,19 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
                     ),
                   ),
                   IconButton(
+                    tooltip: '上一首',
+                    icon: const Icon(Icons.skip_previous),
+                    onPressed: handler.skipToPrevious,
+                  ),
+                  IconButton(
                     tooltip: playing ? 'Pause' : 'Play',
                     icon: Icon(playing ? Icons.pause : Icons.play_arrow),
                     onPressed: playing ? handler.pause : handler.play,
+                  ),
+                  IconButton(
+                    tooltip: '下一首',
+                    icon: const Icon(Icons.skip_next),
+                    onPressed: handler.skipToNext,
                   ),
                   IconButton(
                     tooltip: l10n.queueTitle,

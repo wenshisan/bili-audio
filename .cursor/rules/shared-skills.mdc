@@ -1,0 +1,14 @@
+---
+description: Keep Claude and Cursor skills as one shared tree. Use when adding, editing, or moving skills under .claude/skills or .cursor/skills.
+globs: .claude/skills/**/*,.cursor/skills/**/*
+alwaysApply: true
+---
+
+# Shared skills
+
+`.cursor/skills` is a directory junction to `.claude/skills`. Both paths are the same files.
+
+- Add or edit a skill only under `.claude/skills/<name>/SKILL.md`. Editing the `.cursor/skills` path changes the same file.
+- Do not copy a skill into the other tree.
+- If `.cursor/skills` is missing, or it is a real directory instead of a junction, run `powershell -File scripts/link-cursor-skills.ps1`.
+- Setup and what happens on another machine: `docs/skills.md`.
