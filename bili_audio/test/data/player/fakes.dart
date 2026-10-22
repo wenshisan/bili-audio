@@ -24,6 +24,9 @@ class FakeEngine implements AudioEngine {
   /// 加载时模拟播放器发起首个范围请求 (触发流地址解析)
   bool requestOnLoad = false;
 
+  /// 换源时再报一次播放完成。用来确认切歌不会因此被当成播完而随机跳走。
+  bool emitCompletedOnSetSource = false;
+
   @override
   bool playing = false;
   @override
@@ -34,12 +37,19 @@ class FakeEngine implements AudioEngine {
   double speed = 1;
 
   @override
-  Future<void> setSource(AudioSource source, {Duration? initialPosition}) async {
+  Future<void> setSource(
+    AudioSource source, {
+    Duration? initialPosition,
+  }) async {
     sources.add(source);
     positions.add(initialPosition);
     position = initialPosition ?? Duration.zero;
     if (requestOnLoad) await (source as StreamAudioSource).request(0, 1);
     processingState = ProcessingState.ready;
+    if (emitCompletedOnSetSource) {
+      processingState = ProcessingState.completed;
+      _state.add(ProcessingState.completed);
+    }
   }
 
   @override
@@ -112,17 +122,16 @@ class CountingStreamRepository implements StreamRepository {
     Track track,
     AudioQuality quality, {
     bool loggedIn = false,
-  }) =>
-      resolve(track, quality, loggedIn: loggedIn);
+  }) => resolve(track, quality, loggedIn: loggedIn);
 }
 
 List<Track> makeTracks(int n) => [
-      for (var i = 0; i < n; i++)
-        Track(
-          bvid: 'BV$i',
-          cid: i,
-          title: 'T$i',
-          artist: 'A${i % 3}',
-          duration: const Duration(minutes: 3),
-        ),
-    ];
+  for (var i = 0; i < n; i++)
+    Track(
+      bvid: 'BV$i',
+      cid: i,
+      title: 'T$i',
+      artist: 'A${i % 3}',
+      duration: const Duration(minutes: 3),
+    ),
+];

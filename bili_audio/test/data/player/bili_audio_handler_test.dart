@@ -131,6 +131,23 @@ void main() {
     expect(handler.currentTrack!.bvid, isNot(last));
   });
 
+  test('随机模式播放超过 3 秒时, 上一曲仍回到实际听过的那首', () async {
+    await handler.setTracks(
+      makeTracks(8),
+      mode: PlayMode.shuffle,
+      startIndex: 2,
+    );
+    final first = handler.currentTrack;
+    await handler.skipToNext();
+    expect(handler.currentTrack!.bvid, isNot(first!.bvid));
+
+    engine.position = const Duration(seconds: 30);
+    engine.emitCompletedOnSetSource = true;
+    await handler.skipToPrevious();
+
+    expect(handler.currentTrack!.bvid, first.bvid);
+  });
+
   test('随机 20 首: "上一曲"按实际播放路径回退', () async {
     await handler.setTracks(makeTracks(20));
     handler.setPlayMode(PlayMode.shuffle);

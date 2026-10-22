@@ -110,6 +110,9 @@ class PlaybackQueue {
   }
 
   /// 上一首
+  ///
+  /// 随机模式只沿实际听过的顺序回退。没有更早的一首时停在当前曲,
+  /// 不改去原列表的相邻项, 也不再抽一首。
   Track? previous() {
     if (isEmpty) return null;
 
@@ -118,10 +121,15 @@ class PlaybackQueue {
       return current;
     }
 
-    // 随机模式: 从历史回退
-    if (_isShuffleMode(_mode) && _history.isNotEmpty) {
-      _cursor = _history.removeLast();
-      return current;
+    if (_isShuffleMode(_mode)) {
+      while (_history.isNotEmpty) {
+        final pos = _history.removeLast();
+        if (pos < 0 || pos >= _order.length || pos == _cursor) continue;
+        _played.remove(_order[pos]);
+        _cursor = pos;
+        return current;
+      }
+      return null;
     }
 
     // 顺序模式: cursor - 1
@@ -194,8 +202,13 @@ class PlaybackQueue {
   void insertNext(Track track) {
     _original.add(track);
     final newIndex = _original.length - 1;
-    _order.insert(_cursor + 1, newIndex);
+    final at = _cursor + 1;
+    _order.insert(at, newIndex);
     _pinned.insert(0, newIndex);
+    // 历史上的位置是 _order 下标, 插在它们前面时要后移, 否则上一首会对错歌。
+    for (var i = 0; i < _history.length; i++) {
+      if (_history[i] >= at) _history[i]++;
+    }
   }
 
   /// 移除 [tracks] 中的第 [index] 项。

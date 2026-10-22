@@ -76,6 +76,37 @@ void main() {
       expect(queue.previous(), second);
       expect(queue.previous(), first);
     });
+
+    test('随机模式没有更早的一首时不跳到列表相邻项', () {
+      final queue = PlaybackQueue(
+        tracks: createTracks(5),
+        mode: PlayMode.shuffle,
+        startIndex: 3,
+      );
+
+      expect(queue.previous(), isNull);
+      expect(queue.current?.title, 'Track 3');
+    });
+
+    test('随机模式插入下一首后, 上一首仍是实际听过的那首', () {
+      final queue = PlaybackQueue(
+        tracks: createTracks(5),
+        mode: PlayMode.shuffle,
+      );
+      queue.jumpTo(4);
+      queue.jumpTo(1);
+      queue.insertNext(
+        const Track(
+          bvid: 'BV999',
+          cid: 999,
+          title: 'Inserted',
+          duration: Duration(minutes: 3),
+        ),
+      );
+
+      expect(queue.previous()?.title, 'Track 4');
+      expect(queue.previous()?.title, 'Track 0');
+    });
   });
 
   group('PlaybackQueue 模式切换', () {

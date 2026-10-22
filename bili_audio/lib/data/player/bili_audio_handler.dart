@@ -17,8 +17,9 @@ import 'queue_snapshot_store.dart';
 import 'sleep_timer.dart';
 
 /// 播放历史记录钩子 (M6.5): 开始播放一首时调用, 返回更新进度的回调
-typedef PlayRecorder =
-    Future<void Function(Duration position)> Function(Track track);
+typedef PlayRecorder = Future<void Function(Duration position)> Function(
+  Track track,
+);
 
 /// 解析流地址前把曲目行写入 tracks 表。
 ///
@@ -47,7 +48,10 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
     _subs.add(engine.playingStream.listen((_) => _broadcast()));
     _subs.add(
       engine.processingStateStream.listen((s) {
-        if (s == ProcessingState.completed) unawaited(_onCompleted());
+        // 换源过程中播放器可能再报一次 completed, 那不是当前曲播完。
+        if (s == ProcessingState.completed && !_loading) {
+          unawaited(_onCompleted());
+        }
       }),
     );
     _publishQueue();
@@ -75,6 +79,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   final _errors = StreamController<AppError>.broadcast();
   PlaybackQueue _q = PlaybackQueue();
   int _loadToken = 0;
+  bool _loading = false;
   bool _lastDowngraded = false;
 
   /// 领域队列 (BaseAudioHandler.queue 是 MediaItem 列表)
@@ -160,6 +165,7 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
       await engine.stop();
       return;
     }
+    _loading = true;
     // 切歌前记下上一首的最终进度
     _recordProgress?.call(engine.position);
     _recordProgress = null;
@@ -215,6 +221,13 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
         stackTrace: st,
       );
       _errors.add(AppError.unknown(message: '播放失败: $e', cause: e));
+    } finally {
+      if (token == _loadToken) {
+        // 延后放开, 让换源时同步或紧接着抛出的 completed 不会被当成播完。
+        scheduleMicrotask(() {
+          if (token == _loadToken) _loading = false;
+        });
+      }
     }
     unawaited(_preloadNext());
     _save();
@@ -330,7 +343,14 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> skipToPrevious() async {
-    if (engine.position > const Duration(seconds: 3) || _q.previous() == null) {
+    final shuffle =
+        _q.mode == PlayMode.shuffle || _q.mode == PlayMode.smartShuffle;
+    // 顺序模式播放超过 3 秒时先回到当前曲开头。
+    // 随机模式当前这首就是抽到的, 点上一首必须退回实际听过的那首。
+    if (!shuffle && engine.position > const Duration(seconds: 3)) {
+      return engine.seek(Duration.zero);
+    }
+    if (_q.previous() == null) {
       return engine.seek(Duration.zero);
     }
     await _loadCurrent(autoplay: true);
