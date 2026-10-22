@@ -4,6 +4,12 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+val keystoreProperties = java.util.Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(java.io.FileInputStream(keystorePropertiesFile))
+}
+
 android {
     namespace = "com.bilimusic.bili_audio"
     compileSdk = flutter.compileSdkVersion
@@ -25,11 +31,26 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (keystorePropertiesFile.exists()) {
+            create("ciRelease") {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // 有 android/key.properties 时用其中的密钥，便于覆盖安装。
+            // 没有时退回 debug 签名，这样本机 flutter run --release 仍能装上。
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("ciRelease")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

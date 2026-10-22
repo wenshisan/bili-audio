@@ -25,6 +25,7 @@
 | D9 | Doze 豁免 | 只引导用户去系统设置，不主动申请 `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | 该权限有应用商店政策风险 |
 | D10 | 歌词时间单位 | 全链路使用 `Duration`，LRC 解析精度到 ms | 偏移量步进 0.1s，避免浮点误差 |
 | D11 | 依赖版本 | M0.1 时用 `flutter pub add` 取当时稳定版，写成精确版本（不用 `^`），并提交 `pubspec.lock` | 可复现构建；本文不预设版本号 |
+| D12 | 在线升级 | 升级源是 GitHub Release 的 Latest 正式版。安装包文件名、Actions 和介绍页见 `docs/release.md` | 预发布 `continuous` 只给介绍页下载，不在应用里弹升级 |
 
 ## 2. 工程结构
 

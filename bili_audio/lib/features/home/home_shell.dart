@@ -9,6 +9,7 @@ import '../../l10n/l10n.dart';
 import '../player/widgets/car_player.dart';
 import '../player/widgets/mini_player.dart';
 import '../player/widgets/now_playing_pane.dart';
+import '../settings/update_prompt.dart';
 import 'bottom_nav.dart';
 
 /// 主界面外壳：按内容区宽高切换底栏、侧栏或主从栏。
@@ -21,18 +22,20 @@ class HomeShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final path = GoRouterState.of(context).matchedLocation;
     final settings = ref.watch(layoutSettingsProvider);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final metrics = WindowMetrics.fromSize(constraints.biggest);
-        return WindowMetricsScope(
-          metrics: metrics,
-          child: SafeArea(
-            child: settings.carLayout
-                ? const CarPlayer()
-                : _AdaptiveBody(path: path, metrics: metrics, child: child),
-          ),
-        );
-      },
+    return UpdatePrompt(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final metrics = WindowMetrics.fromSize(constraints.biggest);
+          return WindowMetricsScope(
+            metrics: metrics,
+            child: SafeArea(
+              child: settings.carLayout
+                  ? const CarPlayer()
+                  : _AdaptiveBody(path: path, metrics: metrics, child: child),
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -60,9 +63,8 @@ class _AdaptiveBody extends ConsumerWidget {
           Expanded(
             child: SplitView(
               ratio: ratio,
-              onRatioEnd: (next) => ref
-                  .read(layoutSettingsProvider.notifier)
-                  .setSplitRatio(next),
+              onRatioEnd: (next) =>
+                  ref.read(layoutSettingsProvider.notifier).setSplitRatio(next),
               first: child,
               second: const NowPlayingPane(),
             ),
@@ -116,7 +118,9 @@ class _NavRail extends StatelessWidget {
       extended: extended,
       selectedIndex: navIndexForPath(path),
       onDestinationSelected: (i) => goNavDestination(context, i),
-      labelType: extended ? NavigationRailLabelType.none : NavigationRailLabelType.all,
+      labelType: extended
+          ? NavigationRailLabelType.none
+          : NavigationRailLabelType.all,
       destinations: [
         for (final (icon, selected, label) in destinations)
           NavigationRailDestination(

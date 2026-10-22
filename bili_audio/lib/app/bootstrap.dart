@@ -38,8 +38,12 @@ import '../domain/title/title_cleaner.dart';
 import 'platform/desktop_platform.dart';
 import 'platform/window_frame.dart';
 import 'theme.dart';
+import '../data/update/app_version_source.dart';
+import '../data/update/local_update_installer.dart';
+import '../data/update/release_source.dart';
 import '../features/login/login_controller.dart';
 import '../features/lyrics/lyrics_controller.dart';
+import '../features/settings/update_controller.dart';
 import 'providers.dart';
 
 /// 构建真实依赖并返回 ProviderScope overrides (M6)
@@ -190,6 +194,9 @@ Future<List<Override>> bootstrap() async {
       BiliVideoRepository(db, videoApi, cleaner),
     ),
     audioHandlerProvider.overrideWithValue(handler),
+    appVersionSourceProvider.overrideWithValue(const PackageAppVersionSource()),
+    releaseSourceProvider.overrideWithValue(GithubReleaseSource()),
+    updateInstallerProvider.overrideWithValue(LocalUpdateInstaller()),
   ];
 }
 

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>哔哩哔哩音频播放器</title>
+  <link rel="icon" href="icon.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #14120f;
+      --card: #211d18;
+      --line: #3a332b;
+      --text: #f4efe6;
+      --muted: #b7ab9b;
+      --accent: #e3a15a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 16px/1.6 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    main { max-width: 880px; margin: 0 auto; padding: 48px 20px 72px; }
+    header { display: flex; gap: 16px; align-items: center; }
+    header img { width: 72px; height: 72px; border-radius: 16px; }
+    h1 { font-size: 32px; line-height: 1.2; margin: 0 0 6px; font-weight: 650; }
+    .mark { color: var(--muted); margin: 0; }
+    .lede { font-size: 18px; margin: 28px 0; }
+    h2 { font-size: 18px; margin: 36px 0 12px; }
+    ul { margin: 0; padding-left: 1.2em; }
+    li { margin: 6px 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    a.card {
+      display: block;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card);
+      color: inherit;
+      text-decoration: none;
+    }
+    a.card:hover { border-color: var(--accent); }
+    a.card strong { display: block; font-size: 17px; }
+    a.card span { color: var(--muted); font-size: 14px; }
+    .note, footer { color: var(--muted); }
+    .note { margin-top: 18px; }
+    footer { margin-top: 40px; font-size: 14px; }
+    footer a { color: var(--accent); }
+    #status { min-height: 1.6em; }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="icon.png" alt="">
+      <div>
+        <h1>哔哩哔哩音频播放器</h1>
+        <p class="mark">第三方 · 个人学习 · 与哔哩哔哩官方无关</p>
+      </div>
+    </header>
+    <p class="lede">只听 B 站音乐视频的音频。搜索短音乐、连续播放分 P、匹配歌词，并在后台接着播。</p>
+    <h2>能做什么</h2>
+    <ul>
+      <li>搜索音乐内容，过滤超过 15 分钟的视频。</li>
+      <li>按分 P 连续播放，标题会整理成歌名和歌手。</li>
+      <li>匹配歌词，后台播放，并记住本地歌单和缓存。</li>
+    </ul>
+    <h2>下载</h2>
+    <p id="status" class="note">正在读取最新安装包…</p>
+    <div class="grid">
+      <a class="card" id="win" href="https://github.com/wenshisan/flutter-app-deep/releases/download/continuous/bili_audio-windows-x64-setup.exe">
+        <strong>Windows</strong>
+        <span>64 位安装程序。未签名，SmartScreen 可能提示未知发布者。</span>
+      </a>
+      <a class="card" id="mac" href="https://github.com/wenshisan/flutter-app-deep/releases/download/continuous/bili_audio-macos-arm64.dmg">
+        <strong>macOS</strong>
+        <span>Apple 芯片磁盘映像。未公证，需在隐私与安全性中允许。</span>
+      </a>
+      <a class="card" id="linux" href="https://github.com/wenshisan/flutter-app-deep/releases/download/continuous/bili_audio-linux-amd64.deb">
+        <strong>Linux</strong>
+        <span>x64 的 deb。可用 <code>sudo dpkg -i</code> 安装。</span>
+      </a>
+      <a class="card" id="android" href="https://github.com/wenshisan/flutter-app-deep/releases/download/continuous/bili_audio-android.apk">
+        <strong>Android</strong>
+        <span>直接安装的 APK。需要允许安装未知应用。</span>
+      </a>
+    </div>
+    <p class="note">iOS 需要 Apple 开发者证书才能安装，当前不提供安装包。安装包由 GitHub Actions 在推送到 main 后生成；第一次构建完成前，上面的链接会暂时打不开。</p>
+    <p class="note">应用内“检查更新”只提示带 <code>v</code> 版本号的正式发布。上面的按钮在还没有正式版时，会下载名为 continuous 的预发布包。</p>
+    <footer>
+      <p>源码与全部发布：<a href="https://github.com/wenshisan/flutter-app-deep">wenshisan/flutter-app-deep</a></p>
+      <p>发布说明见仓库里的 <code>docs/release.md</code>。</p>
+    </footer>
+  </main>
+  <script>
+    const repo = "wenshisan/flutter-app-deep";
+    const files = {
+      win: "bili_audio-windows-x64-setup.exe",
+      mac: "bili_audio-macos-arm64.dmg",
+      linux: "bili_audio-linux-amd64.deb",
+      android: "bili_audio-android.apk",
+    };
+
+    async function load() {
+      const status = document.getElementById("status");
+      const urls = [
+        "https://api.github.com/repos/" + repo + "/releases/latest",
+        "https://api.github.com/repos/" + repo + "/releases/tags/continuous",
+      ];
+      for (const url of urls) {
+        let data;
+        try {
+          const response = await fetch(url, {
+            headers: { Accept: "application/vnd.github+json" },
+          });
+          if (!response.ok) continue;
+          data = await response.json();
+        } catch (_) {
+          continue;
+        }
+        const assets = new Map((data.assets || []).map((asset) => [asset.name, asset]));
+        const found = Object.values(files).some((name) => assets.has(name));
+        if (!found) continue;
+        for (const [id, name] of Object.entries(files)) {
+          const asset = assets.get(name);
+          if (!asset) continue;
+          document.getElementById(id).href = asset.browser_download_url;
+        }
+        const kind = data.prerelease ? "预发布" : "正式版";
+        status.textContent = kind + " " + data.tag_name + " · " + new Date(data.published_at).toLocaleString();
+        return;
+      }
+      status.textContent = "还没有可下载的构建。推送到 main 后，Actions 会生成安装包。";
+    }
+
+    load();
+  </script>
+</body>
+</html>

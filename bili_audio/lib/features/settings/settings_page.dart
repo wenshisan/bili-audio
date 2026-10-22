@@ -10,6 +10,7 @@ import '../../domain/entities/audio_track.dart';
 import '../../l10n/l10n.dart';
 import '../common/cover_image.dart';
 import '../login/login_controller.dart';
+import 'update_prompt.dart';
 
 /// 设置 (M6.6)
 class SettingsPage extends ConsumerWidget {
@@ -51,8 +52,10 @@ class _SettingsList extends ConsumerWidget {
         if (!prefs.loggedIn)
           Padding(
             padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
-            child: Text(l10n.settingsQualityGuestHint,
-                style: Theme.of(context).textTheme.bodySmall),
+            child: Text(
+              l10n.settingsQualityGuestHint,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ),
         const Divider(),
         ListTile(
@@ -83,6 +86,8 @@ class _SettingsList extends ConsumerWidget {
         const _ThemeModeRow(),
         const _CarLayoutRow(),
         const _SeedColorRow(),
+        const Divider(),
+        const UpdateSettingsTile(),
       ],
     );
   }
@@ -90,24 +95,23 @@ class _SettingsList extends ConsumerWidget {
   Future<AudioQuality?> _pickQuality(
     BuildContext context,
     AudioQuality current,
-  ) =>
-      showDialog<AudioQuality>(
-        context: context,
-        builder: (c) => AlertDialog(
-          title: Text(context.l10n.settingsQuality),
-          content: RadioGroup<AudioQuality>(
-            groupValue: current,
-            onChanged: (v) => Navigator.pop(c, v),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final q in AudioQuality.values.reversed)
-                  RadioListTile<AudioQuality>(title: Text(q.name), value: q),
-              ],
-            ),
-          ),
+  ) => showDialog<AudioQuality>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text(context.l10n.settingsQuality),
+      content: RadioGroup<AudioQuality>(
+        groupValue: current,
+        onChanged: (v) => Navigator.pop(c, v),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final q in AudioQuality.values.reversed)
+              RadioListTile<AudioQuality>(title: Text(q.name), value: q),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 
   Future<void> _pickCacheLimit(
     BuildContext context,
@@ -302,11 +306,13 @@ class _AccountTile extends ConsumerWidget {
               content: Text(l10n.logoutConfirm),
               actions: [
                 TextButton(
-                    onPressed: () => Navigator.pop(c, false),
-                    child: Text(l10n.cancel)),
+                  onPressed: () => Navigator.pop(c, false),
+                  child: Text(l10n.cancel),
+                ),
                 FilledButton(
-                    onPressed: () => Navigator.pop(c, true),
-                    child: Text(l10n.confirm)),
+                  onPressed: () => Navigator.pop(c, true),
+                  child: Text(l10n.confirm),
+                ),
               ],
             ),
           );

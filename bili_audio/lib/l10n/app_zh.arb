@@ -229,5 +229,40 @@
   "carLayoutOn": "始终开启",
   "carLayoutOff": "关闭",
   "carShowQueue": "队列",
-  "carShowLyrics": "歌词"
+  "carShowLyrics": "歌词",
+  "updateTitle": "检查更新",
+  "updateCurrent": "当前 {version}",
+  "@updateCurrent": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "updateChecking": "正在检查更新",
+  "updateUpToDate": "已是最新版本",
+  "updateAvailable": "可更新到 {version}",
+  "@updateAvailable": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "updateAvailableTitle": "新版本 {version}",
+  "@updateAvailableTitle": {
+    "placeholders": {
+      "version": {"type": "String"}
+    }
+  },
+  "updateUnsupportedTitle": "没有适合这个系统的安装包",
+  "updateUnsupportedShort": "有新版本，但没有本机安装包",
+  "updateDownloading": "正在下载 {percent}%",
+  "@updateDownloading": {
+    "placeholders": {
+      "percent": {"type": "int"}
+    }
+  },
+  "updateLater": "稍后",
+  "updateDownload": "下载并安装",
+  "updateLaunched": "已打开安装包，请按系统提示完成安装",
+  "updateCheckFailed": "检查更新失败",
+  "updateDownloadFailed": "下载或打开安装包失败",
+  "updatePermission": "请先允许本应用安装未知应用，然后重试"
 }

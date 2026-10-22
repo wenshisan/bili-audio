@@ -396,4 +396,57 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get carShowLyrics => '歌词';
+
+  @override
+  String get updateTitle => '检查更新';
+
+  @override
+  String updateCurrent(String version) {
+    return '当前 $version';
+  }
+
+  @override
+  String get updateChecking => '正在检查更新';
+
+  @override
+  String get updateUpToDate => '已是最新版本';
+
+  @override
+  String updateAvailable(String version) {
+    return '可更新到 $version';
+  }
+
+  @override
+  String updateAvailableTitle(String version) {
+    return '新版本 $version';
+  }
+
+  @override
+  String get updateUnsupportedTitle => '没有适合这个系统的安装包';
+
+  @override
+  String get updateUnsupportedShort => '有新版本，但没有本机安装包';
+
+  @override
+  String updateDownloading(int percent) {
+    return '正在下载 $percent%';
+  }
+
+  @override
+  String get updateLater => '稍后';
+
+  @override
+  String get updateDownload => '下载并安装';
+
+  @override
+  String get updateLaunched => '已打开安装包，请按系统提示完成安装';
+
+  @override
+  String get updateCheckFailed => '检查更新失败';
+
+  @override
+  String get updateDownloadFailed => '下载或打开安装包失败';
+
+  @override
+  String get updatePermission => '请先允许本应用安装未知应用，然后重试';
 }

@@ -819,6 +819,96 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'歌词'**
   String get carShowLyrics;
+
+  /// No description provided for @updateTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新'**
+  String get updateTitle;
+
+  /// No description provided for @updateCurrent.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前 {version}'**
+  String updateCurrent(String version);
+
+  /// No description provided for @updateChecking.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在检查更新'**
+  String get updateChecking;
+
+  /// No description provided for @updateUpToDate.
+  ///
+  /// In zh, this message translates to:
+  /// **'已是最新版本'**
+  String get updateUpToDate;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In zh, this message translates to:
+  /// **'可更新到 {version}'**
+  String updateAvailable(String version);
+
+  /// No description provided for @updateAvailableTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'新版本 {version}'**
+  String updateAvailableTitle(String version);
+
+  /// No description provided for @updateUnsupportedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有适合这个系统的安装包'**
+  String get updateUnsupportedTitle;
+
+  /// No description provided for @updateUnsupportedShort.
+  ///
+  /// In zh, this message translates to:
+  /// **'有新版本，但没有本机安装包'**
+  String get updateUnsupportedShort;
+
+  /// No description provided for @updateDownloading.
+  ///
+  /// In zh, this message translates to:
+  /// **'正在下载 {percent}%'**
+  String updateDownloading(int percent);
+
+  /// No description provided for @updateLater.
+  ///
+  /// In zh, this message translates to:
+  /// **'稍后'**
+  String get updateLater;
+
+  /// No description provided for @updateDownload.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载并安装'**
+  String get updateDownload;
+
+  /// No description provided for @updateLaunched.
+  ///
+  /// In zh, this message translates to:
+  /// **'已打开安装包，请按系统提示完成安装'**
+  String get updateLaunched;
+
+  /// No description provided for @updateCheckFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'检查更新失败'**
+  String get updateCheckFailed;
+
+  /// No description provided for @updateDownloadFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载或打开安装包失败'**
+  String get updateDownloadFailed;
+
+  /// No description provided for @updatePermission.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先允许本应用安装未知应用，然后重试'**
+  String get updatePermission;
 }
 
 class _AppLocalizationsDelegate
