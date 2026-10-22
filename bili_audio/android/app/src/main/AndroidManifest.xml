@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
-        android:label="bili_audio"
+        android:label="bili-audio"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <!-- 不锁方向、不设置 resizeableActivity=false，大屏和分屏按窗口尺寸重排。 -->

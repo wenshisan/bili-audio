@@ -87,7 +87,7 @@ Future<void> initSystemTray() async {
     await trayManager.setIcon(
       Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png',
     );
-    await trayManager.setToolTip('哔哩哔哩音频播放器');
+    await trayManager.setToolTip('bili-audio');
     await _updateTrayMenu();
     trayManager.addListener(_TrayHandler());
   } catch (e, st) {
@@ -177,7 +177,7 @@ Future<void> _runApp(Zone rootZone) async {
       backgroundColor: Colors.transparent,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.hidden,
-      title: '哔哩哔哩音频播放器',
+      title: 'bili-audio',
     );
 
     await windowManager.waitUntilReadyToShow(windowOptions, () async {

@@ -97,7 +97,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In zh, this message translates to:
-  /// **'哔哩哔哩音频播放器'**
+  /// **'bili-audio'**
   String get appTitle;
 
   /// No description provided for @navDiscover.

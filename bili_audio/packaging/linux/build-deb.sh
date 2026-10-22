@@ -27,7 +27,7 @@ chmod 755 "$STAGE/usr/bin/bili_audio"
 cat > "$STAGE/usr/share/applications/bili_audio.desktop" << 'EOF'
 [Desktop Entry]
 Type=Application
-Name=哔哩哔哩音频播放器
+Name=bili-audio
 Comment=第三方哔哩哔哩音乐播放器
 Exec=/opt/bili_audio/bili_audio
 Icon=bili_audio
@@ -41,7 +41,7 @@ Version: ${VERSION}
 Section: sound
 Priority: optional
 Architecture: amd64
-Maintainer: Bili Audio <noreply@users.noreply.github.com>
+Maintainer: bili-audio <noreply@users.noreply.github.com>
 Depends: libgtk-3-0 | libgtk-3-0t64, libblkid1, liblzma5
 Description: Third-party Bilibili audio player
  Personal learning project. Not affiliated with Bilibili.

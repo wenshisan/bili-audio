@@ -130,7 +130,7 @@ jobs:
           flutter build macos --release
           mkdir -p dist
           hdiutil create \
-            -volname "Bili Audio" \
+            -volname "bili-audio" \
             -srcfolder "build/macos/Build/Products/Release/bili_audio.app" \
             -ov -format UDZO \
             "dist/bili_audio-macos-arm64.dmg"

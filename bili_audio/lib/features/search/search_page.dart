@@ -10,6 +10,7 @@ import '../../data/repositories/repositories.dart';
 import '../../l10n/l10n.dart';
 import '../common/add_to_playlist_sheet.dart';
 import '../common/cover_image.dart';
+import '../lyrics/lyrics_view.dart';
 import '../player/player_actions.dart';
 import 'search_controller.dart';
 
@@ -26,7 +27,6 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _text = TextEditingController();
   final _scroll = ScrollController();
-  int? _selected;
 
   @override
   void initState() {
@@ -90,7 +90,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             focusNode: ref.watch(searchFocusNodeProvider),
             controller: _text,
             hintText: l10n.searchHint,
-            leading: const Icon(Icons.search),
+            // 栏高 56、图标 24、默认左内边距 8，图标中心落在 20，圆角端圆心在 28。
+            leading: const Padding(
+              padding: EdgeInsets.only(left: 8),
+              child: Icon(Icons.search),
+            ),
             trailing: [
               if (_text.text.isNotEmpty)
                 IconButton(
@@ -146,9 +150,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                             hit: items[i],
                             index: i,
                             hits: items,
-                            onOpened: master
-                                ? () => setState(() => _selected = i)
-                                : null,
                           )
                         : _Footer(
                             state: state,
@@ -169,44 +170,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       page = MaxWidthBox(maxWidth: 840, child: page);
     }
     if (!master) return page;
-    final selected = _selected != null && _selected! < items.length
-        ? items[_selected!]
-        : null;
     return Row(
       children: [
         Expanded(child: page),
         const VerticalDivider(width: 1),
-        Expanded(
-          child: selected == null
-              ? Center(child: Text(l10n.searchEmpty))
-              : _SearchDetail(hit: selected),
-        ),
-      ],
-    );
-  }
-}
-
-class _SearchDetail extends StatelessWidget {
-  const _SearchDetail({required this.hit});
-
-  final SearchHit hit;
-
-  @override
-  Widget build(BuildContext context) {
-    final r = hit.result;
-    final artist = hit.cleaned.artist ?? r.author;
-    return ListView(
-      key: const Key('search-detail'),
-      padding: const EdgeInsets.all(24),
-      children: [
-        Text(
-          '${hit.cleaned.name} - $artist',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 12),
-        Text(r.author),
-        const SizedBox(height: 8),
-        Text(formatDuration(Duration(seconds: r.duration))),
+        const Expanded(child: LyricsView(key: Key('lyrics-column'))),
       ],
     );
   }
@@ -217,13 +185,11 @@ class _ResultTile extends ConsumerWidget {
     required this.hit,
     required this.index,
     required this.hits,
-    this.onOpened,
   });
 
   final SearchHit hit;
   final int index;
   final List<SearchHit> hits;
-  final VoidCallback? onOpened;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -259,7 +225,6 @@ class _ResultTile extends ConsumerWidget {
     }
 
     Future<void> play() async {
-      onOpened?.call();
       if (current) {
         final handler = ref.read(audioHandlerProvider);
         if (playing) {

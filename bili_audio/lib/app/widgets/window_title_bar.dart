@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../../l10n/l10n.dart';
+
 /// 自定义窗口标题栏 (移植自 talix_companion_flutter，调整为 Material Design 风格)。
 ///
 /// 功能:
@@ -78,7 +80,7 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
               Icon(Icons.music_note, size: 20, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
               Text(
-                '哔哩哔哩音频播放器',
+                context.l10n.appTitle,
                 style: theme.textTheme.titleSmall,
               ),
               const Spacer(),

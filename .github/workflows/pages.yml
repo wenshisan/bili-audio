@@ -86,7 +86,7 @@ jobs:
                   <key>kind</key>
                   <string>software</string>
                   <key>title</key>
-                  <string>哔哩哔哩音频播放器</string>
+                  <string>bili-audio</string>
                 </dict>
               </dict>
             </array>
