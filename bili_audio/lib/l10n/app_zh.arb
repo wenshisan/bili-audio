@@ -77,6 +77,8 @@
   "queueSaveAsPlaylist": "保存为歌单",
   "queueReorderDisabled": "随机模式下不能调整顺序",
   "queueRemove": "从队列移除",
+  "queueSearchHint": "在队列中搜索",
+  "queueSearchNoResult": "队列中没有匹配的歌曲",
   "playerSpeed": "倍速",
   "playerSleepTimer": "定时停止",
   "playerViewOriginalTitle": "查看原始标题",

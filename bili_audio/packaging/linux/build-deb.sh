@@ -42,7 +42,7 @@ Section: sound
 Priority: optional
 Architecture: amd64
 Maintainer: bili-audio <noreply@users.noreply.github.com>
-Depends: libgtk-3-0 | libgtk-3-0t64, libblkid1, liblzma5
+Depends: libgtk-3-0 | libgtk-3-0t64, libblkid1, liblzma5, libsecret-1-0 | libsecret-1-0t64, libayatana-appindicator3-1 | libayatana-appindicator3-1t64
 Description: Third-party Bilibili audio player
  Personal learning project. Not affiliated with Bilibili.
 EOF

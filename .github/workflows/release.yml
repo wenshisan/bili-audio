@@ -59,7 +59,7 @@ jobs:
         if: matrix.target == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev g++
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev g++ libsecret-1-dev libayatana-appindicator3-dev
 
       - uses: subosito/flutter-action@v2
         with:
@@ -126,7 +126,34 @@ jobs:
         if: matrix.target == 'macos'
         working-directory: bili_audio
         run: |
+          # macos-latest 是 7GB 的 Apple 芯片机器。通用包要同时编 x86_64，
+          # 内存不够时 xcodebuild 会被杀掉。发布的 dmg 也只要 arm64。
+          flutter config --enable-macos-arm64-only
           flutter pub get
+          # 插件的 Package.swift / podspec 仍写着 macOS 10.14。Xcode 26 的最低部署版本是 11。
+          python3 - << 'PY'
+          import os, pathlib, re
+          cache = pathlib.Path(os.environ.get("PUB_CACHE", pathlib.Path.home() / ".pub-cache"))
+          hosted = cache / "hosted"
+          if not hosted.is_dir():
+              raise SystemExit(f"pub cache not found: {hosted}")
+          swift = re.compile(r'\.macOS\("(10\.\d+|11\.0)"\)')
+          pod = re.compile(r"""(\.osx\.deployment_target\s*=\s*['"])(?:10\.\d+|11\.0)(['"])""")
+          changed = 0
+          for path in hosted.rglob("*"):
+              if path.name == "Package.swift":
+                  text = path.read_text(encoding="utf-8")
+                  new, count = swift.subn('.macOS("12.0")', text)
+              elif path.suffix == ".podspec":
+                  text = path.read_text(encoding="utf-8")
+                  new, count = pod.subn(r"\g<1>12.0\2", text)
+              else:
+                  continue
+              if count:
+                  path.write_text(new, encoding="utf-8")
+                  changed += count
+          print(f"raised {changed} macOS deployment targets to 12.0")
+          PY
           flutter build macos --release
           mkdir -p dist
           hdiutil create \

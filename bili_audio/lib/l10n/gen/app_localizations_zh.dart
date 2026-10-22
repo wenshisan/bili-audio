@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -144,6 +145,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get queueRemove => '从队列移除';
+
+  @override
+  String get queueSearchHint => '在队列中搜索';
+
+  @override
+  String get queueSearchNoResult => '队列中没有匹配的歌曲';
 
   @override
   String get playerSpeed => '倍速';

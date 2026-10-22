@@ -352,6 +352,18 @@ abstract class AppLocalizations {
   /// **'从队列移除'**
   String get queueRemove;
 
+  /// No description provided for @queueSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'在队列中搜索'**
+  String get queueSearchHint;
+
+  /// No description provided for @queueSearchNoResult.
+  ///
+  /// In zh, this message translates to:
+  /// **'队列中没有匹配的歌曲'**
+  String get queueSearchNoResult;
+
   /// No description provided for @playerSpeed.
   ///
   /// In zh, this message translates to:

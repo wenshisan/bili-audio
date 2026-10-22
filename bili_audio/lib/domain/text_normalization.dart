@@ -116,3 +116,10 @@ String toPinyin(String text) {
   );
   return pinyin.toLowerCase();
 }
+
+/// 拼音首字母，非中文原样保留并转为小写。
+///
+/// 示例: "周杰伦" → "zjl"
+String toPinyinInitials(String text) {
+  return PinyinHelper.getShortPinyin(text).toLowerCase();
+}
