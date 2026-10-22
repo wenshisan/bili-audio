@@ -3,22 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/adaptive/window_metrics.dart';
 import '../../app/providers.dart';
-import '../../data/player/sleep_timer.dart';
-import '../../domain/queue/playback_queue.dart';
 import '../../l10n/l10n.dart';
 import '../common/add_to_playlist_sheet.dart';
-import '../common/cover_image.dart';
 import '../lyrics/lyrics_controller.dart';
 import '../lyrics/lyrics_view.dart';
-
-final sleepStateProvider = StreamProvider<SleepState>((ref) {
-  final timer = ref.watch(audioHandlerProvider).sleepTimer;
-  return Stream.value(timer.state).asyncExpand((s) async* {
-    yield s;
-    yield* timer.stream;
-  });
-});
+import 'widgets/player_transport.dart';
 
 /// 播放页 (M6.2)
 class PlayerPage extends ConsumerWidget {
@@ -46,13 +37,15 @@ class PlayerPage extends ConsumerWidget {
           ? Center(child: Text(l10n.nothingPlaying))
           : SafeArea(
               child: LayoutBuilder(builder: (context, c) {
-                final wide = c.maxWidth > 720;
-                final cover = _CoverSection(item: item);
+                final metrics = WindowMetrics.fromSize(c.biggest);
+                if (metrics.isShort) return _ShortPlayer(item: item);
+                final cover = PlayerCoverSection(item: item);
                 const lyrics = LyricsView();
+                final sideBySide = metrics.width.index >= WindowWidth.expanded.index;
                 return Column(
                   children: [
                     Expanded(
-                      child: wide
+                      child: sideBySide
                           ? Row(children: [
                               Expanded(child: cover),
                               const Expanded(child: lyrics),
@@ -62,9 +55,9 @@ class PlayerPage extends ConsumerWidget {
                               const Expanded(flex: 2, child: lyrics),
                             ]),
                     ),
-                    const _ProgressBar(),
-                    const _Controls(),
-                    const _SleepIndicator(),
+                    const PlayerProgressBar(),
+                    const PlayerControls(),
+                    const PlayerSleepIndicator(),
                     const SizedBox(height: 16),
                   ],
                 );
@@ -74,210 +67,35 @@ class PlayerPage extends ConsumerWidget {
   }
 }
 
-class _CoverSection extends ConsumerWidget {
-  const _CoverSection({required this.item});
+
+class _ShortPlayer extends StatelessWidget {
+  const _ShortPlayer({required this.item});
 
   final MediaItem item;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = ref.read(audioHandlerProvider).currentTrack!;
-    final theme = Theme.of(context).textTheme;
-    final pages = t.totalPages ?? 1;
-    return Padding(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Flexible(
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: LayoutBuilder(
-                builder: (_, c) => CoverImage(
-                  item.artUri?.toString(),
-                  size: c.maxWidth,
-                  radius: 16,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Text(item.title,
-              style: theme.titleLarge,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 4),
-          Text(item.artist ?? '', style: theme.bodyMedium),
-          if (pages > 1)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                context.l10n.pageInfo(t.pageIndex ?? 1, pages, t.title),
-                style: theme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProgressBar extends ConsumerStatefulWidget {
-  const _ProgressBar();
-
-  @override
-  ConsumerState<_ProgressBar> createState() => _ProgressBarState();
-}
-
-class _ProgressBarState extends ConsumerState<_ProgressBar> {
-  double? _dragging;
-
-  @override
   Widget build(BuildContext context) {
-    final position = ref.watch(positionProvider).value ?? Duration.zero;
-    final total = ref.watch(mediaItemProvider).value?.duration ?? Duration.zero;
-    final maxMs = total.inMilliseconds.toDouble();
-    final value =
-        (_dragging ?? position.inMilliseconds.toDouble()).clamp(0.0, maxMs);
-    final style = Theme.of(context).textTheme.bodySmall;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          Slider(
-            value: maxMs == 0 ? 0 : value,
-            max: maxMs == 0 ? 1 : maxMs,
-            onChanged: maxMs == 0 ? null : (v) => setState(() => _dragging = v),
-            onChangeEnd: (v) {
-              ref
-                  .read(audioHandlerProvider)
-                  .seek(Duration(milliseconds: v.round()));
-              setState(() => _dragging = null);
-            },
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(formatDuration(Duration(milliseconds: value.round())),
-                    style: style),
-                Text(formatDuration(total), style: style),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-String playModeLabel(BuildContext context, PlayMode mode) {
-  final l10n = context.l10n;
-  return switch (mode) {
-    PlayMode.sequential => l10n.modeSequential,
-    PlayMode.listLoop => l10n.modeListLoop,
-    PlayMode.singleLoop => l10n.modeSingleLoop,
-    PlayMode.shuffle => l10n.modeShuffle,
-    PlayMode.smartShuffle => l10n.modeSmartShuffle,
-  };
-}
-
-IconData playModeIcon(PlayMode mode) => switch (mode) {
-      PlayMode.sequential => Icons.trending_flat,
-      PlayMode.listLoop => Icons.repeat,
-      PlayMode.singleLoop => Icons.repeat_one,
-      PlayMode.shuffle => Icons.shuffle,
-      PlayMode.smartShuffle => Icons.auto_awesome,
-    };
-
-class _Controls extends ConsumerWidget {
-  const _Controls();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(playbackStateProvider).value;
-    final handler = ref.read(audioHandlerProvider);
-    final playing = state?.playing ?? false;
-    final buffering = state?.processingState == AudioProcessingState.loading ||
-        state?.processingState == AudioProcessingState.buffering;
-    final mode = handler.playbackQueue.mode;
-    final l10n = context.l10n;
-
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        IconButton(
-          tooltip: playModeLabel(context, mode),
-          icon: Icon(playModeIcon(mode)),
-          onPressed: () {
-            const modes = PlayMode.values;
-            handler.setPlayMode(modes[(modes.indexOf(mode) + 1) % modes.length]);
-          },
+        SizedBox(
+          width: 120,
+          child: PlayerCoverSection(item: item, padding: 8),
         ),
-        IconButton(
-          iconSize: 36,
-          tooltip: 'Previous',
-          icon: const Icon(Icons.skip_previous),
-          onPressed: handler.skipToPrevious,
-        ),
-        SizedBox.square(
-          dimension: 72,
-          child: buffering
-              ? const Padding(
-                  padding: EdgeInsets.all(18),
-                  child: CircularProgressIndicator(),
-                )
-              : IconButton.filled(
-                  iconSize: 40,
-                  tooltip: playing ? 'Pause' : 'Play',
-                  icon: Icon(playing ? Icons.pause : Icons.play_arrow),
-                  onPressed: playing ? handler.pause : handler.play,
-                ),
-        ),
-        IconButton(
-          iconSize: 36,
-          tooltip: 'Next',
-          icon: const Icon(Icons.skip_next),
-          onPressed: handler.skipToNext,
-        ),
-        IconButton(
-          tooltip: l10n.queueTitle,
-          icon: const Icon(Icons.queue_music),
-          onPressed: () => context.push('/queue'),
+        const Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CurrentLyricLine(),
+              PlayerProgressBar(),
+              PlayerControls(mainExtent: 56, iconExtent: 40),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-class _SleepIndicator extends ConsumerWidget {
-  const _SleepIndicator();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final text = switch (ref.watch(sleepStateProvider).value) {
-      SleepCountdown(:final remaining) =>
-        l10n.sleepRemaining(formatDuration(remaining)),
-      SleepAfterTracks(tracksLeft: 1) => l10n.sleepAfterCurrent,
-      SleepAfterTracks() => l10n.sleepAfterNext,
-      _ => null,
-    };
-    if (text == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: Chip(
-        avatar: const Icon(Icons.bedtime_outlined, size: 18),
-        label: Text(text),
-        onDeleted: ref.read(audioHandlerProvider).sleepTimer.cancel,
-      ),
-    );
-  }
-}
 
 class _MoreMenu extends ConsumerWidget {
   @override

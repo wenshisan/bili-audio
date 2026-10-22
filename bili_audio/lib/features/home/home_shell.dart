@@ -51,9 +51,10 @@ class _AdaptiveBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final rail = _NavRail(path: path, extended: metrics.usesMasterDetail);
+    final Widget body;
     if (metrics.usesMasterDetail) {
       final ratio = ref.watch(layoutSettingsProvider).splitRatio;
-      return Row(
+      body = Row(
         children: [
           rail,
           Expanded(
@@ -68,9 +69,8 @@ class _AdaptiveBody extends ConsumerWidget {
           ),
         ],
       );
-    }
-    if (metrics.usesRail) {
-      return Row(
+    } else if (metrics.usesRail) {
+      body = Row(
         children: [
           rail,
           Expanded(
@@ -83,15 +83,17 @@ class _AdaptiveBody extends ConsumerWidget {
           ),
         ],
       );
-    }
-    return Scaffold(
-      body: Column(
+    } else {
+      body = Column(
         children: [
           Expanded(child: child),
           const MiniPlayer(),
         ],
-      ),
-      bottomNavigationBar: BottomNav(path: path),
+      );
+    }
+    return Scaffold(
+      body: body,
+      bottomNavigationBar: metrics.usesBottomNav ? BottomNav(path: path) : null,
     );
   }
 }

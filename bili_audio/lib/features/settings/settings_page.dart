@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/adaptive/max_width_box.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../domain/entities/audio_track.dart';
@@ -12,6 +13,15 @@ import '../login/login_controller.dart';
 /// 设置 (M6.6)
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return const MaxWidthBox(child: _SettingsList());
+  }
+}
+
+class _SettingsList extends ConsumerWidget {
+  const _SettingsList();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

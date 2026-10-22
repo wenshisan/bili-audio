@@ -25,9 +25,16 @@ final playlistTracksProvider = StreamProvider.family<List<domain.Track>, int>(
 
 /// 歌单详情 (M6.4): 播放全部 / 随机, 拖拽排序, 滑动删除
 class PlaylistDetailPage extends ConsumerWidget {
-  const PlaylistDetailPage({super.key, required this.id});
+  const PlaylistDetailPage({
+    super.key,
+    required this.id,
+    this.embedded = false,
+    this.onDeleted,
+  });
 
   final int id;
+  final bool embedded;
+  final VoidCallback? onDeleted;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,6 +47,7 @@ class PlaylistDetailPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: !embedded,
         title: Text(playlist?.name ?? ''),
         actions: [
           if (playlist != null && !readonly)
@@ -72,7 +80,12 @@ class PlaylistDetailPage extends ConsumerWidget {
                   );
                   if (ok == true) {
                     await dao.deletePlaylist(id);
-                    if (context.mounted) context.pop();
+                    if (!context.mounted) return;
+                    if (embedded) {
+                      onDeleted?.call();
+                    } else {
+                      context.pop();
+                    }
                   }
                 }
               },

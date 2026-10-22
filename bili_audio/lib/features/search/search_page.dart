@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/adaptive/max_width_box.dart';
+import '../../app/adaptive/window_metrics.dart';
 import '../../app/providers.dart';
 import '../../core/utils/result.dart';
 import '../../data/repositories/repositories.dart';
@@ -23,6 +25,7 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _text = TextEditingController();
   final _scroll = ScrollController();
+  int? _selected;
 
   @override
   void initState() {
@@ -72,7 +75,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         if (hit.result.filtered != true && hit.result.duration <= 900) hit,
     ];
 
-    return Column(
+    final metrics = WindowMetricsScope.maybeOf(context);
+    final master = metrics?.usesMasterDetail ?? false;
+    final limitWidth = metrics != null &&
+        !master &&
+        metrics.width != WindowWidth.compact;
+
+    Widget page = Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -131,7 +140,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                     controller: _scroll,
                     itemCount: items.length + 1,
                     itemBuilder: (context, i) => i < items.length
-                        ? _ResultTile(hit: items[i], index: i, hits: items)
+                        ? _ResultTile(
+                            hit: items[i],
+                            index: i,
+                            hits: items,
+                            onOpened: master
+                                ? () => setState(() => _selected = i)
+                                : null,
+                          )
                         : _Footer(
                             state: state,
                             onRetry: controller.retry,
@@ -147,6 +163,50 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         ),
       ],
     );
+    if (limitWidth) {
+      page = MaxWidthBox(maxWidth: 840, child: page);
+    }
+    if (!master) return page;
+    final selected = _selected != null && _selected! < items.length
+        ? items[_selected!]
+        : null;
+    return Row(
+      children: [
+        Expanded(child: page),
+        const VerticalDivider(width: 1),
+        Expanded(
+          child: selected == null
+              ? Center(child: Text(l10n.searchEmpty))
+              : _SearchDetail(hit: selected),
+        ),
+      ],
+    );
+  }
+}
+
+class _SearchDetail extends StatelessWidget {
+  const _SearchDetail({required this.hit});
+
+  final SearchHit hit;
+
+  @override
+  Widget build(BuildContext context) {
+    final r = hit.result;
+    final artist = hit.cleaned.artist ?? r.author;
+    return ListView(
+      key: const Key('search-detail'),
+      padding: const EdgeInsets.all(24),
+      children: [
+        Text(
+          '${hit.cleaned.name} - $artist',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 12),
+        Text(r.author),
+        const SizedBox(height: 8),
+        Text(formatDuration(Duration(seconds: r.duration))),
+      ],
+    );
   }
 }
 
@@ -155,11 +215,13 @@ class _ResultTile extends ConsumerWidget {
     required this.hit,
     required this.index,
     required this.hits,
+    this.onOpened,
   });
 
   final SearchHit hit;
   final int index;
   final List<SearchHit> hits;
+  final VoidCallback? onOpened;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -195,6 +257,7 @@ class _ResultTile extends ConsumerWidget {
     }
 
     Future<void> play() async {
+      onOpened?.call();
       if (current) {
         final handler = ref.read(audioHandlerProvider);
         if (playing) {

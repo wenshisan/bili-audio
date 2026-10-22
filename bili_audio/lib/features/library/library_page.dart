@@ -3,20 +3,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/adaptive/window_metrics.dart';
 import '../../app/providers.dart';
 import '../../data/db/app_database.dart';
 import '../../l10n/l10n.dart';
 import '../common/add_to_playlist_sheet.dart';
 import '../history/history_view.dart';
+import 'playlist_detail_page.dart';
 
 /// 歌单库 (M6.4): 本地歌单 / 播放历史
-class LibraryPage extends StatelessWidget {
+class LibraryPage extends ConsumerStatefulWidget {
   const LibraryPage({super.key});
+
+  @override
+  ConsumerState<LibraryPage> createState() => _LibraryPageState();
+}
+
+class _LibraryPageState extends ConsumerState<LibraryPage> {
+  int? _selected;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    return DefaultTabController(
+    final master = WindowMetricsScope.maybeOf(context)?.usesMasterDetail ?? false;
+    final list = DefaultTabController(
       length: 2,
       child: Column(
         children: [
@@ -24,29 +34,56 @@ class LibraryPage extends StatelessWidget {
             Tab(text: l10n.navLibrary),
             Tab(text: l10n.historyTitle),
           ]),
-          const Expanded(
-            child: TabBarView(children: [_PlaylistGrid(), HistoryView()]),
+          Expanded(
+            child: TabBarView(
+              children: [
+                _PlaylistGrid(
+                  onOpen: master ? (id) => setState(() => _selected = id) : null,
+                ),
+                const HistoryView(),
+              ],
+            ),
           ),
         ],
       ),
+    );
+    if (!master) return list;
+    return Row(
+      children: [
+        Expanded(child: list),
+        const VerticalDivider(width: 1),
+        Expanded(
+          child: _selected == null
+              ? Center(child: Text(l10n.libraryEmpty))
+              : PlaylistDetailPage(
+                  id: _selected!,
+                  embedded: true,
+                  onDeleted: () => setState(() => _selected = null),
+                ),
+        ),
+      ],
     );
   }
 }
 
 class _PlaylistGrid extends ConsumerStatefulWidget {
-  const _PlaylistGrid();
+  const _PlaylistGrid({this.onOpen});
+
+  final ValueChanged<int>? onOpen;
 
   @override
   ConsumerState<_PlaylistGrid> createState() => _PlaylistGridState();
 }
 
 class _PlaylistGridState extends ConsumerState<_PlaylistGrid> {
-  var grid = false;
+  bool? gridOverride;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final playlists = ref.watch(playlistsWithCountProvider);
+    final width = WindowMetricsScope.maybeOf(context)?.width;
+    final grid = gridOverride ?? (width != null && width != WindowWidth.compact);
 
     Future<void> create() async {
       final name = await showPlaylistNameDialog(context);
@@ -73,12 +110,17 @@ class _PlaylistGridState extends ConsumerState<_PlaylistGrid> {
             child: IconButton(
               tooltip: grid ? 'List' : 'Grid',
               icon: Icon(grid ? Icons.view_list : Icons.grid_view),
-              onPressed: () => setState(() => grid = !grid),
+              onPressed: () => setState(() => gridOverride = !grid),
             ),
           );
           final cards = [
             for (final p in list)
-              _PlaylistCard(playlist: p.playlist, count: p.count, grid: grid),
+              _PlaylistCard(
+                playlist: p.playlist,
+                count: p.count,
+                grid: grid,
+                onOpen: widget.onOpen,
+              ),
           ];
           return grid
               ? CustomScrollView(slivers: [
@@ -109,17 +151,26 @@ class _PlaylistCard extends StatelessWidget {
     required this.playlist,
     required this.count,
     required this.grid,
+    this.onOpen,
   });
 
   final Playlist playlist;
   final int count;
   final bool grid;
+  final ValueChanged<int>? onOpen;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    void open() => context.push('/playlist/${playlist.id}');
+    void open() {
+      final select = onOpen;
+      if (select != null) {
+        select(playlist.id);
+        return;
+      }
+      context.push('/playlist/${playlist.id}');
+    }
     final icon = Icon(Icons.queue_music, color: scheme.onPrimaryContainer);
 
     if (!grid) {

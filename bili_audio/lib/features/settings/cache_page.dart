@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/adaptive/max_width_box.dart';
 import '../../app/providers.dart';
 import '../../l10n/l10n.dart';
 
@@ -9,8 +10,23 @@ final cacheStatsProvider = FutureProvider.autoDispose<(int, int)>(
 );
 
 /// 缓存管理占位 (M6.7, 完整界面见 v0.2.3)
-class CachePage extends ConsumerWidget {
+class CachePage extends StatelessWidget {
   const CachePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(context.l10n.cacheTitle)),
+      body: const MaxWidthBox(
+        maxWidth: 640,
+        child: _CacheBody(),
+      ),
+    );
+  }
+}
+
+class _CacheBody extends ConsumerWidget {
+  const _CacheBody();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,9 +59,7 @@ class CachePage extends ConsumerWidget {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.cacheTitle)),
-      body: Center(
+    return Center(
         child: stats.when(
           loading: () => const CircularProgressIndicator(),
           error: (e, _) => Text(errorText(l10n, e)),
@@ -62,7 +76,6 @@ class CachePage extends ConsumerWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../app/adaptive/window_metrics.dart';
 import '../../data/bili/bili_login_api.dart';
 import '../../l10n/l10n.dart';
 import 'login_controller.dart';
@@ -97,25 +98,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.loginTitle)),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_url != null)
-                Container(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = WindowMetrics.fromSize(constraints.biggest).width !=
+              WindowWidth.compact;
+          final qr = _url == null
+              ? const SizedBox(width: 240, height: 240)
+              : Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: QrImageView(data: _url!, size: 240),
-                ),
-              const SizedBox(height: 24),
+                );
+          final text = Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
               if (err != null) ...[
-                Text(errorText(l10n, err),
-                    style: TextStyle(color: scheme.error)),
+                Text(errorText(l10n, err), style: TextStyle(color: scheme.error)),
                 const SizedBox(height: 12),
                 FilledButton.tonal(
                     onPressed: _generate, child: Text(l10n.loginRetry)),
@@ -129,8 +130,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   ),
               ],
             ],
-          ),
-        ),
+          );
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: wide ? 720 : 400),
+              child: wide
+                  ? Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        qr,
+                        const SizedBox(width: 32),
+                        Flexible(child: text),
+                      ],
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        qr,
+                        const SizedBox(height: 24),
+                        text,
+                      ],
+                    ),
+            ),
+          );
+        },
       ),
     );
   }
