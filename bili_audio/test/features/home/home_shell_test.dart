@@ -11,6 +11,7 @@ import 'package:bili_audio/features/home/home_shell.dart';
 import 'package:bili_audio/l10n/l10n.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -85,6 +86,27 @@ void main() {
     await tester.drag(find.byKey(const Key('split-handle')), const Offset(-2000, 0));
     await tester.pumpAndSettle();
     expect(await _storedRatio(db), 0.4);
+  });
+
+  testWidgets('横屏系统插入区内仍是底栏，不是车机布局', (tester) async {
+    tester.view.physicalSize = const Size(844, 390);
+    tester.view.devicePixelRatio = 1;
+    const inset = FakeViewPadding(left: 47, right: 47, bottom: 21);
+    tester.view.padding = inset;
+    tester.view.viewPadding = inset;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+    await tester.pumpWidget(_harness(db, handler));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byKey(const Key('car-layout')), findsNothing);
+    final nav = tester.getRect(find.byType(NavigationBar));
+    expect(nav.bottom, lessThanOrEqualTo(390 - 21));
+    expect(nav.left, greaterThanOrEqualTo(47));
+    expect(tester.takeException(), isNull);
   });
 
   test('重新打开后恢复分隔比例', () async {
