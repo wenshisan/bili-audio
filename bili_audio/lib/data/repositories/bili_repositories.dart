@@ -30,7 +30,11 @@ class BiliSearchRepository implements SearchRepository {
   static final _placeholderPart = RegExp(r'^\s*[Pp]?\s*\d+\s*$');
 
   @override
-  Future<Result<SearchHitPage>> search(String keyword, {int page = 1}) async {
+  Future<Result<SearchHitPage>> search(
+    String keyword, {
+    int page = 1,
+    void Function(List<SearchHit> items)? onItems,
+  }) async {
     final result = await _api.searchVideo(keyword: keyword, page: page);
     if (result.isFailure) {
       AppLogger.e(
@@ -41,7 +45,7 @@ class BiliSearchRepository implements SearchRepository {
       return Result.failure(result.errorOrNull!);
     }
     return result.mapAsync((p) async {
-      final groups = await _expandAll(p.items);
+      final groups = await _expandAll(p.items, onItems: onItems);
       final items = [for (final group in groups) ...group];
       AppLogger.i(
         'search "$keyword" page=$page raw=${p.items.length} '
@@ -52,16 +56,42 @@ class BiliSearchRepository implements SearchRepository {
     });
   }
 
-  Future<List<List<SearchHit>>> _expandAll(List<SearchResult> items) async {
+  /// 时长不超过 15 分钟的卡片先交出去。分P返回后按原位置替换，不必等整页结束。
+  Future<List<List<SearchHit>>> _expandAll(
+    List<SearchResult> items, {
+    void Function(List<SearchHit> items)? onItems,
+  }) async {
     if (items.isEmpty) return const [];
     final out = List<List<SearchHit>?>.filled(items.length, null);
     var cursor = 0;
+    var shown = false;
+
+    void publish() {
+      final ready = onItems;
+      if (ready == null) return;
+      final visible = [for (final group in out) ...?group];
+      if (visible.isEmpty && !shown) return;
+      shown = visible.isNotEmpty;
+      ready(visible);
+    }
+
+    if (pageList != null) {
+      var seeded = false;
+      for (var i = 0; i < items.length; i++) {
+        final item = items[i];
+        if (item.filtered == true || item.duration > maxDuration) continue;
+        out[i] = [_hit(item)];
+        seeded = true;
+      }
+      if (seeded) publish();
+    }
 
     Future<void> worker() async {
       while (true) {
         final index = cursor++;
         if (index >= items.length) return;
         out[index] = await _expand(items[index]);
+        publish();
       }
     }
 

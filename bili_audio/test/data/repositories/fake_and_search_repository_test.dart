@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bili_audio/core/utils/result.dart';
 import 'package:bili_audio/data/bili/bili_search_api.dart';
 import 'package:bili_audio/data/bili/models/search_result.dart';
@@ -167,6 +169,96 @@ void main() {
     expect(items[1].result.duration, 210);
     expect(items[2].result.bvid, 'BVshort');
     expect(items[2].result.cid, isNull);
+  });
+
+  test('短视频先交出去，不等待其余分P', () async {
+    final cleaner = TitleCleaner(const TitleRuleConfig(version: 1, rules: []));
+    final gates = {
+      for (final bvid in ['BVlong', 'BVmulti', 'BVshort'])
+        bvid: Completer<void>(),
+    };
+    final repo = BiliSearchRepository(
+      _ListSearchApi([
+        _item('BVlong', '超长单曲', 960),
+        _item('BVmulti', '歌曲合集', 2400),
+        _item('BVshort', '晴天', 180),
+      ]),
+      cleaner,
+      pageList: (bvid) async {
+        await gates[bvid]!.future;
+        if (bvid == 'BVshort') {
+          return const Result.success([
+            VideoPage(
+              cid: 7,
+              title: 'P1',
+              duration: Duration(seconds: 180),
+              pageIndex: 1,
+            ),
+          ]);
+        }
+        if (bvid == 'BVmulti') {
+          return const Result.success([
+            VideoPage(
+              cid: 1,
+              title: '第一首',
+              duration: Duration(seconds: 200),
+              pageIndex: 1,
+            ),
+            VideoPage(
+              cid: 2,
+              title: '第二首',
+              duration: Duration(seconds: 210),
+              pageIndex: 2,
+            ),
+          ]);
+        }
+        return const Result.success([
+          VideoPage(
+            cid: 9,
+            title: '完整版',
+            duration: Duration(seconds: 960),
+            pageIndex: 1,
+          ),
+        ]);
+      },
+    );
+
+    final snapshots = <List<({String bvid, int? cid})>>[];
+    final pending = repo.search(
+      'x',
+      onItems: (items) {
+        snapshots.add([
+          for (final hit in items) (bvid: hit.result.bvid, cid: hit.result.cid),
+        ]);
+      },
+    );
+
+    for (var i = 0; i < 20 && snapshots.isEmpty; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(snapshots.single.map((hit) => hit.bvid), ['BVshort']);
+    expect(snapshots.single.single.cid, isNull);
+
+    gates['BVshort']!.complete();
+    for (var i = 0; i < 20 && snapshots.last.single.cid == null; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(snapshots.last.map((hit) => hit.bvid), ['BVshort']);
+    expect(snapshots.last.single.cid, 7);
+    expect(
+      snapshots.every((items) => items.every((hit) => hit.bvid == 'BVshort')),
+      isTrue,
+    );
+
+    gates['BVlong']!.complete();
+    gates['BVmulti']!.complete();
+    final items = (await pending).valueOrNull!.items;
+    expect(items.map((hit) => hit.result.bvid), [
+      'BVmulti',
+      'BVmulti',
+      'BVshort',
+    ]);
+    expect(items.map((hit) => hit.result.cid), [1, 2, 7]);
   });
 
   group('Fake 仓储', () {

@@ -17,7 +17,12 @@ typedef SearchHitPage = ({
 /// 仓储接口 (M2.6): UI 只依赖这些接口, 便于用 Fake 实现提前开发
 
 abstract interface class SearchRepository {
-  Future<Result<SearchHitPage>> search(String keyword, {int page = 1});
+  /// [onItems] 在这一页还没全部展开完时就会收到当前可展示的结果，按原顺序。
+  Future<Result<SearchHitPage>> search(
+    String keyword, {
+    int page = 1,
+    void Function(List<SearchHit> items)? onItems,
+  });
 }
 
 abstract interface class VideoRepository {

@@ -22,7 +22,11 @@ class FakeSearchRepository implements SearchRepository {
   final Duration latency;
 
   @override
-  Future<Result<SearchHitPage>> search(String keyword, {int page = 1}) async {
+  Future<Result<SearchHitPage>> search(
+    String keyword, {
+    int page = 1,
+    void Function(List<SearchHit> items)? onItems,
+  }) async {
     await Future<void>.delayed(latency);
     final hits = <SearchHit>[
       for (final (bvid, title, name, artist, sec) in _demo)
@@ -41,8 +45,10 @@ class FakeSearchRepository implements SearchRepository {
             cleaned: CleanedTitle(name: name, artist: artist),
           ),
     ];
+    final shown = page == 1 ? hits : <SearchHit>[];
+    if (shown.isNotEmpty) onItems?.call(shown);
     return Result.success((
-      items: page == 1 ? hits : <SearchHit>[],
+      items: shown,
       page: page,
       total: hits.length,
       hasMore: false,
@@ -87,23 +93,21 @@ class FakeStreamRepository implements StreamRepository {
     Track track,
     AudioQuality quality, {
     bool loggedIn = false,
-  }) async =>
-      Result.success((
-        stream: StreamUrl(
-          bvid: track.bvid,
-          cid: track.cid,
-          quality: quality,
-          url: url,
-          expiresAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 7200,
-        ),
-        downgradedForGuest: false,
-      ));
+  }) async => Result.success((
+    stream: StreamUrl(
+      bvid: track.bvid,
+      cid: track.cid,
+      quality: quality,
+      url: url,
+      expiresAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 7200,
+    ),
+    downgradedForGuest: false,
+  ));
 
   @override
   Future<Result<StreamSelection>> refresh(
     Track track,
     AudioQuality quality, {
     bool loggedIn = false,
-  }) =>
-      resolve(track, quality, loggedIn: loggedIn);
+  }) => resolve(track, quality, loggedIn: loggedIn);
 }

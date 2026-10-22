@@ -99,11 +99,27 @@ class SearchController extends Notifier<SearchState> {
   Future<void> _load(int page) async {
     final gen = ++_generation;
     final keyword = state.keyword;
+    final loaded = state.items;
     AppLogger.d('load "$keyword" page=$page gen=$gen', tag: 'search');
     final result = await ref
         .read(searchRepositoryProvider)
-        .search(state.keyword, page: page);
-    if (gen != _generation) {
+        .search(
+          keyword,
+          page: page,
+          onItems: (items) {
+            if (!ref.mounted || gen != _generation) return;
+            AppLogger.d(
+              'partial "$keyword" page=$page shown=${items.length}',
+              tag: 'search',
+            );
+            state = state.copyWith(
+              items: [...loaded, ...items],
+              loading: true,
+              error: () => null,
+            );
+          },
+        );
+    if (!ref.mounted || gen != _generation) {
       AppLogger.d('stale result dropped page=$page gen=$gen', tag: 'search');
       return; // 已有更新的搜索, 丢弃过期结果
     }
@@ -120,7 +136,7 @@ class SearchController extends Notifier<SearchState> {
     final follow =
         data.items.isEmpty && data.hasMore && _emptyFollows < _maxEmptyFollows;
     state = state.copyWith(
-      items: [...state.items, ...data.items],
+      items: [...loaded, ...data.items],
       page: data.page,
       hasMore: data.hasMore,
       loading: follow,
