@@ -1,25 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
-
-import '../providers.dart';
 
 /// 自定义窗口标题栏 (移植自 talix_companion_flutter，调整为 Material Design 风格)。
 ///
 /// 功能:
 /// - 拖拽移动窗口、双击最大化/还原
 /// - 最小化、最大化/还原、关闭按钮 (关闭行为: 隐藏到托盘)
-/// - 正在播放时显示上一首 / 播放 / 下一首，窗口化时也不会被底部区域裁掉
 /// - 高度 48px
-class WindowTitleBar extends ConsumerStatefulWidget {
+class WindowTitleBar extends StatefulWidget {
   const WindowTitleBar({super.key});
 
   @override
-  ConsumerState<WindowTitleBar> createState() => _WindowTitleBarState();
+  State<WindowTitleBar> createState() => _WindowTitleBarState();
 }
 
-class _WindowTitleBarState extends ConsumerState<WindowTitleBar>
-    with WindowListener {
+class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
   bool _isMaximized = false;
 
   @override
@@ -51,9 +46,6 @@ class _WindowTitleBarState extends ConsumerState<WindowTitleBar>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final item = ref.watch(mediaItemProvider).value;
-    final playing = ref.watch(playbackStateProvider).value?.playing ?? false;
-    final handler = ref.read(audioHandlerProvider);
     return Container(
       height: 48,
       decoration: BoxDecoration(
@@ -85,31 +77,11 @@ class _WindowTitleBarState extends ConsumerState<WindowTitleBar>
               const SizedBox(width: 16),
               Icon(Icons.music_note, size: 20, color: theme.colorScheme.primary),
               const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '哔哩哔哩音频播放器',
-                  style: theme.textTheme.titleSmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              Text(
+                '哔哩哔哩音频播放器',
+                style: theme.textTheme.titleSmall,
               ),
-              if (item != null) ...[
-                _TransportButton(
-                  icon: Icons.skip_previous,
-                  tooltip: '上一首',
-                  onPressed: handler.skipToPrevious,
-                ),
-                _TransportButton(
-                  icon: playing ? Icons.pause : Icons.play_arrow,
-                  tooltip: playing ? '暂停' : '播放',
-                  onPressed: playing ? handler.pause : handler.play,
-                ),
-                _TransportButton(
-                  icon: Icons.skip_next,
-                  tooltip: '下一首',
-                  onPressed: handler.skipToNext,
-                ),
-              ],
+              const Spacer(),
               _WindowControlButton(
                 icon: Icons.remove,
                 onPressed: () => windowManager.minimize(),
@@ -135,34 +107,6 @@ class _WindowTitleBarState extends ConsumerState<WindowTitleBar>
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _TransportButton extends StatelessWidget {
-  const _TransportButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    // 标题栏在 Navigator 之外，没有 Overlay，不能用带 Tooltip 的 IconButton。
-    return Semantics(
-      button: true,
-      label: tooltip,
-      child: IconButton(
-        onPressed: onPressed,
-        icon: Icon(icon, size: 20),
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        constraints: const BoxConstraints.tightFor(width: 36, height: 36),
       ),
     );
   }
