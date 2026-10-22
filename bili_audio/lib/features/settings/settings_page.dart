@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/adaptive/layout_settings.dart';
 import '../../app/adaptive/max_width_box.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
@@ -80,6 +81,7 @@ class _SettingsList extends ConsumerWidget {
           title: Text(l10n.settingsAppearance),
         ),
         const _ThemeModeRow(),
+        const _CarLayoutRow(),
         const _SeedColorRow(),
       ],
     );
@@ -184,6 +186,54 @@ class _ThemeModeRow extends ConsumerWidget {
           ),
         );
         if (picked != null) controller.setMode(picked);
+      },
+    );
+  }
+}
+
+class _CarLayoutRow extends ConsumerWidget {
+  const _CarLayoutRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final mode = ref.watch(layoutSettingsProvider).carMode;
+    final label = switch (mode) {
+      CarLayoutMode.auto => l10n.carLayoutAuto,
+      CarLayoutMode.on => l10n.carLayoutOn,
+      CarLayoutMode.off => l10n.carLayoutOff,
+    };
+    return ListTile(
+      title: Text(l10n.settingsCarLayout),
+      subtitle: Text(label),
+      onTap: () async {
+        final picked = await showDialog<CarLayoutMode>(
+          context: context,
+          builder: (c) => AlertDialog(
+            title: Text(l10n.settingsCarLayout),
+            content: RadioGroup<CarLayoutMode>(
+              groupValue: mode,
+              onChanged: (v) => Navigator.pop(c, v),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final value in CarLayoutMode.values)
+                    RadioListTile<CarLayoutMode>(
+                      title: Text(switch (value) {
+                        CarLayoutMode.auto => l10n.carLayoutAuto,
+                        CarLayoutMode.on => l10n.carLayoutOn,
+                        CarLayoutMode.off => l10n.carLayoutOff,
+                      }),
+                      value: value,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        );
+        if (picked != null) {
+          await ref.read(layoutSettingsProvider.notifier).setCarMode(picked);
+        }
       },
     );
   }

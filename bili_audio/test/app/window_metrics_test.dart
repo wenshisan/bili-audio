@@ -1,3 +1,4 @@
+import 'package:bili_audio/app/adaptive/layout_settings.dart';
 import 'package:bili_audio/app/adaptive/window_metrics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,5 +30,12 @@ void main() {
     expect(metrics.isShort, isTrue);
     expect(metrics.usesMasterDetail, isFalse);
     expect(metrics.usesBottomNav, isTrue);
+  });
+
+  test('车机布局只由开关或系统车载模式决定', () {
+    expect(resolveCarLayout(CarLayoutMode.auto, false), isFalse);
+    expect(resolveCarLayout(CarLayoutMode.auto, true), isTrue);
+    expect(resolveCarLayout(CarLayoutMode.on, false), isTrue);
+    expect(resolveCarLayout(CarLayoutMode.off, true), isFalse);
   });
 }

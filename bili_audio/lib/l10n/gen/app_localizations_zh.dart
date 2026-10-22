@@ -378,4 +378,22 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get loginPrompt => '当前音质受限，登录后可使用更高音质';
+
+  @override
+  String get settingsCarLayout => '车机布局';
+
+  @override
+  String get carLayoutAuto => '自动';
+
+  @override
+  String get carLayoutOn => '始终开启';
+
+  @override
+  String get carLayoutOff => '关闭';
+
+  @override
+  String get carShowQueue => '队列';
+
+  @override
+  String get carShowLyrics => '歌词';
 }

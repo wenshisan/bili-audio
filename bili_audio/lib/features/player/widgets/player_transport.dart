@@ -181,8 +181,9 @@ class PlayerControls extends ConsumerWidget {
     Widget target({
       required double extent,
       required Widget child,
+      Key? key,
     }) {
-      return SizedBox(width: extent, height: extent, child: child);
+      return SizedBox(key: key, width: extent, height: extent, child: child);
     }
 
     return Row(
@@ -201,9 +202,9 @@ class PlayerControls extends ConsumerWidget {
             ),
           ),
         target(
+          key: const Key('transport-prev'),
           extent: iconExtent,
           child: IconButton(
-            key: const Key('transport-prev'),
             iconSize: iconExtent * 0.6,
             tooltip: 'Previous',
             icon: const Icon(Icons.skip_previous),
@@ -211,6 +212,7 @@ class PlayerControls extends ConsumerWidget {
           ),
         ),
         target(
+          key: const Key('transport-play'),
           extent: mainExtent,
           child: buffering
               ? Padding(
@@ -218,7 +220,6 @@ class PlayerControls extends ConsumerWidget {
                   child: const CircularProgressIndicator(),
                 )
               : IconButton.filled(
-                  key: const Key('transport-play'),
                   iconSize: mainExtent * 0.5,
                   tooltip: playing ? 'Pause' : 'Play',
                   icon: Icon(playing ? Icons.pause : Icons.play_arrow),
@@ -226,9 +227,9 @@ class PlayerControls extends ConsumerWidget {
                 ),
         ),
         target(
+          key: const Key('transport-next'),
           extent: iconExtent,
           child: IconButton(
-            key: const Key('transport-next'),
             iconSize: iconExtent * 0.6,
             tooltip: 'Next',
             icon: const Icon(Icons.skip_next),

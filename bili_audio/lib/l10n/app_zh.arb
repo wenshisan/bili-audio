@@ -223,5 +223,11 @@
   "loginSuccess": "登录成功",
   "logout": "退出登录",
   "logoutConfirm": "确定退出登录？",
-  "loginPrompt": "当前音质受限，登录后可使用更高音质"
+  "loginPrompt": "当前音质受限，登录后可使用更高音质",
+  "settingsCarLayout": "车机布局",
+  "carLayoutAuto": "自动",
+  "carLayoutOn": "始终开启",
+  "carLayoutOff": "关闭",
+  "carShowQueue": "队列",
+  "carShowLyrics": "歌词"
 }

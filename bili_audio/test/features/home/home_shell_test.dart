@@ -130,6 +130,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('844×390 打开车机开关后才是车机布局', (tester) async {
+    await db.settingsDao.set('layout.car_mode', 'on');
+    await pumpAt(tester, const Size(844, 390));
+    expect(find.byKey(const Key('car-layout')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('1280×720 打开车机布局后可直接切歌，关闭后恢复主从栏', (tester) async {
+    await db.settingsDao.set('layout.car_mode', 'on');
+    await pumpAt(tester, const Size(1280, 720));
+    expect(find.byKey(const Key('car-layout')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(tester.getSize(find.byKey(const Key('transport-play'))).width,
+        greaterThanOrEqualTo(76));
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const Key('car-exit')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('car-layout')), findsNothing);
+    expect(find.byKey(const Key('now-playing-pane')), findsOneWidget);
+  });
+
+  testWidgets('1920×480 车机布局无溢出', (tester) async {
+    await db.settingsDao.set('layout.car_mode', 'on');
+    await pumpAt(tester, const Size(1920, 480));
+    expect(find.byKey(const Key('car-layout')), findsOneWidget);
+    expect(tester.getSize(find.byKey(const Key('transport-next'))).width,
+        greaterThanOrEqualTo(76));
+    expect(tester.takeException(), isNull);
+  });
+
   test('重新打开后恢复分隔比例', () async {
     await db.settingsDao.set('layout.split_ratio', '0.4');
     final container = ProviderContainer(

@@ -28,6 +28,7 @@ import '../data/lyrics/lrclib_provider.dart';
 import '../data/lyrics/lyrics_manager.dart';
 import '../data/lyrics/netease_lyrics_provider.dart';
 import '../data/player/audio_engine.dart';
+import '../data/player/media_library.dart';
 import '../data/player/bili_audio_handler.dart';
 import '../data/player/queue_snapshot_store.dart';
 import '../data/repositories/bili_repositories.dart';
@@ -136,6 +137,10 @@ Future<List<Override>> bootstrap() async {
       ),
     );
   }
+  handler.browseLibrary = MediaLibrary(
+    db,
+    () => handler.playbackQueue.orderedTracks,
+  );
   final restored = await handler.restore();
   AppLogger.i('queue restored=$restored', tag: 'boot');
 

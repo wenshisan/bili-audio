@@ -12,6 +12,7 @@ import '../audio/cache_download_manager.dart';
 import '../audio/caching_stream_audio_source.dart';
 import '../repositories/repositories.dart';
 import 'audio_engine.dart';
+import 'media_library.dart';
 import 'queue_snapshot_store.dart';
 import 'sleep_timer.dart';
 
@@ -79,6 +80,36 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   /// 领域队列 (BaseAudioHandler.queue 是 MediaItem 列表)
   PlaybackQueue get playbackQueue => _q;
   Track? get currentTrack => _q.current;
+
+  /// Android Auto 浏览树。未注入时 getChildren 保持空。
+  MediaLibrary? browseLibrary;
+
+  @override
+  Future<List<MediaItem>> getChildren(
+    String parentMediaId, [
+    Map<String, dynamic>? options,
+  ]) {
+    final library = browseLibrary;
+    if (library == null) return super.getChildren(parentMediaId, options);
+    return library.children(parentMediaId);
+  }
+
+  @override
+  Future<void> playFromMediaId(
+    String mediaId, [
+    Map<String, dynamic>? extras,
+  ]) async {
+    final action = await browseLibrary?.resolve(mediaId);
+    if (action == null) return;
+    final index = action.queueIndex;
+    if (index != null) {
+      await skipToQueueItem(index);
+      return;
+    }
+    final tracks = action.tracks;
+    if (tracks == null || tracks.isEmpty) return;
+    await setTracks(tracks, startIndex: action.start);
+  }
 
   /// 播放失败等错误, 由 UI 展示 (如需登录、风控)
   Stream<AppError> get errors => _errors.stream;

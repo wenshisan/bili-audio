@@ -783,6 +783,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'当前音质受限，登录后可使用更高音质'**
   String get loginPrompt;
+
+  /// No description provided for @settingsCarLayout.
+  ///
+  /// In zh, this message translates to:
+  /// **'车机布局'**
+  String get settingsCarLayout;
+
+  /// No description provided for @carLayoutAuto.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动'**
+  String get carLayoutAuto;
+
+  /// No description provided for @carLayoutOn.
+  ///
+  /// In zh, this message translates to:
+  /// **'始终开启'**
+  String get carLayoutOn;
+
+  /// No description provided for @carLayoutOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭'**
+  String get carLayoutOff;
+
+  /// No description provided for @carShowQueue.
+  ///
+  /// In zh, this message translates to:
+  /// **'队列'**
+  String get carShowQueue;
+
+  /// No description provided for @carShowLyrics.
+  ///
+  /// In zh, this message translates to:
+  /// **'歌词'**
+  String get carShowLyrics;
 }
 
 class _AppLocalizationsDelegate
