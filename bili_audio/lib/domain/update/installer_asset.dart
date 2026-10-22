@@ -1,5 +1,5 @@
 /// 升级读取的 GitHub 仓库，`owner/name`。
-const String githubRepository = 'wenshisan/flutter-app-deep';
+const String githubRepository = 'wenshisan/bili-audio';
 
 /// Android 安装包在 Release 里的文件名。
 const String androidInstaller = 'bili_audio-android.apk';

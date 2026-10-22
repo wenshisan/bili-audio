@@ -2,7 +2,7 @@
 
 安装包由 GitHub Actions 构建，挂到 GitHub Release 上。介绍页和软件里的“检查更新”都读这个 Release。
 
-仓库：`wenshisan/flutter-app-deep`。Release 附件名写在 `bili_audio/lib/domain/update/installer_asset.dart`，改名时 Action、介绍页和这段文档要一起改。仓库需要公开，否则介绍页和未登录的 GitHub API 都下不到文件。
+仓库：`wenshisan/bili-audio`。Release 附件名写在 `bili_audio/lib/domain/update/installer_asset.dart`，改名时 Action、介绍页和这段文档要一起改。仓库需要公开，否则介绍页和未登录的 GitHub API 都下不到文件。
 
 ## 安装包
 
@@ -37,7 +37,7 @@ storeFile=ci-release.keystore
 
 `.github/workflows/pages.yml` 把 `site/index.html` 部署到 GitHub Pages：
 
-`https://wenshisan.github.io/flutter-app-deep/`
+`https://wenshisan.github.io/bili-audio/`
 
 页面先请求 Latest 正式版；没有正式版，或正式版里没有安装包时，改用 `continuous`。按钮在第一次构建完成前会 404。
 
@@ -47,7 +47,7 @@ storeFile=ci-release.keystore
 
 数据来自：
 
-`GET https://api.github.com/repos/wenshisan/flutter-app-deep/releases/latest`
+`GET https://api.github.com/repos/wenshisan/bili-audio/releases/latest`
 
 只认非预发布，所以 `continuous` 不会提示升级。标签必须是 `v1.2.3` 或 `1.2.3`。比较规则：
 
