@@ -28,6 +28,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchEmpty => '输入关键词开始搜索';
 
   @override
+  String get discoverDaily => '今日热门';
+
+  @override
+  String get discoverDailyEmpty => '今天还没有可推荐的音乐';
+
+  @override
   String get searchNoResult => '没有找到相关结果';
 
   @override

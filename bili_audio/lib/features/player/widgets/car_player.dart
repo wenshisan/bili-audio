@@ -55,7 +55,7 @@ class _CarPlayerState extends ConsumerState<CarPlayer> {
           ),
           Expanded(
             child: RegionSurface(
-              shadow: RegionShadow.leading,
+              edge: RegionEdge.leading,
               child: Column(
                 children: [
                   Padding(

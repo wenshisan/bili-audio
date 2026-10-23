@@ -23,6 +23,9 @@ abstract interface class SearchRepository {
     int page = 1,
     void Function(List<SearchHit> items)? onItems,
   });
+
+  /// 音乐区当日热门。发现页在用户还没发起搜索时展示。
+  Future<Result<SearchHitPage>> dailyPopular();
 }
 
 abstract interface class VideoRepository {

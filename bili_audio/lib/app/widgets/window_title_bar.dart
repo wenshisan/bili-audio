@@ -67,8 +67,8 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
       Text(context.l10n.appTitle, style: theme.textTheme.titleSmall),
     ];
     return RegionSurface(
-      tone: RegionTone.high,
-      shadow: RegionShadow.bottom,
+      edge: RegionEdge.bottom,
+      extent: 6,
       child: SizedBox(
         height: WindowTitleBar.barHeight,
         child: Stack(

@@ -6,6 +6,8 @@
   "navMine": "我的",
   "searchHint": "搜索歌曲、歌手",
   "searchEmpty": "输入关键词开始搜索",
+  "discoverDaily": "今日热门",
+  "discoverDailyEmpty": "今天还没有可推荐的音乐",
   "searchNoResult": "没有找到相关结果",
   "searchHistory": "搜索历史",
   "searchClearHistory": "清空",

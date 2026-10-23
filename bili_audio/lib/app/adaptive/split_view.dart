@@ -47,8 +47,7 @@ class _SplitViewState extends State<SplitView> {
                 SizedBox(width: firstWidth, child: widget.first),
                 Expanded(
                   child: RegionSurface(
-                    tone: RegionTone.high,
-                    shadow: RegionShadow.leading,
+                    edge: RegionEdge.leading,
                     child: widget.second,
                   ),
                 ),

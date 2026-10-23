@@ -2,9 +2,11 @@ import 'dart:math' show min;
 
 import '../../core/logging/app_logger.dart';
 import '../../core/utils/result.dart';
+import '../../domain/entities/app_error.dart';
 import '../../domain/entities/audio_track.dart';
 import '../../domain/entities/video.dart';
 import '../../domain/title/title_cleaner.dart';
+import '../bili/bili_ranking_api.dart';
 import '../bili/bili_search_api.dart';
 import '../bili/bili_stream_api.dart';
 import '../bili/models/search_result.dart';
@@ -15,10 +17,13 @@ export 'bili_video_repository.dart';
 
 /// 基于 B 站接口的搜索仓储 (M2.6)
 class BiliSearchRepository implements SearchRepository {
-  BiliSearchRepository(this._api, this._cleaner, {this.pageList});
+  BiliSearchRepository(this._api, this._cleaner, {this.pageList, this.ranking});
 
   final BiliSearchApi _api;
   final TitleCleaner _cleaner;
+
+  /// 音乐区排行。未提供时 [dailyPopular] 失败。
+  final MusicChartSource? ranking;
 
   /// 拉取分P。未提供时只按搜索卡片时长丢掉超过 15 分钟的结果。
   final Future<Result<List<VideoPage>>> Function(String bvid)? pageList;
@@ -54,6 +59,52 @@ class BiliSearchRepository implements SearchRepository {
       );
       return (items: items, page: p.page, total: p.total, hasMore: p.hasMore);
     });
+  }
+
+  /// 音乐区排行里时长合适的条目直接展示；多 P 且能拉分 P 时按每一 P 展开。
+  @override
+  Future<Result<SearchHitPage>> dailyPopular() async {
+    final chart = ranking;
+    if (chart == null) {
+      return const Result.failure(
+        AppError.unknown(message: 'music chart unavailable'),
+      );
+    }
+    final result = await chart.dailyMusic();
+    if (result.isFailure) {
+      AppLogger.e(
+        'daily music failed',
+        tag: 'search',
+        error: result.errorOrNull,
+      );
+      return Result.failure(result.errorOrNull!);
+    }
+    final raw = result.valueOrNull ?? const <SearchResult>[];
+    final hits = <SearchHit>[];
+    for (final item in raw) {
+      if ((item.totalPages ?? 1) > 1 && pageList != null) {
+        hits.addAll(await _expand(item));
+        continue;
+      }
+      if (item.duration > maxDuration) {
+        AppLogger.d(
+          'drop daily ${item.bvid} duration=${item.duration}s',
+          tag: 'search',
+        );
+        continue;
+      }
+      hits.add(_hit(item));
+    }
+    AppLogger.i(
+      'daily music raw=${raw.length} shown=${hits.length}',
+      tag: 'search',
+    );
+    return Result.success((
+      items: hits,
+      page: 1,
+      total: hits.length,
+      hasMore: false,
+    ));
   }
 
   /// 时长不超过 15 分钟的卡片先交出去。分P返回后按原位置替换，不必等整页结束。

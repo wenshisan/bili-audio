@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/adaptive/window_metrics.dart';
 import '../../app/providers.dart';
-import '../../app/widgets/region_surface.dart';
 import '../../l10n/l10n.dart';
 import '../common/add_to_playlist_sheet.dart';
 import '../album/album_controller.dart';
@@ -53,12 +52,7 @@ class PlayerPage extends ConsumerWidget {
                               ? Row(
                                   children: [
                                     Expanded(child: cover),
-                                    const Expanded(
-                                      child: RegionSurface(
-                                        shadow: RegionShadow.leading,
-                                        child: lyrics,
-                                      ),
-                                    ),
+                                    const Expanded(child: lyrics),
                                   ],
                                 )
                               : Column(

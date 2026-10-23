@@ -1,19 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// 功能区相对主画布的明度。
-enum RegionTone {
-  /// 与脚手架相同的表面色。
-  canvas,
-
-  /// 比画布高一档，用于歌词、详情等次级内容。
-  low,
-
-  /// 导航、播放栏和标题栏用的更高一档。
-  high,
-}
-
 /// 阴影落在相邻区域的哪一侧。
-enum RegionShadow {
+enum RegionEdge {
   /// 不投影。
   none,
 
@@ -30,60 +18,50 @@ enum RegionShadow {
   bottom,
 }
 
-/// 用色差和单侧柔和阴影区分功能区，不画分割线。
+/// 功能区与画布同色，只在交界投一层浅阴影。
 class RegionSurface extends StatelessWidget {
   /// 创建一块功能区表面。
   const RegionSurface({
     required this.child,
-    this.tone = RegionTone.low,
-    this.shadow = RegionShadow.none,
+    this.edge = RegionEdge.none,
+    this.extent = 1,
     super.key,
   });
 
   /// 区域内的内容。
   final Widget child;
 
-  /// 填充色档位。
-  final RegionTone tone;
-
   /// 投向相邻区域的阴影方向。
-  final RegionShadow shadow;
+  final RegionEdge edge;
 
-  /// 返回 [tone] 在 [scheme] 上的填充色。
-  static Color colorOf(ColorScheme scheme, RegionTone tone) => switch (tone) {
-    RegionTone.canvas => scheme.surface,
-    RegionTone.low => scheme.surfaceContainerLow,
-    RegionTone.high => scheme.surfaceContainer,
-  };
+  /// 阴影厚度，单位是逻辑像素。
+  final double extent;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final body = ColoredBox(color: colorOf(scheme, tone), child: child);
-    if (shadow == RegionShadow.none) return body;
+    final body = ColoredBox(
+      color: Theme.of(context).colorScheme.surface,
+      child: child,
+    );
+    if (edge == RegionEdge.none) return body;
     return Stack(
       fit: StackFit.passthrough,
       clipBehavior: Clip.none,
-      children: [_shade(context, shadow, _shadeColor(scheme)), body],
+      children: [_shade(context, edge, extent), body],
     );
   }
 }
 
-const _shadeExtent = 18.0;
+const _shadeColor = Color(0x29000000);
 
-Color _shadeColor(ColorScheme scheme) {
-  final alpha = scheme.brightness == Brightness.dark ? 0.55 : 0.18;
-  return Colors.black.withValues(alpha: alpha);
-}
-
-Widget _shade(BuildContext context, RegionShadow edge, Color color) {
+Widget _shade(BuildContext context, RegionEdge edge, double extent) {
   final leadingIsLeft = Directionality.of(context) == TextDirection.ltr;
   final side = switch (edge) {
-    RegionShadow.leading => leadingIsLeft ? _Side.left : _Side.right,
-    RegionShadow.trailing => leadingIsLeft ? _Side.right : _Side.left,
-    RegionShadow.top => _Side.top,
-    RegionShadow.bottom => _Side.bottom,
-    RegionShadow.none => null,
+    RegionEdge.leading => leadingIsLeft ? _Side.left : _Side.right,
+    RegionEdge.trailing => leadingIsLeft ? _Side.right : _Side.left,
+    RegionEdge.top => _Side.top,
+    RegionEdge.bottom => _Side.bottom,
+    RegionEdge.none => null,
   };
   final fade = IgnorePointer(
     child: DecoratedBox(
@@ -103,36 +81,36 @@ Widget _shade(BuildContext context, RegionShadow edge, Color color) {
             _Side.bottom => Alignment.bottomCenter,
             null => Alignment.center,
           },
-          colors: [color, color.withValues(alpha: 0)],
+          colors: [_shadeColor, _shadeColor.withValues(alpha: 0)],
         ),
       ),
     ),
   );
   return switch (side) {
     _Side.left => Positioned(
-      left: -_shadeExtent,
-      width: _shadeExtent,
+      left: -extent,
+      width: extent,
       top: 0,
       bottom: 0,
       child: fade,
     ),
     _Side.right => Positioned(
-      right: -_shadeExtent,
-      width: _shadeExtent,
+      right: -extent,
+      width: extent,
       top: 0,
       bottom: 0,
       child: fade,
     ),
     _Side.top => Positioned(
-      top: -_shadeExtent,
-      height: _shadeExtent,
+      top: -extent,
+      height: extent,
       left: 0,
       right: 0,
       child: fade,
     ),
     _Side.bottom => Positioned(
-      bottom: -_shadeExtent,
-      height: _shadeExtent,
+      bottom: -extent,
+      height: extent,
       left: 0,
       right: 0,
       child: fade,

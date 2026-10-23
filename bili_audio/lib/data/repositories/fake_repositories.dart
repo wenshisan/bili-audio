@@ -54,6 +54,9 @@ class FakeSearchRepository implements SearchRepository {
       hasMore: false,
     ));
   }
+
+  @override
+  Future<Result<SearchHitPage>> dailyPopular() => search('');
 }
 
 class FakeVideoRepository implements VideoRepository {

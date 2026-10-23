@@ -83,8 +83,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SearchBar), findsOneWidget);
-    expect(find.text('输入关键词开始搜索'), findsOneWidget);
-    expect(find.text('播放全部'), findsNothing);
+    expect(find.text('今日热门'), findsOneWidget);
+    expect(find.text('七里香 - 周杰伦'), findsOneWidget);
+    expect(find.text('4 首'), findsOneWidget);
+    expect(find.textContaining('超长'), findsNothing);
+    expect(find.text('播放全部'), findsOneWidget);
     expect(find.byIcon(Icons.queue_music), findsNothing);
   });
 

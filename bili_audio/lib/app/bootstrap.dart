@@ -19,6 +19,7 @@ import '../core/utils/cover_url.dart';
 import '../data/audio/audio_cache_store.dart';
 import '../data/audio/cache_download_manager.dart';
 import '../data/bili/bili_login_api.dart';
+import '../data/bili/bili_ranking_api.dart';
 import '../data/bili/bili_search_api.dart';
 import '../data/bili/bili_stream_api.dart';
 import '../data/bili/bili_video_api.dart';
@@ -203,6 +204,7 @@ Future<List<Override>> bootstrap() async {
         BiliSearchApi(http),
         cleaner,
         pageList: videoApi.getPageList,
+        ranking: BiliRankingApi(http),
       ),
     ),
     videoRepositoryProvider.overrideWithValue(

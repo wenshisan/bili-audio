@@ -53,8 +53,7 @@ class _MiniPlayerState extends ConsumerState<MiniPlayer> {
       bar = const SizedBox(width: double.infinity, height: 0);
     } else {
       bar = RegionSurface(
-        tone: RegionTone.high,
-        shadow: RegionShadow.top,
+        edge: RegionEdge.top,
         child: Material(
           color: Colors.transparent,
           child: InkWell(

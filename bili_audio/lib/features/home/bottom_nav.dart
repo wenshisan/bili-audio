@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/widgets/region_surface.dart';
 import '../../l10n/l10n.dart';
 
 /// 底栏与侧栏共用的选中项。
@@ -27,32 +28,33 @@ class BottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
-    return NavigationBar(
-      backgroundColor: scheme.surfaceContainerHigh,
-      elevation: 4,
-      shadowColor: Colors.black.withValues(
-        alpha: scheme.brightness == Brightness.dark ? 0.45 : 0.16,
+    return RegionSurface(
+      edge: RegionEdge.top,
+      child: NavigationBar(
+        backgroundColor: scheme.surface,
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        selectedIndex: navIndexForPath(path),
+        onDestinationSelected: (i) => goNavDestination(context, i),
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.search_outlined),
+            selectedIcon: const Icon(Icons.search),
+            label: l10n.navDiscover,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.library_music_outlined),
+            selectedIcon: const Icon(Icons.library_music),
+            label: l10n.navLibrary,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.settings_outlined),
+            selectedIcon: const Icon(Icons.settings),
+            label: l10n.navMine,
+          ),
+        ],
       ),
-      surfaceTintColor: Colors.transparent,
-      selectedIndex: navIndexForPath(path),
-      onDestinationSelected: (i) => goNavDestination(context, i),
-      destinations: [
-        NavigationDestination(
-          icon: const Icon(Icons.search_outlined),
-          selectedIcon: const Icon(Icons.search),
-          label: l10n.navDiscover,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.library_music_outlined),
-          selectedIcon: const Icon(Icons.library_music),
-          label: l10n.navLibrary,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.settings_outlined),
-          selectedIcon: const Icon(Icons.settings),
-          label: l10n.navMine,
-        ),
-      ],
     );
   }
 }

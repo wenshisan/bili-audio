@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,9 +18,9 @@ import '../lyrics/lyrics_view.dart';
 import '../player/player_actions.dart';
 import 'search_controller.dart';
 
-/// 搜索页 (M6.1)
+/// 发现页 (M6.1)
 ///
-/// 点击结果或播放按钮会用当前列表直接开播，不再等待整部视频详情。
+/// 还没搜索时展示音乐区当日热门。点击结果或播放按钮会用当前列表直接开播。
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
@@ -34,6 +36,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void initState() {
     super.initState();
     _text.text = ref.read(searchControllerProvider).keyword;
+    unawaited(ref.read(searchControllerProvider.notifier).loadDaily());
     _scroll.addListener(() {
       final current = ref.read(searchControllerProvider);
       if (current.items.isEmpty) return;
@@ -112,66 +115,92 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           ),
         ),
         Expanded(
-          child: MotionSwap(
-            swapKey: _searchBodyKey(state, items),
-            child: switch (state) {
-              SearchState(keyword: '') => _History(onTap: _searchFor),
-              SearchState(items: [], loading: true) => const SkeletonList(),
-              SearchState(items: [], error: final e?) => _ErrorView(
-                error: e,
-                onRetry: controller.retry,
-              ),
-              _
-                  when items.isEmpty &&
-                      !state.loading &&
-                      state.error == null &&
-                      !state.hasMore =>
-                Center(child: Text(l10n.searchNoResult)),
-              _ => Column(
-                children: [
-                  if (items.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                      child: Row(
-                        children: [
-                          FilledButton.icon(
-                            icon: const Icon(Icons.play_arrow),
-                            label: Text(l10n.playlistPlayAll),
-                            onPressed: () => _playAll(items),
-                          ),
-                          const Spacer(),
-                          Text(l10n.playlistTrackCount(items.length)),
-                        ],
-                      ),
+          child: Column(
+            children: [
+              if (state.keyword.isEmpty) _HistoryStrip(onTap: _searchFor),
+              Expanded(
+                child: MotionSwap(
+                  swapKey: _searchBodyKey(state, items),
+                  child: switch (state) {
+                    SearchState(items: [], loading: true) =>
+                      const SkeletonList(),
+                    SearchState(items: [], error: final e?) => _ErrorView(
+                      error: e,
+                      onRetry: controller.retry,
                     ),
-                  Expanded(
-                    child: ListEntranceScope(
-                      key: ValueKey(state.keyword),
-                      child: ListView.builder(
-                        controller: _scroll,
-                        itemCount: items.length + 1,
-                        itemBuilder: (context, i) => i < items.length
-                            ? ListEntrance(
-                                index: i,
-                                child: _ResultTile(
-                                  hit: items[i],
-                                  index: i,
-                                  hits: items,
+                    _
+                        when items.isEmpty &&
+                            !state.loading &&
+                            state.error == null &&
+                            !state.hasMore =>
+                      Center(
+                        child: Text(
+                          state.keyword.isEmpty
+                              ? l10n.discoverDailyEmpty
+                              : l10n.searchNoResult,
+                        ),
+                      ),
+                    _ => Column(
+                      children: [
+                        if (items.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                            child: Row(
+                              children: [
+                                if (state.keyword.isEmpty) ...[
+                                  Flexible(
+                                    child: Text(
+                                      l10n.discoverDaily,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
+                                FilledButton.icon(
+                                  icon: const Icon(Icons.play_arrow),
+                                  label: Text(l10n.playlistPlayAll),
+                                  onPressed: () => _playAll(items),
                                 ),
-                              )
-                            : _Footer(
-                                state: state,
-                                onRetry: controller.retry,
-                                onLoadMore: items.isEmpty
-                                    ? controller.loadMore
-                                    : null,
-                              ),
-                      ),
+                                const Spacer(),
+                                Text(l10n.playlistTrackCount(items.length)),
+                              ],
+                            ),
+                          ),
+                        Expanded(
+                          child: ListEntranceScope(
+                            key: ValueKey(state.keyword),
+                            child: ListView.builder(
+                              controller: _scroll,
+                              itemCount: items.length + 1,
+                              itemBuilder: (context, i) => i < items.length
+                                  ? ListEntrance(
+                                      index: i,
+                                      child: _ResultTile(
+                                        hit: items[i],
+                                        index: i,
+                                        hits: items,
+                                      ),
+                                    )
+                                  : _Footer(
+                                      state: state,
+                                      onRetry: controller.retry,
+                                      onLoadMore: items.isEmpty
+                                          ? controller.loadMore
+                                          : null,
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                  },
+                ),
               ),
-            },
+            ],
           ),
         ),
       ],
@@ -185,7 +214,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
         Expanded(child: page),
         const Expanded(
           child: RegionSurface(
-            shadow: RegionShadow.leading,
+            edge: RegionEdge.leading,
             child: LyricsView(key: Key('lyrics-column')),
           ),
         ),
@@ -387,8 +416,8 @@ class _Badge extends StatelessWidget {
   );
 }
 
-class _History extends ConsumerWidget {
-  const _History({required this.onTap});
+class _HistoryStrip extends ConsumerWidget {
+  const _HistoryStrip({required this.onTap});
 
   final void Function(String) onTap;
 
@@ -396,42 +425,40 @@ class _History extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final history = ref.watch(searchHistoryProvider).value ?? const [];
-    final body = history.isEmpty
-        ? Center(child: Text(l10n.searchEmpty))
-        : ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+    if (history.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Text(
-                    l10n.searchHistory,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: ref.read(searchHistoryProvider.notifier).clear,
-                    child: Text(l10n.searchClearHistory),
-                  ),
-                ],
+              Text(
+                l10n.searchHistory,
+                style: Theme.of(context).textTheme.titleSmall,
               ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: [
-                  for (final k in history)
-                    InputChip(
-                      label: Text(k),
-                      onPressed: () => onTap(k),
-                      onDeleted: () =>
-                          ref.read(searchHistoryProvider.notifier).remove(k),
-                    ),
-                ],
+              const Spacer(),
+              TextButton(
+                onPressed: ref.read(searchHistoryProvider.notifier).clear,
+                child: Text(l10n.searchClearHistory),
               ),
             ],
-          );
-    return MotionSwap(
-      swapKey: history.isEmpty ? 'empty' : 'chips',
-      child: body,
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final k in history)
+                InputChip(
+                  label: Text(k),
+                  onPressed: () => onTap(k),
+                  onDeleted: () =>
+                      ref.read(searchHistoryProvider.notifier).remove(k),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -496,14 +523,13 @@ class _Footer extends StatelessWidget {
 }
 
 Object _searchBodyKey(SearchState state, List<SearchHit> items) {
-  if (state.keyword.isEmpty) return 'history';
   if (state.items.isEmpty && state.loading) return 'loading';
   if (state.items.isEmpty && state.error != null) return 'error';
   if (items.isEmpty &&
       !state.loading &&
       state.error == null &&
       !state.hasMore) {
-    return 'empty:${state.keyword}';
+    return state.keyword.isEmpty ? 'daily-empty' : 'empty:${state.keyword}';
   }
-  return 'results:${state.keyword}';
+  return state.keyword.isEmpty ? 'daily' : 'results:${state.keyword}';
 }

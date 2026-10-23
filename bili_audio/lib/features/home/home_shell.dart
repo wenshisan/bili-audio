@@ -104,8 +104,7 @@ class _AdaptiveBody extends ConsumerWidget {
           width: _railExtent,
           child: RegionSurface(
             key: const Key('nav-rail-surface'),
-            tone: RegionTone.high,
-            shadow: RegionShadow.trailing,
+            edge: RegionEdge.trailing,
             child: _NavRail(path: path),
           ),
         ),
@@ -132,7 +131,7 @@ class _NavRail extends StatelessWidget {
       (Icons.library_music_outlined, Icons.library_music, l10n.navLibrary),
     ];
     return NavigationRail(
-      backgroundColor: RegionSurface.colorOf(scheme, RegionTone.high),
+      backgroundColor: scheme.surface,
       selectedIndex: onMine ? null : index,
       onDestinationSelected: (i) => goNavDestination(context, i),
       labelType: NavigationRailLabelType.all,

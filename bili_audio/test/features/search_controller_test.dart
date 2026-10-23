@@ -43,6 +43,40 @@ class _PartialSearch implements SearchRepository {
       hasMore: false,
     ));
   }
+
+  @override
+  Future<Result<SearchHitPage>> dailyPopular() async =>
+      Result.success((items: const [], page: 1, total: 0, hasMore: false));
+}
+
+class _ChartSearch implements SearchRepository {
+  _ChartSearch({this.dailyGate});
+
+  final Completer<void>? dailyGate;
+
+  @override
+  Future<Result<SearchHitPage>> dailyPopular() async {
+    final gate = dailyGate;
+    if (gate != null) await gate.future;
+    return Result.success((
+      items: [_hit('daily')],
+      page: 1,
+      total: 1,
+      hasMore: false,
+    ));
+  }
+
+  @override
+  Future<Result<SearchHitPage>> search(
+    String keyword, {
+    int page = 1,
+    void Function(List<SearchHit> items)? onItems,
+  }) async => Result.success((
+    items: [_hit(keyword)],
+    page: page,
+    total: 1,
+    hasMore: false,
+  ));
 }
 
 void main() {
@@ -72,5 +106,71 @@ void main() {
     final end = container.read(searchControllerProvider);
     expect(end.loading, isFalse);
     expect(end.items.map((hit) => hit.result.bvid), ['early', 'late']);
+  });
+
+  test('未搜索时加载今日推荐，清空搜索后重新加载', () async {
+    final db = AppDatabase.memory();
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        searchRepositoryProvider.overrideWithValue(_ChartSearch()),
+      ],
+    );
+    addTearDown(() async {
+      await container.read(searchHistoryProvider.future);
+      await Future<void>.delayed(Duration.zero);
+      container.dispose();
+      await db.close();
+    });
+
+    final notifier = container.read(searchControllerProvider.notifier);
+    await notifier.loadDaily();
+    expect(
+      container.read(searchControllerProvider).items.single.result.bvid,
+      'daily',
+    );
+
+    await notifier.search('歌');
+    expect(container.read(searchControllerProvider).keyword, '歌');
+    expect(
+      container.read(searchControllerProvider).items.single.result.bvid,
+      '歌',
+    );
+
+    await notifier.search('');
+    final cleared = container.read(searchControllerProvider);
+    expect(cleared.keyword, isEmpty);
+    expect(cleared.loading, isFalse);
+    expect(cleared.items.single.result.bvid, 'daily');
+  });
+
+  test('搜索开始后，迟到的今日推荐不再写回', () async {
+    final db = AppDatabase.memory();
+    final gate = Completer<void>();
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        searchRepositoryProvider.overrideWithValue(
+          _ChartSearch(dailyGate: gate),
+        ),
+      ],
+    );
+    addTearDown(() async {
+      if (!gate.isCompleted) gate.complete();
+      await container.read(searchHistoryProvider.future);
+      await Future<void>.delayed(Duration.zero);
+      container.dispose();
+      await db.close();
+    });
+
+    final notifier = container.read(searchControllerProvider.notifier);
+    final daily = notifier.loadDaily();
+    await notifier.search('歌');
+    gate.complete();
+    await daily;
+
+    final end = container.read(searchControllerProvider);
+    expect(end.keyword, '歌');
+    expect(end.items.single.result.bvid, '歌');
   });
 }

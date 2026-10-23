@@ -171,8 +171,7 @@ class _SettingsGroup extends StatelessWidget {
       child: Material(
         color: scheme.surfaceContainerLow,
         surfaceTintColor: Colors.transparent,
-        shadowColor: Colors.black.withValues(alpha: 0.24),
-        elevation: 2,
+        elevation: 0,
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: Column(mainAxisSize: MainAxisSize.min, children: children),

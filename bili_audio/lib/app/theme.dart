@@ -12,15 +12,43 @@ const List<Color> presetSeeds = [
 ];
 
 ThemeData buildTheme(Color seed, Brightness brightness) {
+  final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: brightness);
   return ThemeData(
     useMaterial3: true,
-    colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: brightness),
+    colorScheme: scheme,
+    appBarTheme: const AppBarTheme(
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+    ),
+    cardTheme: CardThemeData(
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      color: scheme.surfaceContainerLow,
+    ),
+    navigationBarTheme: const NavigationBarThemeData(
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+    ),
+    searchBarTheme: SearchBarThemeData(
+      elevation: const WidgetStatePropertyAll<double>(1),
+      backgroundColor: WidgetStatePropertyAll<Color>(
+        brightness == Brightness.dark
+            ? scheme.surfaceContainerHighest
+            : scheme.surfaceContainerLow,
+      ),
+    ),
   );
 }
 
 @immutable
 class ThemeState {
-  const ThemeState({this.mode = ThemeMode.system, this.seed = const Color(0xFFFB7299)});
+  const ThemeState({
+    this.mode = ThemeMode.system,
+    this.seed = const Color(0xFFFB7299),
+  });
 
   final ThemeMode mode;
   final Color seed;
@@ -48,8 +76,9 @@ class ThemeState {
 final initialThemeProvider = Provider<ThemeState>((ref) => const ThemeState());
 
 /// 主题持久化回调; bootstrap 中 override 为写 settings 表
-final themeSaverProvider =
-    Provider<Future<void> Function(ThemeState)>((ref) => (_) async {});
+final themeSaverProvider = Provider<Future<void> Function(ThemeState)>(
+  (ref) => (_) async {},
+);
 
 /// 主题状态 (M0.4): 修改后立即生效并持久化, 重启后保持
 class ThemeController extends Notifier<ThemeState> {
@@ -66,5 +95,6 @@ class ThemeController extends Notifier<ThemeState> {
   }
 }
 
-final themeControllerProvider =
-    NotifierProvider<ThemeController, ThemeState>(ThemeController.new);
+final themeControllerProvider = NotifierProvider<ThemeController, ThemeState>(
+  ThemeController.new,
+);

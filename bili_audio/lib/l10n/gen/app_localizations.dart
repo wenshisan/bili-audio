@@ -130,6 +130,18 @@ abstract class AppLocalizations {
   /// **'输入关键词开始搜索'**
   String get searchEmpty;
 
+  /// No description provided for @discoverDaily.
+  ///
+  /// In zh, this message translates to:
+  /// **'今日热门'**
+  String get discoverDaily;
+
+  /// No description provided for @discoverDailyEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'今天还没有可推荐的音乐'**
+  String get discoverDailyEmpty;
+
   /// No description provided for @searchNoResult.
   ///
   /// In zh, this message translates to:

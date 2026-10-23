@@ -5,6 +5,7 @@ import 'package:bili_audio/app/providers.dart';
 import 'package:bili_audio/data/audio/audio_cache_store.dart';
 import 'package:bili_audio/data/audio/cache_download_manager.dart';
 import 'package:bili_audio/data/db/app_database.dart';
+import 'package:bili_audio/data/repositories/fake_repositories.dart';
 import 'package:bili_audio/data/lyrics/lyrics_manager.dart';
 import 'package:bili_audio/data/player/bili_audio_handler.dart';
 import 'package:bili_audio/features/lyrics/lyrics_controller.dart';
@@ -51,6 +52,9 @@ void main() {
       ProviderScope(
         overrides: [
           databaseProvider.overrideWithValue(db),
+          searchRepositoryProvider.overrideWithValue(
+            FakeSearchRepository(latency: Duration.zero),
+          ),
           audioHandlerProvider.overrideWithValue(handler),
           lyricsManagerProvider.overrideWithValue(
             LyricsManager(db, dir, providers: const []),

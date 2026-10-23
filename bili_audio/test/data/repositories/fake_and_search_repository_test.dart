@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:bili_audio/core/utils/result.dart';
+import 'package:bili_audio/data/bili/bili_ranking_api.dart';
 import 'package:bili_audio/data/bili/bili_search_api.dart';
 import 'package:bili_audio/data/bili/models/search_result.dart';
 import 'package:bili_audio/data/repositories/bili_repositories.dart';
@@ -43,6 +44,16 @@ class _ListSearchApi implements BiliSearchApi {
       hasMore: false,
     ),
   );
+}
+
+class _Chart implements MusicChartSource {
+  _Chart(this.items);
+
+  final List<SearchResult> items;
+
+  @override
+  Future<Result<List<SearchResult>>> dailyMusic() async =>
+      Result.success(items);
 }
 
 class _StubSearchApi implements BiliSearchApi {
@@ -261,6 +272,71 @@ void main() {
     expect(items.map((hit) => hit.result.cid), [1, 2, 7]);
   });
 
+  test('今日热门保留榜单顺序，展开多 P，丢掉超长单视频', () async {
+    final cleaner = TitleCleaner(
+      const TitleRuleConfig(
+        version: 1,
+        rules: [
+          TitleRule(
+            id: 'dash',
+            type: 'split',
+            pattern: r'\s-\s',
+            order: 'artist_title',
+            priority: 10,
+          ),
+        ],
+      ),
+    );
+    final repo = BiliSearchRepository(
+      _StubSearchApi(),
+      cleaner,
+      ranking: _Chart([
+        _item('BVlong', '超长单曲', 960),
+        _item('BVmulti', '歌曲合集', 2400).copyWith(totalPages: 3),
+        _item('BVshort', '周杰伦 - 晴天', 180).copyWith(cid: 8),
+      ]),
+      pageList: (bvid) async {
+        if (bvid != 'BVmulti') {
+          return const Result.failure(AppError.notFound());
+        }
+        return const Result.success([
+          VideoPage(
+            cid: 1,
+            title: 'P1',
+            duration: Duration(seconds: 200),
+            pageIndex: 1,
+          ),
+          VideoPage(
+            cid: 2,
+            title: '周杰伦 - 稻香',
+            duration: Duration(seconds: 210),
+            pageIndex: 2,
+          ),
+          VideoPage(
+            cid: 3,
+            title: '现场',
+            duration: Duration(seconds: 1000),
+            pageIndex: 3,
+          ),
+        ]);
+      },
+    );
+
+    final items = (await repo.dailyPopular()).valueOrNull!.items;
+
+    expect(items.map((hit) => hit.result.bvid), [
+      'BVmulti',
+      'BVmulti',
+      'BVshort',
+    ]);
+    expect(items[0].result.cid, 1);
+    expect(items[1].cleaned.name, '稻香');
+    expect(items[1].result.duration, 210);
+    expect(items[2].result.cid, 8);
+    expect(items[2].cleaned.name, '晴天');
+    expect(items[2].cleaned.artist, '周杰伦');
+  });
+
   group('Fake 仓储', () {
     test('搜索按关键词过滤, 并标记超长视频', () async {
       final repo = FakeSearchRepository(latency: Duration.zero);
@@ -284,9 +360,8 @@ void main() {
     });
 
     test('流仓储返回固定可播放地址', () async {
-      final tracks = (await FakeVideoRepository().getTracks(
-        'BV1fake00001',
-      )).valueOrNull!;
+      final tracks = (await FakeVideoRepository().getTracks('BV1fake00001'))
+          .valueOrNull!;
       final s = (await FakeStreamRepository().resolve(
         tracks.first,
         AudioQuality.k132,

@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../core/logging/app_logger.dart';
+import '../../core/utils/result.dart';
 import '../../data/repositories/repositories.dart';
 
 /// 搜索页状态 (M6.1)
@@ -72,6 +73,7 @@ class SearchController extends Notifier<SearchState> {
       _generation++;
       AppLogger.d('cleared', tag: 'search');
       state = const SearchState();
+      await loadDaily();
       return;
     }
     if (keyword == state.keyword && state.items.isNotEmpty) {
@@ -92,8 +94,47 @@ class SearchController extends Notifier<SearchState> {
   }
 
   Future<void> retry() async {
+    if (state.keyword.isEmpty) {
+      _generation++;
+      state = const SearchState();
+      await loadDaily();
+      return;
+    }
     state = state.copyWith(loading: true, error: () => null);
     await _load(state.page + 1);
+  }
+
+  /// 未搜索时加载音乐区当日热门。已有推荐或正在搜索时不覆盖。
+  Future<void> loadDaily() async {
+    _timer?.cancel();
+    if (state.keyword.isNotEmpty) return;
+    if (state.loading || (state.items.isNotEmpty && state.error == null)) {
+      return;
+    }
+    _emptyFollows = 0;
+    final gen = ++_generation;
+    state = const SearchState(loading: true);
+    AppLogger.d('load daily gen=$gen', tag: 'search');
+    final Result<SearchHitPage> result;
+    try {
+      result = await ref.read(searchRepositoryProvider).dailyPopular();
+    } catch (e, st) {
+      if (!ref.mounted || gen != _generation) return;
+      AppLogger.e('daily failed', tag: 'search', error: e, stackTrace: st);
+      state = SearchState(loading: false, error: e);
+      return;
+    }
+    if (!ref.mounted || gen != _generation || state.keyword.isNotEmpty) {
+      AppLogger.d('stale daily dropped gen=$gen', tag: 'search');
+      return;
+    }
+    final data = result.valueOrNull;
+    if (data == null) {
+      AppLogger.w('daily failed error=${result.errorOrNull}', tag: 'search');
+      state = SearchState(loading: false, error: result.errorOrNull);
+      return;
+    }
+    state = SearchState(items: data.items, page: data.page, hasMore: false);
   }
 
   Future<void> _load(int page) async {

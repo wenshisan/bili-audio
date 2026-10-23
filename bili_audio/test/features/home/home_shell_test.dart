@@ -238,8 +238,7 @@ void _expectMinePinnedToBottom(WidgetTester tester) {
   final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
   final scheme = Theme.of(tester.element(find.byType(NavigationRail)))
       .colorScheme;
-  expect(rail.backgroundColor, scheme.surfaceContainer);
-  expect(rail.backgroundColor, isNot(scheme.surface));
+  expect(rail.backgroundColor, scheme.surface);
   final boundary = tester.getSize(find.byKey(const Key('nav-rail-surface')));
   expect(boundary.width, 80);
   expect(boundary.height, greaterThan(700));
@@ -251,6 +250,15 @@ void _expectMinePinnedToBottom(WidgetTester tester) {
         final decoration = widget is DecoratedBox ? widget.decoration : null;
         return decoration is BoxDecoration && decoration.gradient != null;
       }),
+    ),
+    findsOneWidget,
+  );
+  expect(
+    find.descendant(
+      of: find.byKey(const Key('nav-rail-surface')),
+      matching: find.byWidgetPredicate(
+        (widget) => widget is Positioned && widget.width == 1,
+      ),
     ),
     findsOneWidget,
   );

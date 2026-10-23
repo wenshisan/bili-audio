@@ -61,7 +61,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
         Expanded(child: list),
         Expanded(
           child: RegionSurface(
-            shadow: RegionShadow.leading,
+            edge: RegionEdge.leading,
             child: MotionSwap(
               swapKey: _selected ?? 'none',
               child: _selected == null
@@ -221,6 +221,9 @@ class _PlaylistCard extends StatelessWidget {
       );
     }
     return Card(
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: open,
