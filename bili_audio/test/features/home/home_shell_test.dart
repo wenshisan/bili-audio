@@ -8,7 +8,9 @@ import 'package:bili_audio/data/audio/cache_download_manager.dart';
 import 'package:bili_audio/data/db/app_database.dart';
 import 'package:bili_audio/data/player/bili_audio_handler.dart';
 import 'package:bili_audio/features/home/home_shell.dart';
+import 'package:bili_audio/features/lyrics/lyrics_view.dart';
 import 'package:bili_audio/features/player/player_page.dart';
+import 'package:bili_audio/features/queue/queue_page.dart';
 import 'package:bili_audio/l10n/l10n.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -210,6 +212,27 @@ void main() {
       tester.getSize(find.byKey(const Key('transport-play'))).width,
       greaterThanOrEqualTo(76),
     );
+    final layout = tester.getRect(find.byKey(const Key('car-layout')));
+    final banner = tester.getRect(find.byKey(const Key('car-current-lyric')));
+    final lyrics = tester.getRect(find.byKey(const Key('car-main-pane')));
+    final side = tester.getRect(find.byKey(const Key('car-side-pane')));
+    final toggle = tester.getRect(find.byKey(const Key('car-panel-toggle')));
+    final play = tester.getRect(find.byKey(const Key('transport-play')));
+    expect(find.byType(LyricsView), findsOneWidget);
+    expect(banner.top, lessThanOrEqualTo(layout.top + 1));
+    expect(banner.bottom, lessThanOrEqualTo(lyrics.top + 1));
+    expect(lyrics.center.dx, lessThan(side.center.dx));
+    expect(lyrics.right, lessThanOrEqualTo(side.left + 1));
+    expect(toggle.top, greaterThanOrEqualTo(lyrics.bottom - 1));
+    expect(side.bottom, lessThanOrEqualTo(toggle.top + 1));
+    expect(toggle.bottom, lessThanOrEqualTo(play.top));
+    expect(play.bottom, greaterThan(layout.bottom - 20));
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('队列'));
+    await tester.pumpAndSettle();
+    expect(find.byType(QueueList), findsOneWidget);
+    expect(find.byType(LyricsView), findsNothing);
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.byKey(const Key('car-exit')));

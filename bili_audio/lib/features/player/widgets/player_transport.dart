@@ -31,6 +31,7 @@ class PlayerCoverSection extends ConsumerWidget {
     required this.item,
     this.padding = 24,
     this.compact = false,
+    this.shrinkToFit = false,
     super.key,
   });
 
@@ -39,6 +40,9 @@ class PlayerCoverSection extends ConsumerWidget {
 
   /// 矮窗口只留一行专辑名和年份，介绍放到完整播放页。
   final bool compact;
+
+  /// 车机右侧：封面和介绍按剩余高度分配，介绍放不下时在区内滚动。
+  final bool shrinkToFit;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,84 +58,121 @@ class PlayerCoverSection extends ConsumerWidget {
         ? official
         : biliCover;
     final line = found == null ? null : _albumLine(l10n, found);
-    final intro = found?.description?.trim();
+    final trimmedIntro = found?.description?.trim();
+    final intro = (trimmedIntro != null && trimmedIntro.isNotEmpty)
+        ? trimmedIntro
+        : null;
+    final details = <Widget>[
+      Text(
+        item.title,
+        style: theme.titleLarge,
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
+      const SizedBox(height: 4),
+      Text(
+        item.artist ?? '',
+        style: theme.bodyMedium,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      if (line != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            line,
+            key: const Key('album-meta'),
+            style: theme.bodySmall,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      if (!compact && intro != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: InkWell(
+            onTap: () => _showIntro(context, intro),
+            child: Text(
+              intro,
+              key: const Key('album-intro'),
+              style: theme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: shrinkToFit ? null : 3,
+              overflow: shrinkToFit ? null : TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+      if (pages > 1)
+        Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            l10n.pageInfo(t.pageIndex ?? 1, pages, t.title),
+            style: theme.bodySmall,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+    ];
     return Padding(
       padding: EdgeInsets.all(padding),
       child: MotionSwap(
         swapKey: '${item.id}|$cover',
-        child: Column(
-          key: ValueKey('${item.id}|$cover'),
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-              child: AspectRatio(
-                aspectRatio: 1,
-                child: LayoutBuilder(
-                  builder: (_, c) => CoverImage(
-                    cover,
-                    fallbackUrl: cover == biliCover ? null : biliCover,
-                    size: c.maxWidth,
-                    radius: 16,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              item.title,
-              style: theme.titleLarge,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              item.artist ?? '',
-              style: theme.bodyMedium,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (line != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  line,
-                  key: const Key('album-meta'),
-                  style: theme.bodySmall,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            if (!compact && intro != null && intro.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: InkWell(
-                  onTap: () => _showIntro(context, intro),
-                  child: Text(
-                    intro,
-                    key: const Key('album-intro'),
-                    style: theme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+        child: shrinkToFit
+            ? Column(
+                key: ValueKey('${item.id}|$cover'),
+                children: [
+                  Flexible(
+                    flex: 3,
+                    child: LayoutBuilder(
+                      builder: (_, c) {
+                        final side = c.maxWidth < c.maxHeight
+                            ? c.maxWidth
+                            : c.maxHeight;
+                        if (side < 1) return const SizedBox.shrink();
+                        return Center(
+                          child: CoverImage(
+                            cover,
+                            fallbackUrl: cover == biliCover ? null : biliCover,
+                            size: side,
+                            radius: 16,
+                          ),
+                        );
+                      },
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
                   ),
-                ),
+                  Flexible(
+                    flex: 2,
+                    child: SingleChildScrollView(
+                      child: Column(children: details),
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                key: ValueKey('${item.id}|$cover'),
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: LayoutBuilder(
+                        builder: (_, c) => CoverImage(
+                          cover,
+                          fallbackUrl: cover == biliCover ? null : biliCover,
+                          size: c.maxWidth,
+                          radius: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  ...details,
+                ],
               ),
-            if (pages > 1)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  l10n.pageInfo(t.pageIndex ?? 1, pages, t.title),
-                  style: theme.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-          ],
-        ),
       ),
     );
   }
@@ -166,7 +207,10 @@ class PlayerCoverSection extends ConsumerWidget {
 
 /// 当前歌词一行。没有歌词时不占内容。
 class CurrentLyricLine extends ConsumerWidget {
-  const CurrentLyricLine({super.key});
+  const CurrentLyricLine({this.prominent = false, super.key});
+
+  /// 车机顶部：当前行用主色和大字号。
+  final bool prominent;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -177,15 +221,23 @@ class CurrentLyricLine extends ConsumerWidget {
     final position = ref.watch(positionProvider).value ?? Duration.zero;
     final index = LyricsTimeline(found.lyrics).indexAt(position);
     if (index < 0) return const SizedBox(height: 20);
+    final theme = Theme.of(context);
+    final style = prominent
+        ? theme.textTheme.headlineMedium?.copyWith(
+            color: theme.colorScheme.primary,
+            fontWeight: FontWeight.w700,
+            height: 1.15,
+          )
+        : theme.textTheme.titleMedium;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
         found.lyrics.lines[index].text,
         key: const Key('current-lyric-line'),
         textAlign: TextAlign.center,
-        maxLines: 1,
+        maxLines: prominent ? 2 : 1,
         overflow: TextOverflow.ellipsis,
-        style: Theme.of(context).textTheme.titleMedium,
+        style: style,
       ),
     );
   }
