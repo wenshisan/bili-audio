@@ -36,8 +36,13 @@ class AppRelease {
   /// 标签原文，例如 `v0.2.0`。
   final String tag;
 
-  /// 发布说明。仓库里没写时为空字符串。
+  /// 发布说明全文。仓库里没写时为空字符串。
+  ///
+  /// 升级界面用 [changelog]，不展示安装包表格和构建说明。
   final String notes;
+
+  /// 升级界面展示的更新日志。
+  String get changelog => releaseChangelog(notes);
 
   /// 浏览器里的 Release 页面。
   final String pageUrl;
@@ -112,4 +117,30 @@ class AppRelease {
     }
     return assets;
   }
+}
+
+/// 从发布说明里取出「更新日志」一节。
+///
+/// 有 `## 更新日志` 时，只保留到下一个二级标题之前的文字。
+/// 没有这一节、正文又是安装包表格或构建说明时，返回空字符串。
+/// 手写的短说明原样返回。
+String releaseChangelog(String notes) {
+  final lines = notes.split(RegExp(r'\r?\n'));
+  final start = lines.indexWhere((line) => line.trim() == '## 更新日志');
+  if (start < 0) {
+    return _isInstallerNotes(notes) ? '' : notes.trim();
+  }
+  final body = <String>[];
+  for (final line in lines.skip(start + 1)) {
+    if (line.trimLeft().startsWith('## ')) break;
+    body.add(line);
+  }
+  return body.join('\n').trim();
+}
+
+bool _isInstallerNotes(String notes) {
+  final text = notes.trim();
+  return text.startsWith('由 GitHub Actions') ||
+      text.contains('| 平台 |') ||
+      text.contains('应用内升级认这个版本号');
 }

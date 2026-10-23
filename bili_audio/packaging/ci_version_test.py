@@ -34,6 +34,29 @@ class DecideTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             ci_version.decide(PUBSPEC, [], "tag", "v0.1.0+2")
 
+    def test_previous_tag_is_the_highest_older_release(self):
+        found = ci_version.previous_tag(
+            ["v0.1.0+2", "continuous", "v0.1.0+4", "v0.2.0+1"],
+            "v0.1.0+4",
+        )
+        self.assertEqual(found, "v0.1.0+2")
+
+    def test_changelog_lists_subjects_once(self):
+        notes = ci_version.release_notes(
+            ["支持队列中搜索", "支持队列中搜索", "  ", "优化歌词匹配"],
+            "abc",
+            "v0.1.0+3",
+            "https://example.test/run/1",
+        )
+        self.assertTrue(notes.startswith("## 更新日志\n"))
+        self.assertIn("- 支持队列中搜索\n- 优化歌词匹配\n", notes)
+        self.assertEqual(notes.count("- 支持队列中搜索"), 1)
+        self.assertIn("## 安装包\n", notes)
+        self.assertLess(
+            notes.index("## 更新日志"),
+            notes.index("## 安装包"),
+        )
+
     def test_stamp_replaces_only_the_version_line(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "pubspec.yaml"

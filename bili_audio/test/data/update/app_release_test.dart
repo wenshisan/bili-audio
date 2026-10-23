@@ -45,4 +45,39 @@ void main() {
       );
     });
   });
+
+  group('releaseChangelog', () {
+    test('只保留更新日志，安装包一节不进入升级界面', () {
+      const notes = '''
+## 更新日志
+
+- 支持队列中搜索
+- 优化歌词匹配
+
+## 安装包
+
+| 平台 | 文件 |
+| --- | --- |
+| Android | `bili_audio-android.apk` |
+''';
+      expect(releaseChangelog(notes), '- 支持队列中搜索\n- 优化歌词匹配');
+    });
+
+    test('手写短说明原样显示', () {
+      expect(releaseChangelog('修复播放'), '修复播放');
+    });
+
+    test('旧的构建说明不是更新日志', () {
+      const notes = '''
+由 GitHub Actions 从 `abc` 自动构建。版本 `v0.1.0+2`。
+
+| 平台 | 文件 |
+| --- | --- |
+| Android | `bili_audio-android.apk` |
+
+应用内升级认这个版本号。
+''';
+      expect(releaseChangelog(notes), isEmpty);
+    });
+  });
 }

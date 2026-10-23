@@ -71,7 +71,7 @@ class _UpdateDialog extends ConsumerWidget {
     final l10n = context.l10n;
     final state = ref.watch(updateControllerProvider);
     final version = state.release?.version.text ?? '';
-    final notes = state.release?.notes ?? '';
+    final notes = state.release?.changelog ?? '';
     return AlertDialog(
       title: Text(
         state.phase == UpdatePhase.unsupported

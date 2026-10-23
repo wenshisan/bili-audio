@@ -27,10 +27,22 @@
     header img { width: 72px; height: 72px; border-radius: 16px; }
     h1 { font-size: 32px; line-height: 1.2; margin: 0 0 6px; font-weight: 650; }
     .mark { color: var(--muted); margin: 0; }
-    .lede { font-size: 18px; margin: 28px 0; }
+    .lede { font-size: 22px; line-height: 1.45; max-width: 18em; margin: 28px 0 20px; }
     h2 { font-size: 18px; margin: 36px 0 12px; }
-    ul { margin: 0; padding-left: 1.2em; }
-    li { margin: 6px 0; }
+    .points {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin: 0 0 8px;
+    }
+    .points article {
+      padding: 16px 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--card);
+    }
+    .points h2 { margin: 0 0 8px; color: var(--accent); font-size: 20px; }
+    .points p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
     a.card {
       display: block;
@@ -79,7 +91,8 @@
     html.phone main { padding: 20px 16px calc(40px + env(safe-area-inset-bottom)); }
     html.phone header img { width: 56px; height: 56px; }
     html.phone h1 { font-size: 28px; }
-    html.phone .lede { font-size: 16px; margin: 20px 0; }
+    html.phone .lede { font-size: 18px; margin: 16px 0; }
+    html.phone .points h2 { font-size: 18px; }
     html.phone .caption { font-size: 20px; }
     html.phone #demo-text { min-height: 3.2em; }
     html.phone .controls button.replay { flex: 1 1 30%; min-height: 44px; padding: 8px 10px; }
@@ -115,7 +128,29 @@
         <p class="mark">第三方 · 个人学习 · 与哔哩哔哩官方无关</p>
       </div>
     </header>
-    <p class="lede">只听 B 站音乐视频的音频。随机播放、边听边存、本地歌单，手机、平板和桌面随窗口伸缩。</p>
+    <p class="lede">免费听 B 站的歌。只放音频，听过的歌没网也能随机接着播。</p>
+    <div class="points">
+      <article>
+        <h2>免费</h2>
+        <p>不收费。搜索、播放、歌词和歌单都不用登录。</p>
+      </article>
+      <article>
+        <h2>离线随机</h2>
+        <p>听过一次就留在本机。没网时照样随机下一首，上一首退回刚才那首。</p>
+      </article>
+      <article>
+        <h2>自由</h2>
+        <p>歌单在自己的设备上。顺序自己排，想从哪首听就从哪首开始。</p>
+      </article>
+      <article>
+        <h2>纯粹</h2>
+        <p>不播画面。长视频让开，标题收成歌名和歌手，歌词跟着走。</p>
+      </article>
+      <article>
+        <h2>车机</h2>
+        <p>车上换成大按钮。一边是封面和控制，一边在队列和歌词之间切换。</p>
+      </article>
+    </div>
     <h2>看它怎么用</h2>
     <div class="demo" id="demo">
       <div class="frame">
@@ -132,14 +167,6 @@
         </div>
       </div>
     </div>
-    <h2>能做什么</h2>
-    <ul>
-      <li>智能随机：下一首换一位歌手，上一首退回刚才听的那首。</li>
-      <li>边听边存，再听直接读本地。放进歌单的曲目不会被清掉。</li>
-      <li>本地歌单可以加入、整张播放、改名，也可以划掉一首。</li>
-      <li>手机底部导航、平板侧栏、桌面左右分栏，拖动窗口连续切换。</li>
-      <li>搜索时滤掉超过 15 分钟的视频，标题整理成歌名和歌手，分 P 连播，歌词跟着走。</li>
-    </ul>
     <h2>下载</h2>
     <p id="status" class="note">正在读取最新安装包…</p>
     <div class="scan">

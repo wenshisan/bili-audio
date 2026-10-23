@@ -228,6 +228,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/download-artifact@v4
         with:
@@ -248,22 +251,24 @@ jobs:
             echo "No installers were produced."
             exit 1
           fi
-          notes="$(cat <<EOF
-          由 GitHub Actions 从 \`${GITHUB_SHA}\` 自动构建。版本 \`${RELEASE_NAME}\`。
-
-          | 平台 | 文件 |
-          | --- | --- |
-          | Android | \`bili_audio-android.apk\` |
-          | Windows | \`bili_audio-windows-x64-setup.exe\` |
-          | Linux | \`bili_audio-linux-amd64.deb\` |
-          | macOS (Apple 芯片) | \`bili_audio-macos-arm64.dmg\` |
-          | iOS | \`bili_audio-ios.ipa\`（描述文件安装，需签名 secrets） |
-
-          应用内升级认这个版本号。构建号每次加一，已安装的客户端才能覆盖安装并提示升级。\`continuous\` 仍是预发布，只给介绍页做固定下载地址。
-
-          构建日志：${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-          EOF
-          )"
+          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq '.[] | select(.draft | not) | select(.prerelease | not) | .tag_name' \
+            > /tmp/tags.txt
+          prev="$(python3 bili_audio/packaging/ci_version.py \
+            --previous-tag \
+            --releases /tmp/tags.txt \
+            --current "$RELEASE_NAME")"
+          if [ -n "$prev" ]; then
+            git log "${prev}..HEAD" --no-merges --pretty=format:%s > /tmp/subjects.txt
+          else
+            : > /tmp/subjects.txt
+          fi
+          python3 bili_audio/packaging/ci_version.py \
+            --notes-file /tmp/notes.md \
+            --subjects /tmp/subjects.txt \
+            --sha "$GITHUB_SHA" \
+            --version "$RELEASE_NAME" \
+            --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             if [[ "$RELEASE_TAG" == *"+"* ]]; then
               gh release delete "$RELEASE_TAG" --yes --cleanup-tag
@@ -273,10 +278,10 @@ jobs:
           fi
           gh release create "$RELEASE_TAG" "${files[@]}" \
             --title "$RELEASE_NAME" \
-            --notes "$notes" \
+            --notes-file /tmp/notes.md \
             --latest
           gh release delete continuous --yes --cleanup-tag || true
           gh release create continuous "${files[@]}" \
             --title "$RELEASE_NAME" \
-            --notes "$notes" \
+            --notes-file /tmp/notes.md \
             --prerelease
