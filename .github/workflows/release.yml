@@ -13,12 +13,39 @@ permissions:
   contents: write
 
 concurrency:
-  group: installers-${{ github.ref }}
+  group: installers
   cancel-in-progress: true
 
 jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+      release_tag: ${{ steps.compute.outputs.release_tag }}
+      release_name: ${{ steps.compute.outputs.release_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: compute
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+            --jq '.[] | .tag_name, .name' > /tmp/releases.txt
+          python3 bili_audio/packaging/ci_version.py \
+            --pubspec bili_audio/pubspec.yaml \
+            --releases /tmp/releases.txt \
+            --ref-type "$REF_TYPE" \
+            --ref-name "$REF_NAME" \
+            | tee -a "$GITHUB_OUTPUT"
+
   build:
     name: ${{ matrix.name }}
+    needs: version
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -41,6 +68,19 @@ jobs:
             target: ios
     steps:
       - uses: actions/checkout@v4
+
+      - name: Stamp build version
+        shell: bash
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          if command -v python3 >/dev/null 2>&1; then
+            PY=python3
+          else
+            PY=python
+          fi
+          "$PY" bili_audio/packaging/ci_version.py --stamp --pubspec bili_audio/pubspec.yaml --version "$VERSION"
 
       - uses: actions/setup-java@v4
         if: matrix.target == 'android'
@@ -106,7 +146,7 @@ jobs:
           choco install innosetup --yes --no-progress
           New-Item -ItemType Directory -Force -Path bili_audio\dist | Out-Null
           $match = Select-String -Path bili_audio\pubspec.yaml -Pattern '^version:\s*(\S+)' | Select-Object -First 1
-          $version = $match.Matches[0].Groups[1].Value.Split('+')[0]
+          $version = $match.Matches[0].Groups[1].Value.Replace('+', '.')
           $issPath = (Resolve-Path bili_audio\packaging\windows\bili_audio.iss).Path
           $text = [System.IO.File]::ReadAllText($issPath)
           $utf8Bom = New-Object System.Text.UTF8Encoding $true
@@ -183,8 +223,8 @@ jobs:
 
   publish:
     name: Publish release
-    needs: build
-    if: always() && !cancelled()
+    needs: [version, build]
+    if: always() && !cancelled() && needs.version.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -198,6 +238,8 @@ jobs:
       - name: Create or replace GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ needs.version.outputs.release_tag }}
+          RELEASE_NAME: ${{ needs.version.outputs.release_name }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -206,18 +248,8 @@ jobs:
             echo "No installers were produced."
             exit 1
           fi
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            tag="${GITHUB_REF_NAME}"
-            title="$tag"
-            extra=(--latest)
-          else
-            tag="continuous"
-            title="Continuous"
-            extra=(--prerelease)
-            gh release delete "$tag" --yes --cleanup-tag || true
-          fi
           notes="$(cat <<EOF
-          由 GitHub Actions 从 \`${GITHUB_SHA}\` 自动构建。
+          由 GitHub Actions 从 \`${GITHUB_SHA}\` 自动构建。版本 \`${RELEASE_NAME}\`。
 
           | 平台 | 文件 |
           | --- | --- |
@@ -227,12 +259,24 @@ jobs:
           | macOS (Apple 芯片) | \`bili_audio-macos-arm64.dmg\` |
           | iOS | \`bili_audio-ios.ipa\`（描述文件安装，需签名 secrets） |
 
-          应用内升级只认 \`v*\` 正式版。\`continuous\` 是每次推送到 main 的预发布，介绍页在没有正式版时用它提供下载。
+          应用内升级认这个版本号。构建号每次加一，已安装的客户端才能覆盖安装并提示升级。\`continuous\` 仍是预发布，只给介绍页做固定下载地址。
 
           构建日志：${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
           EOF
           )"
-          gh release create "$tag" "${files[@]}" \
-            --title "$title" \
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            if [[ "$RELEASE_TAG" == *"+"* ]]; then
+              gh release delete "$RELEASE_TAG" --yes --cleanup-tag
+            else
+              gh release delete "$RELEASE_TAG" --yes
+            fi
+          fi
+          gh release create "$RELEASE_TAG" "${files[@]}" \
+            --title "$RELEASE_NAME" \
             --notes "$notes" \
-            "${extra[@]}"
+            --latest
+          gh release delete continuous --yes --cleanup-tag || true
+          gh release create continuous "${files[@]}" \
+            --title "$RELEASE_NAME" \
+            --notes "$notes" \
+            --prerelease

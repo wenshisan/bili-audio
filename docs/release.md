@@ -31,11 +31,11 @@ iOS 描述文件安装用三个 Actions secrets：`IOS_CERTIFICATE_P12_BASE64`�
 
 ## Actions
 
-- `.github/workflows/release.yml`：推送到 `main` 且改动了 `bili_audio/` 或该 workflow 时，构建上表的安装包，并更新预发布标签 `continuous`。iOS 只在签名 secrets 齐全时产出 IPA。
-- `.github/workflows/release-tag.yml`：推送 `v*` 标签（例如 `v0.2.0`）时走同一套构建，发布为正式版，并标成 Latest。
-- 也可以在 Actions 页手动运行 Build installers。
+- `.github/workflows/release.yml`：推送到 `main` 且改动了 `bili_audio/` 或该 workflow 时构建上表的安装包。构建号比 pubspec 和已发布 Release 里出现过的都大 1，并发布非预发布标签 `vX.Y.Z+N`（`X.Y.Z` 来自 pubspec）。同时把同一批文件更新到预发布标签 `continuous`。iOS 只在签名 secrets 齐全时产出 IPA。
+- `.github/workflows/release-tag.yml`：推送不带构建号的 `v*` 标签（例如 `v0.2.0`）时走同一套构建。版本名用标签，构建号同样加 1，Release 标题写成 `v0.2.0+N`。带 `+` 的标签是构建自己打的，不会再触发一次构建。
+- 也可以在 Actions 页手动运行 Build installers。每次运行都会再加一。
 
-`continuous` 是预发布，不会成为 GitHub 的 Latest。正式版才会。
+`continuous` 是预发布，不会成为 GitHub 的 Latest。`vX.Y.Z+N` 才会。
 
 ## 介绍页
 
@@ -51,11 +51,7 @@ iOS 按钮只在 Release 里已经有 `bili_audio-ios.ipa` 时可以点，并且
 
 设置里有“检查更新”。进入主界面时也会查一次；车机布局下不弹窗。
 
-数据来自：
-
-`GET https://api.github.com/repos/wenshisan/bili-audio/releases/latest`
-
-只认非预发布，所以 `continuous` 不会提示升级。标签必须是 `v1.2.3` 或 `1.2.3`。比较规则：
+数据来自 GitHub Releases 最近 100 条。草稿和预发布（包括 `continuous`）跳过，在剩下的里面取版本号最高的一条。标签必须是 `v1.2.3`、`1.2.3`，或带构建号的 `v1.2.3+4`。比较规则：
 
 - 先比主版本、次版本、修订号。
 - 本地和远程都带 `+构建号` 时，再比构建号。
@@ -69,10 +65,6 @@ iOS 按钮只在 Release 里已经有 `bili_audio-ios.ipa` 时可以点，并且
 - Linux：`xdg-open` 打开 deb。
 - iOS：打开介绍页上的描述文件安装地址。Intel Mac、Windows ARM 没有对应附件，只说明有新版本并给出发布页地址。
 
-发一个用户能在软件里看到的升级：
+推送到 `main` 就会发出客户端能看到的升级。pubspec 仍是 `0.1.0+1` 时，第一次这样构建的安装包和标签是 `v0.1.0+2`，之后每次加一。安装包里的版本和标签一致：应用比较构建号，Android 的 versionCode 和 Linux 包版本也会变高，系统才允许覆盖安装。
 
-1. 提高 `bili_audio/pubspec.yaml` 的 `version`。
-2. 提交并推送到 `main`。
-3. 打标签并推送，例如 `git tag v0.2.0 && git push origin v0.2.0`。
-
-标签名要和 pubspec 的 `major.minor.patch` 一致，并带前缀 `v`。
+要改主版本、次版本或修订号时，先改 `bili_audio/pubspec.yaml` 的 `version` 再推送。也可以打不带构建号的标签，例如 `git tag v0.2.0 && git push origin v0.2.0`。标签名要和希望写进安装包的 `major.minor.patch` 一致，并带前缀 `v`。之后的 main 构建仍用 pubspec 里的版本名，所以改过标签后也要把 pubspec 改到同一条版本线上，否则后续构建号虽然更大，版本名却更旧，客户端不会把它当成升级。

@@ -55,12 +55,15 @@ class AppRelease {
 
   /// 解析 GitHub Release JSON。
   ///
-  /// 草稿、预发布，或标签不是 `v1.2.3` / `1.2.3` 时返回 `null`。
+  /// 草稿、预发布，或标签和标题都不是版本号时返回 `null`。
+  /// 标题和标签的主版本、次版本、修订号相同时，采用构建号更大的那一个。
+  /// 因此标签 `v0.2.0`、标题 `v0.2.0+6` 的版本是 `0.2.0+6`。
   static AppRelease? fromGithubJson(Map<String, dynamic> json) {
     if (json['draft'] == true || json['prerelease'] == true) return null;
     final tag = json['tag_name'];
     if (tag is! String) return null;
-    final version = AppVersion.parse(tag);
+    final name = json['name'];
+    final version = _versionOf(tag, name is String ? name : null);
     if (version == null) return null;
     final notes = json['body'];
     final page = json['html_url'];
@@ -71,6 +74,23 @@ class AppRelease {
       pageUrl: page is String ? page : '',
       assets: _assets(json['assets']),
     );
+  }
+
+  static AppVersion? _versionOf(String tag, String? name) {
+    final fromTag = AppVersion.parse(tag);
+    final fromName = name == null ? null : AppVersion.parse(name);
+    if (fromTag == null) return fromName;
+    if (fromName == null) return fromTag;
+    final sameLine =
+        fromName.major == fromTag.major &&
+        fromName.minor == fromTag.minor &&
+        fromName.patch == fromTag.patch;
+    if (sameLine &&
+        fromName.hasBuild &&
+        (!fromTag.hasBuild || fromName.build > fromTag.build)) {
+      return fromName;
+    }
+    return fromTag;
   }
 
   static List<ReleaseAsset> _assets(Object? raw) {

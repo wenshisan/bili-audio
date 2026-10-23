@@ -78,6 +78,18 @@ ProviderContainer _container({
 }
 
 void main() {
+  test('更高的构建号可以升级', () async {
+    final container = _container(source: _Source(_release('v0.1.0+2')));
+    addTearDown(container.dispose);
+
+    await container.read(updateControllerProvider.notifier).check();
+
+    expect(
+      container.read(updateControllerProvider).phase,
+      UpdatePhase.available,
+    );
+  });
+
   test('没有更新的正式版', () async {
     final container = _container(source: _Source(_release('v0.1.0')));
     addTearDown(container.dispose);

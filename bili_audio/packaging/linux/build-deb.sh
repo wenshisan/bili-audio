@@ -4,7 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 BUNDLE="$ROOT/bili_audio/build/linux/x64/release/bundle"
 RAW="$(awk '/^version:/ {print $2; exit}' "$ROOT/bili_audio/pubspec.yaml")"
-VERSION="${RAW%%+*}"
+# 保留 +构建号。dpkg 看到更高的版本才会换掉已经安装的包。
+VERSION="$RAW"
 STAGE="$(mktemp -d)"
 OUT="$ROOT/bili_audio/dist"
 mkdir -p "$OUT" \

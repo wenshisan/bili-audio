@@ -5,7 +5,9 @@ import 'app_release.dart';
 
 /// 读取可用于升级的正式版本。
 abstract class ReleaseSource {
-  /// 最新的非预发布版本。还没有任何正式版本时返回 `null`。
+  /// 最近发布里版本号最高的非预发布版本。
+  ///
+  /// 还没有这种版本时返回 `null`。
   Future<AppRelease?> latestStable();
 }
 
@@ -30,10 +32,11 @@ class UpdateCheckException implements Exception {
   String toString() => message;
 }
 
-/// 从 GitHub Releases 读取最新正式版。
+/// 从 GitHub Releases 读取可以升级到的版本。
 ///
-/// 请求 `GET /repos/{owner}/{name}/releases/latest`。预发布标签
-/// （例如 `continuous`）不会出现在这个接口里。
+/// 请求最近 100 条 Release，跳过草稿和预发布（例如 `continuous`），
+/// 在剩下的版本里取最高的一个。推送到 main 的构建会发布 `vX.Y.Z+N`，
+/// 构建号每次加一，因此高于已经安装的包。
 class GithubReleaseSource implements ReleaseSource {
   /// 创建客户端。[dio] 为空时访问 `https://api.github.com`。
   GithubReleaseSource({Dio? dio, this.repository = githubRepository})
@@ -60,12 +63,25 @@ class GithubReleaseSource implements ReleaseSource {
   @override
   Future<AppRelease?> latestStable() async {
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        '/repos/$repository/releases/latest',
+      final response = await _dio.get<dynamic>(
+        '/repos/$repository/releases',
+        queryParameters: const {'per_page': 100},
       );
       final data = response.data;
-      if (data == null) return null;
-      return AppRelease.fromGithubJson(data);
+      if (data is! List) return null;
+      AppRelease? best;
+      for (final item in data) {
+        if (item is! Map) continue;
+        final json = item is Map<String, dynamic>
+            ? item
+            : Map<String, dynamic>.from(item);
+        final release = AppRelease.fromGithubJson(json);
+        if (release == null) continue;
+        if (best == null || release.version.isNewerThan(best.version)) {
+          best = release;
+        }
+      }
+      return best;
     } on DioException catch (error) {
       if (error.response?.statusCode == 404) return null;
       final code = error.response?.statusCode;

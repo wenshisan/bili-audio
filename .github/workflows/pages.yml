@@ -55,6 +55,8 @@ jobs:
               ipa_url="$found"
               tag=$(python3 -c 'import json; print(json.load(open("/tmp/rel.json")).get("tag_name",""))')
               tag=${tag#v}
+              # 清单要和 IPA 的短版本一致。构建号在 CFBundleVersion 里，不写进这里。
+              tag=${tag%%+*}
               case "$tag" in
                 [0-9]*) version="$tag" ;;
               esac

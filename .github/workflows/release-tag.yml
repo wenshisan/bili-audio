@@ -9,5 +9,7 @@ permissions:
 
 jobs:
   release:
+    # vX.Y.Z+N 是构建自己打上的标签。再构建一次会再打一个更高的标签。
+    if: ${{ !contains(github.ref_name, '+') }}
     uses: ./.github/workflows/release.yml
     secrets: inherit

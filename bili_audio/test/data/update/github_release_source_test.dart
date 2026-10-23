@@ -17,10 +17,11 @@ void main() {
 
   Map<String, Object?> release({
     String tag = 'v0.2.0',
+    String? name,
     bool prerelease = false,
   }) => {
     'tag_name': tag,
-    'name': tag,
+    'name': name ?? tag,
     'body': '修复播放',
     'html_url': 'https://github.com/$githubRepository/releases/tag/$tag',
     'draft': false,
@@ -37,8 +38,8 @@ void main() {
 
   test('解析最新正式版和安装包地址', () async {
     adapter.onGet(
-      '/repos/$githubRepository/releases/latest',
-      (server) => server.reply(200, release()),
+      '/repos/$githubRepository/releases',
+      (server) => server.reply(200, [release()]),
     );
 
     final latest = await source.latestStable();
@@ -51,7 +52,7 @@ void main() {
 
   test('还没有正式版时返回空', () async {
     adapter.onGet(
-      '/repos/$githubRepository/releases/latest',
+      '/repos/$githubRepository/releases',
       (server) => server.reply(404, {'message': 'Not Found'}),
     );
 
@@ -60,11 +61,39 @@ void main() {
 
   test('预发布和非版本标签不当作升级', () async {
     adapter.onGet(
-      '/repos/$githubRepository/releases/latest',
-      (server) =>
-          server.reply(200, release(tag: 'continuous', prerelease: true)),
+      '/repos/$githubRepository/releases',
+      (server) => server.reply(200, [
+        release(tag: 'continuous', name: 'v0.9.0+9', prerelease: true),
+      ]),
     );
     expect(await source.latestStable(), isNull);
+  });
+
+  test('多条正式版里取最高构建号', () async {
+    adapter.onGet(
+      '/repos/$githubRepository/releases',
+      (server) => server.reply(200, [
+        release(tag: 'v0.1.0+2'),
+        release(tag: 'v0.1.0+4'),
+        release(tag: 'v0.9.0', prerelease: true),
+      ]),
+    );
+
+    final latest = await source.latestStable();
+
+    expect(latest?.version.text, '0.1.0+4');
+  });
+
+  test('修订号更高时盖过构建号', () async {
+    adapter.onGet(
+      '/repos/$githubRepository/releases',
+      (server) => server.reply(200, [
+        release(tag: 'v0.1.0+99'),
+        release(tag: 'v0.2.0', name: 'v0.2.0+3'),
+      ]),
+    );
+
+    expect((await source.latestStable())?.version.text, '0.2.0+3');
   });
 }
 
