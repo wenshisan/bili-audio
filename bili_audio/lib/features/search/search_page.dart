@@ -93,29 +93,56 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     Widget page = Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: SearchBar(
-            focusNode: ref.watch(searchFocusNodeProvider),
-            controller: _text,
-            hintText: l10n.searchHint,
-            // 栏高 56、图标 24、默认左内边距 8，图标中心落在 20，圆角端圆心在 28。
-            leading: const Padding(
-              padding: EdgeInsets.only(left: 8),
-              child: Icon(Icons.search),
-            ),
-            trailing: [
-              if (_text.text.isNotEmpty)
-                IconButton(
-                  tooltip: l10n.cancel,
-                  icon: const Icon(Icons.clear),
-                  onPressed: () => _searchFor(''),
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: SearchBar(
+                  // 默认最大宽度 800，宽于内容区时会比列表窄一截。
+                  constraints: const BoxConstraints(
+                    minWidth: 0,
+                    minHeight: 56,
+                    maxHeight: 56,
+                  ),
+                  focusNode: ref.watch(searchFocusNodeProvider),
+                  controller: _text,
+                  hintText: l10n.searchHint,
+                  // 栏高 56、图标 24、默认左内边距 8，图标中心落在 20，圆角端圆心在 28。
+                  leading: const Padding(
+                    padding: EdgeInsets.only(left: 8),
+                    child: Icon(Icons.search),
+                  ),
+                  trailing: [
+                    if (_text.text.isNotEmpty)
+                      IconButton(
+                        tooltip: l10n.cancel,
+                        icon: const Icon(Icons.clear),
+                        onPressed: () => _searchFor(''),
+                      ),
+                  ],
+                  onChanged: (v) {
+                    setState(() {});
+                    controller.onChanged(v);
+                  },
+                  onSubmitted: controller.search,
                 ),
+              ),
+              if (state.keyword.isNotEmpty && items.isNotEmpty) ...[
+                const SizedBox(width: 12),
+                SizedBox(
+                  height: 56,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                    ),
+                    icon: const Icon(Icons.play_arrow),
+                    label: Text(l10n.playlistPlayAll),
+                    onPressed: () => _playAll(items),
+                  ),
+                ),
+              ],
             ],
-            onChanged: (v) {
-              setState(() {});
-              controller.onChanged(v);
-            },
-            onSubmitted: controller.search,
           ),
         ),
         Expanded(
@@ -163,12 +190,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                                     ),
                                   ),
                                   const SizedBox(width: 12),
+                                  FilledButton.icon(
+                                    icon: const Icon(Icons.play_arrow),
+                                    label: Text(l10n.playlistPlayAll),
+                                    onPressed: () => _playAll(items),
+                                  ),
                                 ],
-                                FilledButton.icon(
-                                  icon: const Icon(Icons.play_arrow),
-                                  label: Text(l10n.playlistPlayAll),
-                                  onPressed: () => _playAll(items),
-                                ),
                                 const Spacer(),
                                 Text(l10n.playlistTrackCount(items.length)),
                               ],

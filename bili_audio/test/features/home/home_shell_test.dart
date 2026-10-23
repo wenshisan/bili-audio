@@ -56,16 +56,16 @@ void main() {
 
   testWidgets('390 宽使用底栏', (tester) async {
     await pumpAt(tester, const Size(390, 844));
-    expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byKey(const Key('bottom-nav')), findsOneWidget);
+    expect(find.byKey(const Key('nav-rail')), findsNothing);
     expect(find.byKey(const Key('now-playing-pane')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('800 宽使用侧栏', (tester) async {
     await pumpAt(tester, const Size(800, 800));
-    expect(find.byType(NavigationRail), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const Key('nav-rail')), findsOneWidget);
+    expect(find.byKey(const Key('bottom-nav')), findsNothing);
     expect(find.byKey(const Key('now-playing-pane')), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -83,23 +83,35 @@ void main() {
     _expectMinePinnedToBottom(tester);
   });
 
+  testWidgets('导航项的悬停和按下区域盖住图标和文字', (tester) async {
+    await pumpAt(tester, const Size(800, 800));
+    _expectInkCoversIconAndLabel(tester, '发现', Icons.search);
+    _expectInkCoversIconAndLabel(tester, '歌单', Icons.library_music_outlined);
+    _expectInkCoversIconAndLabel(tester, '我的', Icons.settings_outlined);
+
+    await pumpAt(tester, const Size(390, 844));
+    _expectInkCoversIconAndLabel(tester, '发现', Icons.search);
+    _expectInkCoversIconAndLabel(tester, '歌单', Icons.library_music_outlined);
+    _expectInkCoversIconAndLabel(tester, '我的', Icons.settings_outlined);
+  });
+
   testWidgets('iPad 三分屏宽度使用底栏', (tester) async {
     await pumpAt(tester, const Size(375, 800));
-    expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.byType(NavigationRail), findsNothing);
+    expect(find.byKey(const Key('bottom-nav')), findsOneWidget);
+    expect(find.byKey(const Key('nav-rail')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('768 宽使用侧栏', (tester) async {
     await pumpAt(tester, const Size(768, 1024));
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byKey(const Key('nav-rail')), findsOneWidget);
     expect(find.byKey(const Key('now-playing-pane')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('iPad 全屏横屏使用主从栏', (tester) async {
     await pumpAt(tester, const Size(1194, 834));
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byKey(const Key('nav-rail')), findsOneWidget);
     expect(find.byKey(const Key('now-playing-pane')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -120,7 +132,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('player-page')), findsNothing);
     expect(find.byKey(const Key('now-playing-pane')), findsOneWidget);
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byKey(const Key('nav-rail')), findsOneWidget);
     expect(find.text('search-body'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -137,9 +149,9 @@ void main() {
 
   testWidgets('1280 宽使用右播放栏', (tester) async {
     await pumpAt(tester, const Size(1280, 800));
-    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byKey(const Key('nav-rail')), findsOneWidget);
     expect(find.byKey(const Key('now-playing-pane')), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const Key('bottom-nav')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -173,9 +185,9 @@ void main() {
     await tester.pumpWidget(_harness(db, handler));
     await tester.pumpAndSettle();
 
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byKey(const Key('bottom-nav')), findsOneWidget);
     expect(find.byKey(const Key('car-layout')), findsNothing);
-    final nav = tester.getRect(find.byType(NavigationBar));
+    final nav = tester.getRect(find.byKey(const Key('bottom-nav')));
     expect(nav.bottom, lessThanOrEqualTo(390 - 21));
     expect(nav.left, greaterThanOrEqualTo(47));
     expect(tester.takeException(), isNull);
@@ -185,7 +197,7 @@ void main() {
     await db.settingsDao.set('layout.car_mode', 'on');
     await pumpAt(tester, const Size(844, 390));
     expect(find.byKey(const Key('car-layout')), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const Key('bottom-nav')), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -193,7 +205,7 @@ void main() {
     await db.settingsDao.set('layout.car_mode', 'on');
     await pumpAt(tester, const Size(1280, 720));
     expect(find.byKey(const Key('car-layout')), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byKey(const Key('bottom-nav')), findsNothing);
     expect(
       tester.getSize(find.byKey(const Key('transport-play'))).width,
       greaterThanOrEqualTo(76),
@@ -229,16 +241,41 @@ void main() {
   });
 }
 
+void _expectInkCoversIconAndLabel(
+  WidgetTester tester,
+  String label,
+  IconData icon,
+) {
+  final ink = find.ancestor(
+    of: find.text(label),
+    matching: find.byType(InkWell),
+  );
+  expect(ink, findsOneWidget);
+  final bounds = tester.getRect(ink);
+  final iconBounds = tester.getRect(
+    find.descendant(of: ink, matching: find.byIcon(icon)),
+  );
+  final labelBounds = tester.getRect(find.text(label));
+  expect(bounds.contains(iconBounds.center), isTrue);
+  expect(bounds.contains(labelBounds.center), isTrue);
+  expect(bounds.top, lessThan(iconBounds.top));
+  expect(bounds.bottom, greaterThan(labelBounds.bottom));
+  expect(bounds.left, lessThanOrEqualTo(iconBounds.left));
+  expect(bounds.right, greaterThanOrEqualTo(iconBounds.right));
+  expect(bounds.left, lessThanOrEqualTo(labelBounds.left));
+  expect(bounds.right, greaterThanOrEqualTo(labelBounds.right));
+}
+
 void _expectMinePinnedToBottom(WidgetTester tester) {
   final discover = tester.getCenter(find.text('发现'));
   final library = tester.getCenter(find.text('歌单'));
   final mine = tester.getCenter(find.byKey(const Key('nav-mine')));
   expect(library.dy, greaterThan(discover.dy));
   expect(mine.dy, greaterThan(library.dy + 200));
-  final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-  final scheme = Theme.of(tester.element(find.byType(NavigationRail)))
+  final rail = tester.widget<ColoredBox>(find.byKey(const Key('nav-rail')));
+  final scheme = Theme.of(tester.element(find.byKey(const Key('nav-rail'))))
       .colorScheme;
-  expect(rail.backgroundColor, scheme.surface);
+  expect(rail.color, scheme.surface);
   final boundary = tester.getSize(find.byKey(const Key('nav-rail-surface')));
   expect(boundary.width, 80);
   expect(boundary.height, greaterThan(700));
