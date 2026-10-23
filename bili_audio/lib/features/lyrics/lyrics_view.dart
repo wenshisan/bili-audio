@@ -259,7 +259,7 @@ class _OffsetSheet extends ConsumerWidget {
                 step(500, '+0.5s'),
               ],
             ),
-            const Divider(height: 32),
+            const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [

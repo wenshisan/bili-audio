@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/adaptive/window_metrics.dart';
 import '../../app/motion/motion.dart';
+import '../../app/widgets/region_surface.dart';
 import '../../app/providers.dart';
 import '../../data/db/app_database.dart';
 import '../../l10n/l10n.dart';
@@ -33,6 +34,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
       child: Column(
         children: [
           TabBar(
+            dividerHeight: 0,
             tabs: [
               Tab(text: l10n.navLibrary),
               Tab(text: l10n.historyTitle),
@@ -57,17 +59,19 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
     return Row(
       children: [
         Expanded(child: list),
-        const VerticalDivider(width: 1),
         Expanded(
-          child: MotionSwap(
-            swapKey: _selected ?? 'none',
-            child: _selected == null
-                ? Center(child: Text(l10n.libraryEmpty))
-                : PlaylistDetailPage(
-                    id: _selected!,
-                    embedded: true,
-                    onDeleted: () => setState(() => _selected = null),
-                  ),
+          child: RegionSurface(
+            shadow: RegionShadow.leading,
+            child: MotionSwap(
+              swapKey: _selected ?? 'none',
+              child: _selected == null
+                  ? Center(child: Text(l10n.libraryEmpty))
+                  : PlaylistDetailPage(
+                      id: _selected!,
+                      embedded: true,
+                      onDeleted: () => setState(() => _selected = null),
+                    ),
+            ),
           ),
         ),
       ],

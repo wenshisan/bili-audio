@@ -48,8 +48,13 @@ class PlaylistDetailPage extends ConsumerWidget {
     final readonly = playlist?.isReadonly ?? false;
 
     return Scaffold(
+      backgroundColor: embedded ? Colors.transparent : null,
       appBar: AppBar(
         automaticallyImplyLeading: !embedded,
+        backgroundColor: embedded ? Colors.transparent : null,
+        surfaceTintColor: embedded ? Colors.transparent : null,
+        scrolledUnderElevation: embedded ? 0 : null,
+        elevation: embedded ? 0 : null,
         title: MotionSwap(
           swapKey: playlist?.name ?? '',
           child: Text(playlist?.name ?? ''),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/adaptive/layout_settings.dart';
 import '../../../app/providers.dart';
+import '../../../app/widgets/region_surface.dart';
 import '../../../l10n/l10n.dart';
 import '../../queue/queue_page.dart';
 import 'player_transport.dart';
@@ -52,28 +53,36 @@ class _CarPlayerState extends ConsumerState<CarPlayer> {
               ],
             ),
           ),
-          const VerticalDivider(width: 1),
           Expanded(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: SegmentedButton<bool>(
-                    segments: [
-                      ButtonSegment(value: true, label: Text(l10n.carShowQueue)),
-                      ButtonSegment(value: false, label: Text(l10n.carShowLyrics)),
-                    ],
-                    selected: {_showQueue},
-                    onSelectionChanged: (value) =>
-                        setState(() => _showQueue = value.first),
+            child: RegionSurface(
+              shadow: RegionShadow.leading,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: SegmentedButton<bool>(
+                      segments: [
+                        ButtonSegment(
+                          value: true,
+                          label: Text(l10n.carShowQueue),
+                        ),
+                        ButtonSegment(
+                          value: false,
+                          label: Text(l10n.carShowLyrics),
+                        ),
+                      ],
+                      selected: {_showQueue},
+                      onSelectionChanged: (value) =>
+                          setState(() => _showQueue = value.first),
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: _showQueue
-                      ? const QueueList(upcomingOnly: true, maxItems: 5)
-                      : const Center(child: CurrentLyricLine()),
-                ),
-              ],
+                  Expanded(
+                    child: _showQueue
+                        ? const QueueList(upcomingOnly: true, maxItems: 5)
+                        : const Center(child: CurrentLyricLine()),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

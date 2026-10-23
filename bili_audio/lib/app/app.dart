@@ -34,7 +34,9 @@ class BiliAudioApp extends ConsumerWidget {
       routerConfig: appRouter,
       // 桌面端套一层无边框窗口外壳: 8px 圆角 + 自定义标题栏
       builder: (context, child) {
-        Widget content = PlayerShortcutLayer(child: child ?? const SizedBox.shrink());
+        Widget content = PlayerShortcutLayer(
+          child: child ?? const SizedBox.shrink(),
+        );
         if (isDesktop) content = _DesktopWindowShell(child: content);
         if (!kIsWeb && Platform.isMacOS) {
           content = _MacPlaybackMenu(child: content);
@@ -60,18 +62,27 @@ class _DesktopWindowShell extends StatelessWidget {
     return ValueListenableBuilder<bool>(
       valueListenable: desktopWindowRounded,
       builder: (context, rounded, _) => ClipRRect(
-      borderRadius: BorderRadius.circular(rounded ? 8 : 0),
-      clipBehavior: Clip.antiAlias,
-      child: ColoredBox(
-        color: Theme.of(context).colorScheme.surface,
-        child: Column(
-          children: [
-            const WindowTitleBar(),
-            Expanded(child: child),
-          ],
+        borderRadius: BorderRadius.circular(rounded ? 8 : 0),
+        clipBehavior: Clip.antiAlias,
+        child: ColoredBox(
+          color: Theme.of(context).colorScheme.surface,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: WindowTitleBar.barHeight),
+                child: child,
+              ),
+              const Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: WindowTitleBar(),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
@@ -94,14 +105,8 @@ class _MacPlaybackMenu extends ConsumerWidget {
               label: l10n.actionPlay,
               onSelected: () => togglePlay(handler),
             ),
-            PlatformMenuItem(
-              label: '上一首',
-              onSelected: handler.skipToPrevious,
-            ),
-            PlatformMenuItem(
-              label: '下一首',
-              onSelected: handler.skipToNext,
-            ),
+            PlatformMenuItem(label: '上一首', onSelected: handler.skipToPrevious),
+            PlatformMenuItem(label: '下一首', onSelected: handler.skipToNext),
             PlatformMenuItem(
               label: l10n.settingsTitle,
               onSelected: () => context.go('/settings'),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/adaptive/max_width_box.dart';
 import '../../app/adaptive/player_shortcuts.dart';
 import '../../app/adaptive/window_metrics.dart';
+import '../../app/widgets/region_surface.dart';
 import '../../app/motion/motion.dart';
 import '../../app/providers.dart';
 import '../../core/utils/result.dart';
@@ -182,8 +183,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     return Row(
       children: [
         Expanded(child: page),
-        const VerticalDivider(width: 1),
-        const Expanded(child: LyricsView(key: Key('lyrics-column'))),
+        const Expanded(
+          child: RegionSurface(
+            shadow: RegionShadow.leading,
+            child: LyricsView(key: Key('lyrics-column')),
+          ),
+        ),
       ],
     );
   }

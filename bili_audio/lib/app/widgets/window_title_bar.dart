@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../l10n/l10n.dart';
+import 'region_surface.dart';
 
 /// 自定义窗口标题栏。
 ///
@@ -16,6 +17,9 @@ class WindowTitleBar extends StatefulWidget {
 
   /// 为 null 时按平台决定：macOS 为 true。
   final bool? nativeWindowButtons;
+
+  /// 标题栏高度。
+  static const double barHeight = 48;
 
   @override
   State<WindowTitleBar> createState() => _WindowTitleBarState();
@@ -60,74 +64,67 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
     final brand = <Widget>[
       Icon(Icons.music_note, size: 20, color: theme.colorScheme.primary),
       const SizedBox(width: 8),
-      Text(
-        context.l10n.appTitle,
-        style: theme.textTheme.titleSmall,
-      ),
+      Text(context.l10n.appTitle, style: theme.textTheme.titleSmall),
     ];
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(
-          bottom: BorderSide(color: theme.dividerColor, width: 1),
-        ),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-      ),
-      child: Stack(
-        children: [
-          // 下层: 拖拽和双击最大化
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onPanStart: (_) => windowManager.startDragging(),
-              onDoubleTap: () {
-                if (_isMaximized) {
-                  windowManager.unmaximize();
-                } else {
-                  windowManager.maximize();
-                }
-              },
+    return RegionSurface(
+      tone: RegionTone.high,
+      shadow: RegionShadow.bottom,
+      child: SizedBox(
+        height: WindowTitleBar.barHeight,
+        child: Stack(
+          children: [
+            // 下层: 拖拽和双击最大化
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onPanStart: (_) => windowManager.startDragging(),
+                onDoubleTap: () {
+                  if (_isMaximized) {
+                    windowManager.unmaximize();
+                  } else {
+                    windowManager.maximize();
+                  }
+                },
+              ),
             ),
-          ),
-          // 上层: 标题 + 窗口控制按钮
-          Row(
-            children: [
-              if (!nativeButtons) ...[
-                const SizedBox(width: 16),
-                ...brand,
+            // 上层: 标题 + 窗口控制按钮
+            Row(
+              children: [
+                if (!nativeButtons) ...[const SizedBox(width: 16), ...brand],
+                const Spacer(),
+                if (nativeButtons) ...[
+                  ...brand,
+                  const SizedBox(width: 16),
+                ] else ...[
+                  _WindowControlButton(
+                    icon: Icons.remove,
+                    onPressed: () => windowManager.minimize(),
+                    semanticLabel: '最小化',
+                  ),
+                  _WindowControlButton(
+                    icon: _isMaximized
+                        ? Icons.fullscreen_exit
+                        : Icons.crop_square,
+                    onPressed: () {
+                      if (_isMaximized) {
+                        windowManager.unmaximize();
+                      } else {
+                        windowManager.maximize();
+                      }
+                    },
+                    semanticLabel: _isMaximized ? '还原' : '最大化',
+                  ),
+                  _WindowControlButton(
+                    icon: Icons.close,
+                    onPressed: () => windowManager.hide(),
+                    hoverColor: const Color(0xFFE81123),
+                    semanticLabel: '关闭 (隐藏到托盘)',
+                  ),
+                ],
               ],
-              const Spacer(),
-              if (nativeButtons) ...[
-                ...brand,
-                const SizedBox(width: 16),
-              ] else ...[
-                _WindowControlButton(
-                  icon: Icons.remove,
-                  onPressed: () => windowManager.minimize(),
-                  semanticLabel: '最小化',
-                ),
-                _WindowControlButton(
-                  icon: _isMaximized ? Icons.fullscreen_exit : Icons.crop_square,
-                  onPressed: () {
-                    if (_isMaximized) {
-                      windowManager.unmaximize();
-                    } else {
-                      windowManager.maximize();
-                    }
-                  },
-                  semanticLabel: _isMaximized ? '还原' : '最大化',
-                ),
-                _WindowControlButton(
-                  icon: Icons.close,
-                  onPressed: () => windowManager.hide(),
-                  hoverColor: const Color(0xFFE81123),
-                  semanticLabel: '关闭 (隐藏到托盘)',
-                ),
-              ],
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -173,8 +170,8 @@ class _WindowControlButtonState extends State<_WindowControlButton> {
           behavior: HitTestBehavior.opaque,
           onTap: widget.onPressed,
           child: Container(
-            width: 48,
-            height: 48,
+            width: WindowTitleBar.barHeight,
+            height: WindowTitleBar.barHeight,
             alignment: Alignment.center,
             color: bg,
             child: Icon(widget.icon, size: 16, color: iconColor),

@@ -5,12 +5,13 @@ import '../../l10n/l10n.dart';
 
 /// 底栏与侧栏共用的选中项。
 int navIndexForPath(String path) => switch (path) {
-      '/library' => 1,
-      '/settings' => 2,
-      _ => 0,
-    };
+  '/library' => 1,
+  '/settings' => 2,
+  _ => 0,
+};
 
-void goNavDestination(BuildContext context, int index) => context.go(switch (index) {
+void goNavDestination(BuildContext context, int index) =>
+    context.go(switch (index) {
       1 => '/library',
       2 => '/settings',
       _ => '/search',
@@ -25,7 +26,14 @@ class BottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
     return NavigationBar(
+      backgroundColor: scheme.surfaceContainerHigh,
+      elevation: 4,
+      shadowColor: Colors.black.withValues(
+        alpha: scheme.brightness == Brightness.dark ? 0.45 : 0.16,
+      ),
+      surfaceTintColor: Colors.transparent,
       selectedIndex: navIndexForPath(path),
       onDestinationSelected: (i) => goNavDestination(context, i),
       destinations: [

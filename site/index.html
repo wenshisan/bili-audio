@@ -87,6 +87,63 @@
       pointer-events: none;
     }
     .frame img.out.fade { opacity: 0; transition: opacity 0.6s ease; }
+    .hand {
+      position: absolute;
+      z-index: 3;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    }
+    .hand.show { opacity: 1; }
+    .hand.move {
+      transition: left 0.7s cubic-bezier(.22, .7, .3, 1), top 0.7s cubic-bezier(.22, .7, .3, 1), opacity 0.25s ease;
+    }
+    .hand .glyph { position: absolute; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35)); }
+    .hand .mouse { left: -6px; top: -2px; }
+    .hand .finger {
+      display: none;
+      left: -17.8px;
+      top: -54.7px;
+      transform: rotate(-14deg);
+      transform-origin: 17.8px 54.7px;
+    }
+    html.phone .hand .mouse { display: none; }
+    html.phone .hand .finger { display: block; }
+    .hand.tap .mouse { animation: press 0.4s ease; }
+    .hand.down .mouse { animation: none; transform: translateY(2px) scale(0.94); }
+    .hand.tap .finger { animation: press-finger 0.4s ease; }
+    .hand.down .finger { animation: none; transform: rotate(-14deg) translateY(2px) scale(0.94); }
+    .ripple {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 22px;
+      height: 22px;
+      margin: -11px 0 0 -11px;
+      border-radius: 50%;
+      border: 2px solid rgba(30, 101, 134, 0.7);
+      background: rgba(30, 101, 134, 0.18);
+      opacity: 0;
+    }
+    html.phone .ripple { width: 34px; height: 34px; margin: -17px 0 0 -17px; }
+    .hand.tap .ripple { animation: ripple 0.55s ease-out; }
+    .hand.down .ripple { opacity: 0.45; transform: scale(0.85); }
+    @keyframes press {
+      0% { transform: none; }
+      40% { transform: translateY(2px) scale(0.94); }
+      100% { transform: none; }
+    }
+    @keyframes press-finger {
+      0% { transform: rotate(-14deg); }
+      40% { transform: rotate(-14deg) translateY(2px) scale(0.94); }
+      100% { transform: rotate(-14deg); }
+    }
+    @keyframes ripple {
+      0% { opacity: 0.65; transform: scale(0.35); }
+      100% { opacity: 0; transform: scale(2.3); }
+    }
     .caption { font-size: 22px; margin: 0 0 8px; transition: opacity 0.45s ease; }
     #demo-text { transition: opacity 0.45s ease; }
     #demo-text { color: var(--muted); min-height: 4.8em; }
@@ -121,7 +178,8 @@
     .scan span { color: var(--muted); font-size: 14px; }
     html.phone .scan { display: none; }
     @media (prefers-reduced-motion: reduce) {
-      .frame, .frame img.out, .caption, #demo-text { transition: none; }
+      .frame, .frame img.out, .caption, #demo-text, .hand { transition: none; }
+      .hand { display: none; }
     }
   </style>
   <script>
@@ -164,6 +222,27 @@
     <div class="demo" id="demo">
       <div class="frame">
         <img id="shot" alt="" src="demo/desk-search.png">
+        <div class="hand" id="hand" aria-hidden="true">
+          <span class="ripple"></span>
+          <svg class="mouse glyph" viewBox="0 0 24 24" width="28" height="28">
+            <path d="M5.2 2.2 5.2 17.4 9.2 13.6 12.6 20.4 14.8 19.3 11.5 12.6 16.8 12.6Z" fill="#1c1b19" stroke="#fff" stroke-width="1.35" stroke-linejoin="round"/>
+          </svg>
+          <svg class="finger glyph" viewBox="0 0 100 130" width="48" height="62.4">
+            <g fill="#2b261f" stroke="#2b261f" stroke-width="5" stroke-linejoin="round">
+              <rect x="16" y="10" width="62" height="38" rx="18"/>
+              <rect x="50" y="30" width="16" height="32" rx="8"/>
+              <rect x="64" y="36" width="14" height="24" rx="7"/>
+              <rect x="24" y="32" width="26" height="80" rx="13"/>
+            </g>
+            <g fill="#f4d0b6">
+              <rect x="16" y="10" width="62" height="38" rx="18"/>
+              <rect x="50" y="30" width="16" height="32" rx="8"/>
+              <rect x="64" y="36" width="14" height="24" rx="7"/>
+              <rect x="24" y="32" width="26" height="80" rx="13"/>
+            </g>
+            <rect x="29" y="90" width="16" height="12" rx="6" fill="#fbe6d4"/>
+          </svg>
+        </div>
       </div>
       <div>
         <p class="caption" id="demo-title">搜索</p>
@@ -220,21 +299,53 @@
       android: "bili_audio-android.apk",
     };
     const scenes = [
-      { title: "搜索", text: "超过 15 分钟的视频会被滤掉。", desk: "demo/desk-search.png", phone: "demo/phone-search.png" },
-      { title: "正在播放", text: "只放音频。封面、进度和队列留在播放区。", desk: "demo/desk-player.png", phone: "demo/phone-player.png" },
-      { title: "歌单", text: "歌单保存在本机，点开就能整张播放。", desk: "demo/desk-library.png", phone: "demo/phone-library.png" },
-      { title: "我的", text: "音质、缓存、主题色和检查更新都在这里。", desk: "demo/desk-settings.png", phone: "demo/phone-settings.png" },
+      {
+        title: "搜索",
+        text: "超过 15 分钟的视频会被滤掉。",
+        desk: "demo/desk-search.png",
+        phone: "demo/phone-search.png",
+        deskAct: [{ at: [33.1, 11.5] }, { at: [32, 24.2] }],
+        phoneAct: [{ at: [50, 13.2] }, { at: [42, 24.4] }],
+      },
+      {
+        title: "正在播放",
+        text: "只放音频。封面、进度和队列留在播放区。",
+        desk: "demo/desk-player.png",
+        phone: "demo/phone-player.png",
+        deskAct: [{ at: [50, 94] }, { drag: [42, 83.8], to: [74, 83.8] }],
+        phoneAct: [{ at: [50, 94] }, { drag: [28, 83.4], to: [68, 83.4] }],
+      },
+      {
+        title: "歌单",
+        text: "歌单保存在本机，点开就能整张播放。",
+        desk: "demo/desk-library.png",
+        phone: "demo/phone-library.png",
+        deskAct: [{ at: [47.2, 15.3] }],
+        phoneAct: [{ at: [30, 22] }],
+      },
+      {
+        title: "我的",
+        text: "音质、缓存、主题色和检查更新都在这里。",
+        desk: "demo/desk-settings.png",
+        phone: "demo/phone-settings.png",
+        deskAct: [{ at: [22.8, 82.9] }],
+        phoneAct: [{ at: [28, 52] }],
+      },
     ];
     const phoneQuery = window.matchMedia("(max-width: 720px)");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const frame = document.querySelector(".frame");
     const shot = document.getElementById("shot");
+    const hand = document.getElementById("hand");
     const titleEl = document.getElementById("demo-title");
     const textEl = document.getElementById("demo-text");
+    const sceneMs = 5000;
     let index = 0;
     let timer = 0;
     let copyTimer = 0;
     let switchToken = 0;
+    let gestureToken = 0;
+    let gestureTimers = [];
 
     function sceneSrc(scene) {
       return document.documentElement.classList.contains("phone") ? scene.phone : scene.desk;
@@ -265,8 +376,70 @@
       }, 200);
     }
 
+    function stopHand() {
+      gestureToken += 1;
+      gestureTimers.forEach((id) => window.clearTimeout(id));
+      gestureTimers = [];
+      hand.classList.remove("show", "tap", "down", "move");
+    }
+
+    function later(token, ms, fn) {
+      const id = window.setTimeout(() => {
+        if (token !== gestureToken) return;
+        fn();
+      }, ms);
+      gestureTimers.push(id);
+    }
+
+    function glide(x, y) {
+      hand.classList.add("show");
+      hand.style.left = x + "%";
+      hand.style.top = y + "%";
+    }
+
+    function tapHand() {
+      hand.classList.remove("tap");
+      void hand.offsetWidth;
+      hand.classList.add("tap");
+    }
+
+    function playGesture(scene, delay) {
+      if (reduced) return;
+      const token = gestureToken;
+      const steps = document.documentElement.classList.contains("phone") ? scene.phoneAct : scene.deskAct;
+      const first = steps[0].at || steps[0].drag;
+      hand.classList.remove("show", "move", "tap", "down");
+      hand.style.left = Math.min(92, Math.max(6, first[0] - 9)) + "%";
+      hand.style.top = Math.min(88, Math.max(8, first[1] - 8)) + "%";
+      void hand.offsetWidth;
+      hand.classList.add("move");
+      let t = delay;
+      steps.forEach((step) => {
+        if (step.at) {
+          later(token, t, () => glide(step.at[0], step.at[1]));
+          t += 700;
+          later(token, t, tapHand);
+          t += 460;
+          return;
+        }
+        later(token, t, () => glide(step.drag[0], step.drag[1]));
+        t += 700;
+        later(token, t, () => {
+          hand.classList.add("down");
+          tapHand();
+        });
+        t += 160;
+        later(token, t, () => glide(step.to[0], step.to[1]));
+        t += 760;
+        later(token, t, () => hand.classList.remove("down"));
+        t += 200;
+      });
+      later(token, sceneMs - 450, () => hand.classList.remove("show"));
+    }
+
     function show(next, animate) {
       window.clearTimeout(timer);
+      stopHand();
       document.documentElement.classList.toggle("phone", phoneQuery.matches);
       const count = scenes.length;
       index = ((next % count) + count) % count;
@@ -277,7 +450,8 @@
       writeCopy(scene, (index + 1) + " / " + count, crossfade);
 
       const finish = () => {
-        if (!reduced) timer = window.setTimeout(() => show(index + 1), 4000);
+        if (!reduced) timer = window.setTimeout(() => show(index + 1), sceneMs);
+        playGesture(scene, crossfade ? 720 : 280);
         const upcoming = scenes[(index + 1) % count];
         const ahead = new Image();
         ahead.src = sceneSrc(upcoming);

@@ -31,63 +31,72 @@ class _SettingsList extends ConsumerWidget {
     final db = ref.watch(databaseProvider);
     final prefs = ref.watch(playbackPrefsProvider);
     return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       children: [
-        const _AccountTile(),
-        const Divider(),
-        ListTile(
-          leading: const Icon(Icons.music_note_outlined),
-          title: Text(l10n.settingsPlayback),
-        ),
-        ListTile(
-          title: Text(l10n.settingsQuality),
-          subtitle: Text(prefs.quality.name),
-          onTap: () async {
-            final q = await _pickQuality(context, prefs.quality);
-            if (q != null) {
-              prefs.quality = q;
-              await db.settingsDao.setDefaultQuality(q.id);
-            }
-          },
-        ),
-        if (!prefs.loggedIn)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
-            child: Text(
-              l10n.settingsQualityGuestHint,
-              style: Theme.of(context).textTheme.bodySmall,
+        const _SettingsGroup(children: [_AccountTile()]),
+        _SettingsGroup(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.music_note_outlined),
+              title: Text(l10n.settingsPlayback),
             ),
-          ),
-        const Divider(),
-        ListTile(
-          leading: const Icon(Icons.folder_outlined),
-          title: Text(l10n.settingsCache),
+            ListTile(
+              title: Text(l10n.settingsQuality),
+              subtitle: Text(prefs.quality.name),
+              onTap: () async {
+                final q = await _pickQuality(context, prefs.quality);
+                if (q != null) {
+                  prefs.quality = q;
+                  await db.settingsDao.setDefaultQuality(q.id);
+                }
+              },
+            ),
+            if (!prefs.loggedIn)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
+                child: Text(
+                  l10n.settingsQualityGuestHint,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+          ],
         ),
-        FutureBuilder<int>(
-          future: db.settingsDao.getCacheMaxSize(),
-          builder: (c, snap) {
-            final max = snap.data ?? (500 * 1024 * 1024);
-            return ListTile(
-              title: Text(l10n.settingsCacheLimit),
-              subtitle: Text(formatBytes(max)),
-              onTap: () => _pickCacheLimit(c, ref, max),
-            );
-          },
+        _SettingsGroup(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: Text(l10n.settingsCache),
+            ),
+            FutureBuilder<int>(
+              future: db.settingsDao.getCacheMaxSize(),
+              builder: (c, snap) {
+                final max = snap.data ?? (500 * 1024 * 1024);
+                return ListTile(
+                  title: Text(l10n.settingsCacheLimit),
+                  subtitle: Text(formatBytes(max)),
+                  onTap: () => _pickCacheLimit(c, ref, max),
+                );
+              },
+            ),
+            ListTile(
+              title: Text(l10n.settingsCacheManage),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/cache'),
+            ),
+          ],
         ),
-        ListTile(
-          title: Text(l10n.settingsCacheManage),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => context.push('/cache'),
+        _SettingsGroup(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: Text(l10n.settingsAppearance),
+            ),
+            const _ThemeModeRow(),
+            const _CarLayoutRow(),
+            const _SeedColorRow(),
+          ],
         ),
-        const Divider(),
-        ListTile(
-          leading: const Icon(Icons.palette_outlined),
-          title: Text(l10n.settingsAppearance),
-        ),
-        const _ThemeModeRow(),
-        const _CarLayoutRow(),
-        const _SeedColorRow(),
-        const Divider(),
-        const UpdateSettingsTile(),
+        const _SettingsGroup(children: [UpdateSettingsTile()]),
       ],
     );
   }
@@ -146,6 +155,29 @@ class _SettingsList extends ConsumerWidget {
     if (picked != null) {
       await ref.read(databaseProvider).settingsDao.setCacheMaxSize(picked);
     }
+  }
+}
+
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: scheme.surfaceContainerLow,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.black.withValues(alpha: 0.24),
+        elevation: 2,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: Column(mainAxisSize: MainAxisSize.min, children: children),
+      ),
+    );
   }
 }
 

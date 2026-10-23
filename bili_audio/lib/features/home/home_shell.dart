@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/adaptive/layout_settings.dart';
 import '../../app/adaptive/split_view.dart';
 import '../../app/adaptive/window_metrics.dart';
+import '../../app/widgets/region_surface.dart';
 import '../../l10n/l10n.dart';
 import '../player/widgets/car_player.dart';
 import '../player/widgets/mini_player.dart';
@@ -53,37 +54,26 @@ class _AdaptiveBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rail = _NavRail(path: path);
     final Widget body;
     if (metrics.usesMasterDetail) {
       final ratio = ref.watch(layoutSettingsProvider).splitRatio;
-      body = Row(
-        children: [
-          rail,
-          Expanded(
-            child: SplitView(
-              ratio: ratio,
-              onRatioEnd: (next) =>
-                  ref.read(layoutSettingsProvider.notifier).setSplitRatio(next),
-              first: child,
-              second: const NowPlayingPane(),
-            ),
-          ),
-        ],
+      body = _withRail(
+        SplitView(
+          ratio: ratio,
+          onRatioEnd: (next) =>
+              ref.read(layoutSettingsProvider.notifier).setSplitRatio(next),
+          first: child,
+          second: const NowPlayingPane(),
+        ),
       );
     } else if (metrics.usesRail) {
-      body = Row(
-        children: [
-          rail,
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(child: child),
-                const MiniPlayer(),
-              ],
-            ),
-          ),
-        ],
+      body = _withRail(
+        Column(
+          children: [
+            Expanded(child: child),
+            const MiniPlayer(),
+          ],
+        ),
       );
     } else {
       body = Column(
@@ -98,7 +88,33 @@ class _AdaptiveBody extends ConsumerWidget {
       bottomNavigationBar: metrics.usesBottomNav ? BottomNav(path: path) : null,
     );
   }
+
+  Widget _withRail(Widget content) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: _railExtent),
+          child: content,
+        ),
+        Positioned(
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: _railExtent,
+          child: RegionSurface(
+            key: const Key('nav-rail-surface'),
+            tone: RegionTone.high,
+            shadow: RegionShadow.trailing,
+            child: _NavRail(path: path),
+          ),
+        ),
+      ],
+    );
+  }
 }
+
+const _railExtent = 80.0;
 
 class _NavRail extends StatelessWidget {
   const _NavRail({required this.path});
@@ -108,39 +124,31 @@ class _NavRail extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
     final index = navIndexForPath(path);
     final onMine = index == 2;
     final destinations = [
       (Icons.search_outlined, Icons.search, l10n.navDiscover),
       (Icons.library_music_outlined, Icons.library_music, l10n.navLibrary),
     ];
-    return Row(
-      children: [
-        NavigationRail(
-          selectedIndex: onMine ? null : index,
-          onDestinationSelected: (i) => goNavDestination(context, i),
-          labelType: NavigationRailLabelType.all,
-          trailingAtBottom: true,
-          trailing: _RailMineButton(
-            selected: onMine,
-            label: l10n.navMine,
-            onTap: () => goNavDestination(context, 2),
+    return NavigationRail(
+      backgroundColor: RegionSurface.colorOf(scheme, RegionTone.high),
+      selectedIndex: onMine ? null : index,
+      onDestinationSelected: (i) => goNavDestination(context, i),
+      labelType: NavigationRailLabelType.all,
+      trailingAtBottom: true,
+      trailing: _RailMineButton(
+        selected: onMine,
+        label: l10n.navMine,
+        onTap: () => goNavDestination(context, 2),
+      ),
+      destinations: [
+        for (final (icon, selected, label) in destinations)
+          NavigationRailDestination(
+            icon: Icon(icon),
+            selectedIcon: Icon(selected),
+            label: Text(label),
           ),
-          destinations: [
-            for (final (icon, selected, label) in destinations)
-              NavigationRailDestination(
-                icon: Icon(icon),
-                selectedIcon: Icon(selected),
-                label: Text(label),
-              ),
-          ],
-        ),
-        VerticalDivider(
-          key: const Key('nav-rail-divider'),
-          width: 1,
-          thickness: 1,
-          color: Theme.of(context).colorScheme.outlineVariant,
-        ),
       ],
     );
   }
@@ -158,7 +166,6 @@ class _RailMineButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  static const double _railWidth = 80;
   static const double _indicatorWidth = 56;
   static const double _indicatorHeight = 32;
 
@@ -204,7 +211,7 @@ class _RailMineButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: SizedBox(
-        width: _railWidth,
+        width: _railExtent,
         child: Semantics(
           button: true,
           selected: selected,

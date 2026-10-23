@@ -203,10 +203,25 @@ void _expectMinePinnedToBottom(WidgetTester tester) {
   final mine = tester.getCenter(find.byKey(const Key('nav-mine')));
   expect(library.dy, greaterThan(discover.dy));
   expect(mine.dy, greaterThan(library.dy + 200));
-  final divider = tester.getSize(find.byKey(const Key('nav-rail-divider')));
-  expect(divider.width, 1);
-  expect(divider.height, greaterThan(700));
-  expect(tester.getSize(find.byType(NavigationRail)).width, 80);
+  final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
+  final scheme = Theme.of(tester.element(find.byType(NavigationRail)))
+      .colorScheme;
+  expect(rail.backgroundColor, scheme.surfaceContainer);
+  expect(rail.backgroundColor, isNot(scheme.surface));
+  final boundary = tester.getSize(find.byKey(const Key('nav-rail-surface')));
+  expect(boundary.width, 80);
+  expect(boundary.height, greaterThan(700));
+  expect(find.byType(VerticalDivider), findsNothing);
+  expect(
+    find.descendant(
+      of: find.byKey(const Key('nav-rail-surface')),
+      matching: find.byWidgetPredicate((widget) {
+        final decoration = widget is DecoratedBox ? widget.decoration : null;
+        return decoration is BoxDecoration && decoration.gradient != null;
+      }),
+    ),
+    findsOneWidget,
+  );
 }
 
 Future<double> _storedRatio(AppDatabase db) async {
