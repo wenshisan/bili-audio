@@ -78,7 +78,6 @@
       ];
       let apk = fallbackApk;
       let iosReady = false;
-      let label = "";
       let apkFound = false;
       for (const url of urls) {
         let data;
@@ -96,17 +95,16 @@
         if (!asset) continue;
         apk = asset.browser_download_url;
         apkFound = true;
-        label = (data.prerelease ? "预发布 " : "正式版 ") + data.tag_name;
       }
-      return { apk, iosReady, label, apkFound };
+      return { apk, iosReady, apkFound };
     }
 
     async function start() {
       const pack = await resolve();
       if (android) {
         lead.textContent = pack.apkFound
-          ? "Android 安装包已准备好" + (pack.label ? "（" + pack.label + "）。" : "。")
-          : "还没有可下载的安装包。推送到 main 后，Actions 会生成 APK。";
+          ? "Android 安装包已准备好。"
+          : "暂时没有可下载的安装包。";
         detail.textContent = wechat
           ? "微信里通常下不了安装包。请点右上角，用系统浏览器打开本页。"
           : "下载后需要允许本应用安装未知应用。";
@@ -121,8 +119,8 @@
         }
         lead.textContent = pack.iosReady
           ? "在 Safari 里安装到这台 iPhone。"
-          : "iOS 安装包还没有生成。需要先在 Actions 里配好 Apple 签名。";
-        detail.textContent = "装完后到「设置 → 通用 → VPN 与设备管理」里信任该描述文件。";
+          : "暂时不能安装。";
+        detail.textContent = "装完后到「设置 → 通用 → VPN 与设备管理」里信任。";
         showAction("安装", iosHref, pack.iosReady);
         return;
       }

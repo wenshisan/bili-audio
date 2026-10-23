@@ -152,30 +152,27 @@
     <div class="grid">
       <a class="card" id="win" href="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-windows-x64-setup.exe">
         <strong>Windows</strong>
-        <span>64 位安装程序。未签名，SmartScreen 可能提示未知发布者。</span>
+        <span>64 位安装程序</span>
       </a>
       <a class="card" id="mac" href="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-macos-arm64.dmg">
         <strong>macOS</strong>
-        <span>Apple 芯片磁盘映像。未公证，需在隐私与安全性中允许。</span>
+        <span>适用于 Apple 芯片</span>
       </a>
       <a class="card" id="linux" href="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-linux-amd64.deb">
         <strong>Linux</strong>
-        <span>x64 的 deb。可用 <code>sudo dpkg -i</code> 安装。</span>
+        <span>适用于 x64</span>
       </a>
       <a class="card" id="android" href="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-android.apk">
         <strong>Android</strong>
-        <span>直接安装的 APK。需要允许安装未知应用。</span>
+        <span>安装时需要允许未知应用</span>
       </a>
       <a class="card disabled" id="ios" href="itms-services://?action=download-manifest&amp;url=https%3A%2F%2Fwenshisan.github.io%2Fbili-audio%2Fmanifest.plist">
         <strong>iOS</strong>
-        <span>用 iPhone 自带的 Safari 打开本页。系统按描述文件安装，完成后到「设置 → 通用 → VPN 与设备管理」里信任。</span>
+        <span>请用 iPhone 自带的 Safari 打开本页安装</span>
       </a>
     </div>
-    <p class="note">安装包由 GitHub Actions 在推送到 main 后生成；第一次构建完成前，上面的链接会暂时打不开。iOS 描述文件安装还需要仓库里配置好的 Apple 签名，没有签名时这个按钮不可用。</p>
-    <p class="note">应用内“检查更新”只提示带 <code>v</code> 版本号的正式发布。上面的按钮在还没有正式版时，会下载名为 continuous 的预发布包。</p>
     <footer>
       <p>源码与全部发布：<a href="https://github.com/wenshisan/bili-audio">wenshisan/bili-audio</a></p>
-      <p>发布说明见仓库里的 <code>docs/release.md</code>。</p>
     </footer>
   </main>
   <script>
@@ -261,10 +258,9 @@
         iosLink.classList.remove("disabled");
       } else {
         iosLink.classList.add("disabled");
-        iosLink.querySelector("span").textContent = "描述文件安装包还没有生成。需要先在 Actions 里配好 Apple 签名。";
       }
       if (!chosen) {
-        status.textContent = "还没有可下载的构建。推送到 main 后，Actions 会生成安装包。";
+        status.textContent = "暂时没有可下载的安装包。";
         return;
       }
       for (const [id, name] of Object.entries(files)) {
@@ -272,8 +268,7 @@
         if (!asset) continue;
         document.getElementById(id).href = asset.browser_download_url;
       }
-      const kind = chosen.data.prerelease ? "预发布" : "正式版";
-      status.textContent = kind + " " + chosen.data.tag_name + " · " + new Date(chosen.data.published_at).toLocaleString();
+      status.textContent = "";
     }
 
     load();
