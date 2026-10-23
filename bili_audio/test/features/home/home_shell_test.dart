@@ -69,6 +69,19 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('侧栏把我的放在底部，并与主界面有分界', (tester) async {
+    await pumpAt(tester, const Size(800, 800));
+    _expectMinePinnedToBottom(tester);
+
+    await tester.tap(find.byKey(const Key('nav-mine')));
+    await tester.pumpAndSettle();
+    expect(find.text('settings-body'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await pumpAt(tester, const Size(1280, 800));
+    _expectMinePinnedToBottom(tester);
+  });
+
   testWidgets('iPad 三分屏宽度使用底栏', (tester) async {
     await pumpAt(tester, const Size(375, 800));
     expect(find.byType(NavigationBar), findsOneWidget);
@@ -100,11 +113,17 @@ void main() {
 
   testWidgets('分隔条拖到两端后比例写入设置', (tester) async {
     await pumpAt(tester, const Size(1280, 800));
-    await tester.drag(find.byKey(const Key('split-handle')), const Offset(800, 0));
+    await tester.drag(
+      find.byKey(const Key('split-handle')),
+      const Offset(800, 0),
+    );
     await tester.pumpAndSettle();
     expect(await _storedRatio(db), 0.75);
 
-    await tester.drag(find.byKey(const Key('split-handle')), const Offset(-2000, 0));
+    await tester.drag(
+      find.byKey(const Key('split-handle')),
+      const Offset(-2000, 0),
+    );
     await tester.pumpAndSettle();
     expect(await _storedRatio(db), 0.4);
   });
@@ -143,8 +162,10 @@ void main() {
     await pumpAt(tester, const Size(1280, 720));
     expect(find.byKey(const Key('car-layout')), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
-    expect(tester.getSize(find.byKey(const Key('transport-play'))).width,
-        greaterThanOrEqualTo(76));
+    expect(
+      tester.getSize(find.byKey(const Key('transport-play'))).width,
+      greaterThanOrEqualTo(76),
+    );
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.byKey(const Key('car-exit')));
@@ -157,8 +178,10 @@ void main() {
     await db.settingsDao.set('layout.car_mode', 'on');
     await pumpAt(tester, const Size(1920, 480));
     expect(find.byKey(const Key('car-layout')), findsOneWidget);
-    expect(tester.getSize(find.byKey(const Key('transport-next'))).width,
-        greaterThanOrEqualTo(76));
+    expect(
+      tester.getSize(find.byKey(const Key('transport-next'))).width,
+      greaterThanOrEqualTo(76),
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -172,6 +195,18 @@ void main() {
     await _waitFor(container, (s) => s.splitRatio == 0.4);
     expect(container.read(layoutSettingsProvider).splitRatio, 0.4);
   });
+}
+
+void _expectMinePinnedToBottom(WidgetTester tester) {
+  final discover = tester.getCenter(find.text('发现'));
+  final library = tester.getCenter(find.text('歌单'));
+  final mine = tester.getCenter(find.byKey(const Key('nav-mine')));
+  expect(library.dy, greaterThan(discover.dy));
+  expect(mine.dy, greaterThan(library.dy + 200));
+  final divider = tester.getSize(find.byKey(const Key('nav-rail-divider')));
+  expect(divider.width, 1);
+  expect(divider.height, greaterThan(700));
+  expect(tester.getSize(find.byType(NavigationRail)).width, 80);
 }
 
 Future<double> _storedRatio(AppDatabase db) async {
@@ -201,9 +236,18 @@ Widget _harness(AppDatabase db, BiliAudioHandler handler) {
       ShellRoute(
         builder: (_, _, child) => HomeShell(child: child),
         routes: [
-          GoRoute(path: '/search', builder: (_, _) => const Text('search-body')),
-          GoRoute(path: '/library', builder: (_, _) => const Text('library-body')),
-          GoRoute(path: '/settings', builder: (_, _) => const Text('settings-body')),
+          GoRoute(
+            path: '/search',
+            builder: (_, _) => const Text('search-body'),
+          ),
+          GoRoute(
+            path: '/library',
+            builder: (_, _) => const Text('library-body'),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (_, _) => const Text('settings-body'),
+          ),
         ],
       ),
     ],

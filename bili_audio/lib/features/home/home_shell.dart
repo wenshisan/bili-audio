@@ -53,7 +53,7 @@ class _AdaptiveBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final rail = _NavRail(path: path, extended: metrics.usesMasterDetail);
+    final rail = _NavRail(path: path);
     final Widget body;
     if (metrics.usesMasterDetail) {
       final ratio = ref.watch(layoutSettingsProvider).splitRatio;
@@ -101,34 +101,123 @@ class _AdaptiveBody extends ConsumerWidget {
 }
 
 class _NavRail extends StatelessWidget {
-  const _NavRail({required this.path, required this.extended});
+  const _NavRail({required this.path});
 
   final String path;
-  final bool extended;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final index = navIndexForPath(path);
+    final onMine = index == 2;
     final destinations = [
       (Icons.search_outlined, Icons.search, l10n.navDiscover),
       (Icons.library_music_outlined, Icons.library_music, l10n.navLibrary),
-      (Icons.settings_outlined, Icons.settings, l10n.navMine),
     ];
-    return NavigationRail(
-      extended: extended,
-      selectedIndex: navIndexForPath(path),
-      onDestinationSelected: (i) => goNavDestination(context, i),
-      labelType: extended
-          ? NavigationRailLabelType.none
-          : NavigationRailLabelType.all,
-      destinations: [
-        for (final (icon, selected, label) in destinations)
-          NavigationRailDestination(
-            icon: Icon(icon),
-            selectedIcon: Icon(selected),
-            label: Text(label),
+    return Row(
+      children: [
+        NavigationRail(
+          selectedIndex: onMine ? null : index,
+          onDestinationSelected: (i) => goNavDestination(context, i),
+          labelType: NavigationRailLabelType.all,
+          trailingAtBottom: true,
+          trailing: _RailMineButton(
+            selected: onMine,
+            label: l10n.navMine,
+            onTap: () => goNavDestination(context, 2),
           ),
+          destinations: [
+            for (final (icon, selected, label) in destinations)
+              NavigationRailDestination(
+                icon: Icon(icon),
+                selectedIcon: Icon(selected),
+                label: Text(label),
+              ),
+          ],
+        ),
+        VerticalDivider(
+          key: const Key('nav-rail-divider'),
+          width: 1,
+          thickness: 1,
+          color: Theme.of(context).colorScheme.outlineVariant,
+        ),
       ],
+    );
+  }
+}
+
+/// 侧栏底部的「我的」。与音乐目的地分开，固定在栏底。
+class _RailMineButton extends StatelessWidget {
+  const _RailMineButton({
+    required this.selected,
+    required this.label,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final String label;
+  final VoidCallback onTap;
+
+  static const double _railWidth = 80;
+  static const double _indicatorWidth = 56;
+  static const double _indicatorHeight = 32;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final indicator = SizedBox(
+      width: _indicatorWidth,
+      height: _indicatorHeight,
+      child: DecoratedBox(
+        decoration: ShapeDecoration(
+          color: selected ? scheme.secondaryContainer : const Color(0x00000000),
+          shape: const StadiumBorder(),
+        ),
+        child: Icon(
+          selected ? Icons.settings : Icons.settings_outlined,
+          color: selected
+              ? scheme.onSecondaryContainer
+              : scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+    final text = Text(
+      label,
+      style: Theme.of(context).textTheme.labelMedium
+          ?.copyWith(color: scheme.onSurface),
+      overflow: TextOverflow.fade,
+      softWrap: false,
+    );
+    final body = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          indicator,
+          const SizedBox(height: 4),
+          text,
+          const SizedBox(height: 12),
+        ],
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: SizedBox(
+        width: _railWidth,
+        child: Semantics(
+          button: true,
+          selected: selected,
+          label: label,
+          excludeSemantics: true,
+          child: InkWell(
+            key: const Key('nav-mine'),
+            onTap: onTap,
+            customBorder: const StadiumBorder(),
+            child: body,
+          ),
+        ),
+      ),
     );
   }
 }
