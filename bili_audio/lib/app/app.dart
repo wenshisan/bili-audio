@@ -47,8 +47,9 @@ class BiliAudioApp extends ConsumerWidget {
 
 /// 桌面端窗口外壳 (沿用 talix_companion_flutter 的无边框方案)。
 ///
-/// 窗口背景在 main() 中设为透明, 这里用 ClipRRect 裁出圆角,
-/// 顶部放自定义标题栏承担拖拽 / 最小化 / 最大化 / 关闭。
+/// 窗口背景在 main() 中设为透明, 这里用 ClipRRect 裁出圆角。
+/// 顶部标题栏可拖拽。Windows / Linux 在右侧放窗体按钮；
+/// macOS 保留系统红绿灯，logo 与标题靠右。
 class _DesktopWindowShell extends StatelessWidget {
   const _DesktopWindowShell({required this.child});
 

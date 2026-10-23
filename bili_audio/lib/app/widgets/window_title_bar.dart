@@ -1,16 +1,21 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
 import '../../l10n/l10n.dart';
 
-/// 自定义窗口标题栏 (移植自 talix_companion_flutter，调整为 Material Design 风格)。
+/// 自定义窗口标题栏。
 ///
-/// 功能:
-/// - 拖拽移动窗口、双击最大化/还原
-/// - 最小化、最大化/还原、关闭按钮 (关闭行为: 隐藏到托盘)
-/// - 高度 48px
+/// 拖拽移动窗口，双击最大化或还原，高度 48px。
+/// Windows / Linux 在左侧放 logo 与标题，右侧放最小化、最大化、关闭
+/// （关闭为隐藏到托盘）。macOS 使用系统红绿灯，不画这组按钮，logo 与标题靠右。
 class WindowTitleBar extends StatefulWidget {
-  const WindowTitleBar({super.key});
+  const WindowTitleBar({super.key, this.nativeWindowButtons});
+
+  /// 为 null 时按平台决定：macOS 为 true。
+  final bool? nativeWindowButtons;
 
   @override
   State<WindowTitleBar> createState() => _WindowTitleBarState();
@@ -45,9 +50,21 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
   @override
   void onWindowUnmaximize() => setState(() => _isMaximized = false);
 
+  bool get _nativeWindowButtons =>
+      widget.nativeWindowButtons ?? (!kIsWeb && Platform.isMacOS);
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final nativeButtons = _nativeWindowButtons;
+    final brand = <Widget>[
+      Icon(Icons.music_note, size: 20, color: theme.colorScheme.primary),
+      const SizedBox(width: 8),
+      Text(
+        context.l10n.appTitle,
+        style: theme.textTheme.titleSmall,
+      ),
+    ];
     return Container(
       height: 48,
       decoration: BoxDecoration(
@@ -76,36 +93,38 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
           // 上层: 标题 + 窗口控制按钮
           Row(
             children: [
-              const SizedBox(width: 16),
-              Icon(Icons.music_note, size: 20, color: theme.colorScheme.primary),
-              const SizedBox(width: 8),
-              Text(
-                context.l10n.appTitle,
-                style: theme.textTheme.titleSmall,
-              ),
+              if (!nativeButtons) ...[
+                const SizedBox(width: 16),
+                ...brand,
+              ],
               const Spacer(),
-              _WindowControlButton(
-                icon: Icons.remove,
-                onPressed: () => windowManager.minimize(),
-                semanticLabel: '最小化',
-              ),
-              _WindowControlButton(
-                icon: _isMaximized ? Icons.fullscreen_exit : Icons.crop_square,
-                onPressed: () {
-                  if (_isMaximized) {
-                    windowManager.unmaximize();
-                  } else {
-                    windowManager.maximize();
-                  }
-                },
-                semanticLabel: _isMaximized ? '还原' : '最大化',
-              ),
-              _WindowControlButton(
-                icon: Icons.close,
-                onPressed: () => windowManager.hide(), // 隐藏到托盘
-                hoverColor: const Color(0xFFE81123),
-                semanticLabel: '关闭 (隐藏到托盘)',
-              ),
+              if (nativeButtons) ...[
+                ...brand,
+                const SizedBox(width: 16),
+              ] else ...[
+                _WindowControlButton(
+                  icon: Icons.remove,
+                  onPressed: () => windowManager.minimize(),
+                  semanticLabel: '最小化',
+                ),
+                _WindowControlButton(
+                  icon: _isMaximized ? Icons.fullscreen_exit : Icons.crop_square,
+                  onPressed: () {
+                    if (_isMaximized) {
+                      windowManager.unmaximize();
+                    } else {
+                      windowManager.maximize();
+                    }
+                  },
+                  semanticLabel: _isMaximized ? '还原' : '最大化',
+                ),
+                _WindowControlButton(
+                  icon: Icons.close,
+                  onPressed: () => windowManager.hide(),
+                  hoverColor: const Color(0xFFE81123),
+                  semanticLabel: '关闭 (隐藏到托盘)',
+                ),
+              ],
             ],
           ),
         ],
