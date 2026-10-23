@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../app/motion/motion.dart';
 import '../../../app/providers.dart';
 import '../../../data/album/album_manager.dart';
 import '../../../data/lyrics/lyrics_manager.dart';
@@ -56,77 +57,81 @@ class PlayerCoverSection extends ConsumerWidget {
     final intro = found?.description?.trim();
     return Padding(
       padding: EdgeInsets.all(padding),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Flexible(
-            child: AspectRatio(
-              aspectRatio: 1,
-              child: LayoutBuilder(
-                builder: (_, c) => CoverImage(
-                  cover,
-                  fallbackUrl: cover == biliCover ? null : biliCover,
-                  size: c.maxWidth,
-                  radius: 16,
+      child: MotionSwap(
+        swapKey: '${item.id}|$cover',
+        child: Column(
+          key: ValueKey('${item.id}|$cover'),
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Flexible(
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: LayoutBuilder(
+                  builder: (_, c) => CoverImage(
+                    cover,
+                    fallbackUrl: cover == biliCover ? null : biliCover,
+                    size: c.maxWidth,
+                    radius: 16,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            item.title,
-            style: theme.titleLarge,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            item.artist ?? '',
-            style: theme.bodyMedium,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          if (line != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                line,
-                key: const Key('album-meta'),
-                style: theme.bodySmall,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+            const SizedBox(height: 12),
+            Text(
+              item.title,
+              style: theme.titleLarge,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-          if (!compact && intro != null && intro.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: InkWell(
-                onTap: () => _showIntro(context, intro),
+            const SizedBox(height: 4),
+            Text(
+              item.artist ?? '',
+              style: theme.bodyMedium,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (line != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  intro,
-                  key: const Key('album-intro'),
-                  style: theme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                  line,
+                  key: const Key('album-meta'),
+                  style: theme.bodySmall,
                   textAlign: TextAlign.center,
-                  maxLines: 3,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ),
-          if (pages > 1)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                l10n.pageInfo(t.pageIndex ?? 1, pages, t.title),
-                style: theme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            if (!compact && intro != null && intro.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: InkWell(
+                  onTap: () => _showIntro(context, intro),
+                  child: Text(
+                    intro,
+                    key: const Key('album-intro'),
+                    style: theme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
-            ),
-        ],
+            if (pages > 1)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  l10n.pageInfo(t.pageIndex ?? 1, pages, t.title),
+                  style: theme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/motion/motion.dart';
 import '../../../app/providers.dart';
 import '../../../l10n/l10n.dart';
 import '../../queue/queue_page.dart';
@@ -15,23 +16,23 @@ class NowPlayingPane extends ConsumerWidget {
     final l10n = context.l10n;
     final item = ref.watch(mediaItemProvider).value;
     final track = ref.read(audioHandlerProvider).currentTrack;
-    if (item == null || track == null) {
-      return SizedBox.expand(
-        key: const Key('now-playing-pane'),
-        child: Center(child: Text(l10n.nothingPlaying)),
-      );
-    }
-    return const SizedBox.expand(
-      key: Key('now-playing-pane'),
-      child: Column(
-        children: [
-          Expanded(flex: 3, child: _Cover()),
-          CurrentLyricLine(),
-          PlayerProgressBar(),
-          PlayerControls(showQueue: false),
-          PlayerSleepIndicator(),
-          Expanded(flex: 2, child: QueueList(embedded: true)),
-        ],
+    final playing = item != null && track != null;
+    return SizedBox.expand(
+      key: const Key('now-playing-pane'),
+      child: MotionSwap(
+        swapKey: playing ? 'playing' : 'empty',
+        child: playing
+            ? const Column(
+                children: [
+                  Expanded(flex: 3, child: _Cover()),
+                  CurrentLyricLine(),
+                  PlayerProgressBar(),
+                  PlayerControls(showQueue: false),
+                  PlayerSleepIndicator(),
+                  Expanded(flex: 2, child: QueueList(embedded: true)),
+                ],
+              )
+            : Center(child: Text(l10n.nothingPlaying)),
       ),
     );
   }

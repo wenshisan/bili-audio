@@ -148,7 +148,7 @@ class QqAlbumProvider implements AlbumProvider {
       final singers = item['singer'];
       final names = singers is List
           ? singers
-                .whereType<Map>()
+                .whereType<Map<dynamic, dynamic>>()
                 .map((singer) => '${singer['name'] ?? ''}')
                 .where((name) => name.isNotEmpty)
                 .join(' & ')

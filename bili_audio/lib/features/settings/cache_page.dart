@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/adaptive/max_width_box.dart';
+import '../../app/motion/motion.dart';
 import '../../app/providers.dart';
 import '../../l10n/l10n.dart';
 
@@ -17,10 +18,7 @@ class CachePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.cacheTitle)),
-      body: const MaxWidthBox(
-        maxWidth: 640,
-        child: _CacheBody(),
-      ),
+      body: const MaxWidthBox(maxWidth: 640, child: _CacheBody()),
     );
   }
 }
@@ -40,18 +38,21 @@ class _CacheBody extends ConsumerWidget {
           content: Text(l10n.cacheClearConfirm),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(c, false),
-                child: Text(l10n.cancel)),
+              onPressed: () => Navigator.pop(c, false),
+              child: Text(l10n.cancel),
+            ),
             FilledButton(
-                onPressed: () => Navigator.pop(c, true),
-                child: Text(l10n.confirm)),
+              onPressed: () => Navigator.pop(c, true),
+              child: Text(l10n.confirm),
+            ),
           ],
         ),
       );
       if (ok != true) return;
       final downloads = ref.read(audioHandlerProvider).downloads;
-      final n = await downloads.store
-          .clearUnpinned(protectedKeys: downloads.activeKeys);
+      final n = await downloads.store.clearUnpinned(
+        protectedKeys: downloads.activeKeys,
+      );
       ref.invalidate(cacheStatsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(context)
@@ -60,14 +61,22 @@ class _CacheBody extends ConsumerWidget {
     }
 
     return Center(
+      child: MotionSwap(
+        swapKey: stats.when(
+          loading: () => 'loading',
+          error: (_, _) => 'error',
+          data: (_) => 'ready',
+        ),
         child: stats.when(
           loading: () => const CircularProgressIndicator(),
           error: (e, _) => Text(errorText(l10n, e)),
           data: (s) => Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(l10n.cacheSummary(s.$1, formatBytes(s.$2)),
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                l10n.cacheSummary(s.$1, formatBytes(s.$2)),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 20),
               FilledButton.tonal(
                 onPressed: s.$1 == 0 && s.$2 == 0 ? null : clear,
@@ -76,6 +85,7 @@ class _CacheBody extends ConsumerWidget {
             ],
           ),
         ),
+      ),
     );
   }
 }

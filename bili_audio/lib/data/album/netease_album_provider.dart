@@ -125,7 +125,7 @@ class NeteaseAlbumProvider implements AlbumProvider {
       final artists = item['artists'];
       final names = artists is List
           ? artists
-                .whereType<Map>()
+                .whereType<Map<dynamic, dynamic>>()
                 .map((artist) => '${artist['name'] ?? ''}')
                 .where((name) => name.isNotEmpty)
                 .join(' & ')

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/logging/app_logger.dart';
+import '../features/home/bottom_nav.dart';
 import '../features/home/home_shell.dart';
 import '../l10n/l10n.dart';
+import 'motion/motion.dart';
 import '../features/library/library_page.dart';
 import '../features/library/playlist_detail_page.dart';
 import '../features/login/login_page.dart';
@@ -26,52 +28,97 @@ final appRouter = GoRouter(
   ),
   routes: [
     ShellRoute(
-      builder: (context, state, child) => HomeShell(child: child),
+      // 壳层本身不位移，分页动画在子路由上，全屏页盖上来时底下保持不动。
+      pageBuilder: (context, state, child) => NoTransitionPage(
+        key: state.pageKey,
+        child: HomeShell(child: child),
+      ),
       routes: [
         GoRoute(
           path: '/search',
-          pageBuilder: (_, state) => NoTransitionPage(
-            key: state.pageKey,
-            name: state.uri.path,
+          pageBuilder: (context, state) => shellTabPage(
+            context: context,
+            pageKey: state.pageKey,
+            path: state.uri.path,
+            tabIndex: navIndexForPath(state.uri.path),
             child: const SearchPage(),
           ),
         ),
         GoRoute(
           path: '/library',
-          pageBuilder: (_, state) => NoTransitionPage(
-            key: state.pageKey,
-            name: state.uri.path,
+          pageBuilder: (context, state) => shellTabPage(
+            context: context,
+            pageKey: state.pageKey,
+            path: state.uri.path,
+            tabIndex: navIndexForPath(state.uri.path),
             child: const LibraryPage(),
           ),
         ),
         GoRoute(
           path: '/settings',
-          pageBuilder: (_, state) => NoTransitionPage(
-            key: state.pageKey,
-            name: state.uri.path,
+          pageBuilder: (context, state) => shellTabPage(
+            context: context,
+            pageKey: state.pageKey,
+            path: state.uri.path,
+            tabIndex: navIndexForPath(state.uri.path),
             child: const SettingsPage(),
           ),
         ),
       ],
     ),
-    GoRoute(path: '/player', builder: (_, _) => const PlayerPage()),
-    GoRoute(path: '/queue', builder: (_, _) => const QueuePage()),
+    GoRoute(
+      path: '/player',
+      pageBuilder: (context, state) => pushMotionPage(
+        context: context,
+        pageKey: state.pageKey,
+        name: state.uri.path,
+        vertical: true,
+        child: const PlayerPage(),
+      ),
+    ),
+    GoRoute(
+      path: '/queue',
+      pageBuilder: (context, state) => pushMotionPage(
+        context: context,
+        pageKey: state.pageKey,
+        name: state.uri.path,
+        child: const QueuePage(),
+      ),
+    ),
     GoRoute(
       path: '/playlist/:id',
-      builder: (_, state) {
+      pageBuilder: (context, state) {
         final raw = state.pathParameters['id'];
         final id = int.tryParse(raw ?? '');
-        if (id == null) {
-          return NavErrorPage(
-            uri: state.uri,
-            message: 'invalid playlist id: $raw',
-          );
-        }
-        return PlaylistDetailPage(id: id);
+        final child = id == null
+            ? NavErrorPage(uri: state.uri, message: 'invalid playlist id: $raw')
+            : PlaylistDetailPage(id: id);
+        return pushMotionPage(
+          context: context,
+          pageKey: state.pageKey,
+          name: state.uri.path,
+          child: child,
+        );
       },
     ),
-    GoRoute(path: '/cache', builder: (_, _) => const CachePage()),
-    GoRoute(path: '/login', builder: (_, _) => const LoginPage()),
+    GoRoute(
+      path: '/cache',
+      pageBuilder: (context, state) => pushMotionPage(
+        context: context,
+        pageKey: state.pageKey,
+        name: state.uri.path,
+        child: const CachePage(),
+      ),
+    ),
+    GoRoute(
+      path: '/login',
+      pageBuilder: (context, state) => pushMotionPage(
+        context: context,
+        pageKey: state.pageKey,
+        name: state.uri.path,
+        child: const LoginPage(),
+      ),
+    ),
   ],
 );
 

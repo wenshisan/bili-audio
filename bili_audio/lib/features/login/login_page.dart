@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../app/adaptive/window_metrics.dart';
+import '../../app/motion/motion.dart';
 import '../../data/bili/bili_login_api.dart';
 import '../../l10n/l10n.dart';
 import 'login_controller.dart';
@@ -100,33 +101,50 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       appBar: AppBar(title: Text(l10n.loginTitle)),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = WindowMetrics.fromSize(constraints.biggest).width !=
+          final wide =
+              WindowMetrics.fromSize(constraints.biggest).width !=
               WindowWidth.compact;
-          final qr = _url == null
-              ? const SizedBox(width: 240, height: 240)
-              : Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+          final placeholder = Shimmer(
+            child: ColoredBox(
+              color: scheme.surfaceContainerHighest,
+              child: const SizedBox(width: 240, height: 240),
+            ),
+          );
+          final qr = MotionSwap(
+            swapKey: _url == null ? 'wait' : 'qr',
+            child: _url == null
+                ? placeholder
+                : Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: QrImageView(data: _url!, size: 240),
                   ),
-                  child: QrImageView(data: _url!, size: 240),
-                );
+          );
           final text = Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (err != null) ...[
-                Text(errorText(l10n, err), style: TextStyle(color: scheme.error)),
+                Text(
+                  errorText(l10n, err),
+                  style: TextStyle(color: scheme.error),
+                ),
                 const SizedBox(height: 12),
                 FilledButton.tonal(
-                    onPressed: _generate, child: Text(l10n.loginRetry)),
+                  onPressed: _generate,
+                  child: Text(l10n.loginRetry),
+                ),
               ] else ...[
                 Text(_statusText(l10n, _status)),
                 if (_status is QrExpired)
                   Padding(
                     padding: const EdgeInsets.only(top: 12),
                     child: FilledButton.tonal(
-                        onPressed: _generate, child: Text(l10n.loginRetry)),
+                      onPressed: _generate,
+                      child: Text(l10n.loginRetry),
+                    ),
                   ),
               ],
             ],
@@ -145,11 +163,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     )
                   : Column(
                       mainAxisSize: MainAxisSize.min,
-                      children: [
-                        qr,
-                        const SizedBox(height: 24),
-                        text,
-                      ],
+                      children: [qr, const SizedBox(height: 24), text],
                     ),
             ),
           );
@@ -158,7 +172,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
-  String _statusText(AppLocalizations l10n, QrStatus? status) => switch (status) {
+  String _statusText(AppLocalizations l10n, QrStatus? status) =>
+      switch (status) {
         QrWaiting() => l10n.loginWaiting,
         QrScanned() => l10n.loginScanned,
         QrExpired() => l10n.loginExpired,

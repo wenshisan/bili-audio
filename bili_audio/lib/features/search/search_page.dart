@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/adaptive/max_width_box.dart';
 import '../../app/adaptive/player_shortcuts.dart';
 import '../../app/adaptive/window_metrics.dart';
+import '../../app/motion/motion.dart';
 import '../../app/providers.dart';
 import '../../core/utils/result.dart';
 import '../../data/repositories/repositories.dart';
@@ -78,9 +79,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
 
     final metrics = WindowMetricsScope.maybeOf(context);
     final master = metrics?.usesMasterDetail ?? false;
-    final limitWidth = metrics != null &&
-        !master &&
-        metrics.width != WindowWidth.compact;
+    final limitWidth =
+        metrics != null && !master && metrics.width != WindowWidth.compact;
 
     Widget page = Column(
       children: [
@@ -111,58 +111,67 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           ),
         ),
         Expanded(
-          child: switch (state) {
-            SearchState(keyword: '') => _History(onTap: _searchFor),
-            SearchState(items: [], loading: true) => const _Skeleton(),
-            SearchState(items: [], error: final e?) => _ErrorView(
-              error: e,
-              onRetry: controller.retry,
-            ),
-            _
-                when items.isEmpty &&
-                    !state.loading &&
-                    state.error == null &&
-                    !state.hasMore =>
-              Center(child: Text(l10n.searchNoResult)),
-            _ => Column(
-              children: [
-                if (items.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                    child: Row(
-                      children: [
-                        FilledButton.icon(
-                          icon: const Icon(Icons.play_arrow),
-                          label: Text(l10n.playlistPlayAll),
-                          onPressed: () => _playAll(items),
-                        ),
-                        const Spacer(),
-                        Text(l10n.playlistTrackCount(items.length)),
-                      ],
+          child: MotionSwap(
+            swapKey: _searchBodyKey(state, items),
+            child: switch (state) {
+              SearchState(keyword: '') => _History(onTap: _searchFor),
+              SearchState(items: [], loading: true) => const SkeletonList(),
+              SearchState(items: [], error: final e?) => _ErrorView(
+                error: e,
+                onRetry: controller.retry,
+              ),
+              _
+                  when items.isEmpty &&
+                      !state.loading &&
+                      state.error == null &&
+                      !state.hasMore =>
+                Center(child: Text(l10n.searchNoResult)),
+              _ => Column(
+                children: [
+                  if (items.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                      child: Row(
+                        children: [
+                          FilledButton.icon(
+                            icon: const Icon(Icons.play_arrow),
+                            label: Text(l10n.playlistPlayAll),
+                            onPressed: () => _playAll(items),
+                          ),
+                          const Spacer(),
+                          Text(l10n.playlistTrackCount(items.length)),
+                        ],
+                      ),
+                    ),
+                  Expanded(
+                    child: ListEntranceScope(
+                      key: ValueKey(state.keyword),
+                      child: ListView.builder(
+                        controller: _scroll,
+                        itemCount: items.length + 1,
+                        itemBuilder: (context, i) => i < items.length
+                            ? ListEntrance(
+                                index: i,
+                                child: _ResultTile(
+                                  hit: items[i],
+                                  index: i,
+                                  hits: items,
+                                ),
+                              )
+                            : _Footer(
+                                state: state,
+                                onRetry: controller.retry,
+                                onLoadMore: items.isEmpty
+                                    ? controller.loadMore
+                                    : null,
+                              ),
+                      ),
                     ),
                   ),
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scroll,
-                    itemCount: items.length + 1,
-                    itemBuilder: (context, i) => i < items.length
-                        ? _ResultTile(
-                            hit: items[i],
-                            index: i,
-                            hits: items,
-                          )
-                        : _Footer(
-                            state: state,
-                            onRetry: controller.retry,
-                            onLoadMore: items.isEmpty
-                                ? controller.loadMore
-                                : null,
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          },
+                ],
+              ),
+            },
+          ),
         ),
       ],
     );
@@ -218,9 +227,8 @@ class _ResultTile extends ConsumerWidget {
           ? errorText(l10n, result.errorOrNull)
           : success;
       if (message != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(message)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(message)));
       }
     }
 
@@ -383,63 +391,42 @@ class _History extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final history = ref.watch(searchHistoryProvider).value ?? const [];
-    if (history.isEmpty) return Center(child: Text(l10n.searchEmpty));
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        Row(
-          children: [
-            Text(
-              l10n.searchHistory,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            const Spacer(),
-            TextButton(
-              onPressed: ref.read(searchHistoryProvider.notifier).clear,
-              child: Text(l10n.searchClearHistory),
-            ),
-          ],
-        ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          children: [
-            for (final k in history)
-              InputChip(
-                label: Text(k),
-                onPressed: () => onTap(k),
-                onDeleted: () =>
-                    ref.read(searchHistoryProvider.notifier).remove(k),
+    final body = history.isEmpty
+        ? Center(child: Text(l10n.searchEmpty))
+        : ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              Row(
+                children: [
+                  Text(
+                    l10n.searchHistory,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: ref.read(searchHistoryProvider.notifier).clear,
+                    child: Text(l10n.searchClearHistory),
+                  ),
+                ],
               ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _Skeleton extends StatelessWidget {
-  const _Skeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme.surfaceContainerHighest;
-    Widget bar(double w) => Container(
-      width: w,
-      height: 12,
-      margin: const EdgeInsets.only(bottom: 6),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(4),
-      ),
-    );
-    return ListView.builder(
-      itemCount: 8,
-      itemBuilder: (_, _) => ListTile(
-        leading: Container(width: 56, height: 56, color: color),
-        title: bar(180),
-        subtitle: bar(100),
-      ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final k in history)
+                    InputChip(
+                      label: Text(k),
+                      onPressed: () => onTap(k),
+                      onDeleted: () =>
+                          ref.read(searchHistoryProvider.notifier).remove(k),
+                    ),
+                ],
+              ),
+            ],
+          );
+    return MotionSwap(
+      swapKey: history.isEmpty ? 'empty' : 'chips',
+      child: body,
     );
   }
 }
@@ -475,24 +462,43 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Widget body;
+    final Object key;
     if (state.loading) {
-      return const Padding(
+      key = 'loading';
+      body = const Padding(
         padding: EdgeInsets.all(16),
         child: Center(child: CircularProgressIndicator()),
       );
-    }
-    if (state.error != null) {
-      return TextButton(
+    } else if (state.error != null) {
+      key = 'error';
+      body = TextButton(
         onPressed: onRetry,
         child: Text(errorText(context.l10n, state.error)),
       );
-    }
-    if (onLoadMore != null && state.hasMore) {
-      return TextButton(
+    } else if (onLoadMore != null && state.hasMore) {
+      key = 'more';
+      body = TextButton(
         onPressed: onLoadMore,
         child: Text(context.l10n.searchLoadMore),
       );
+    } else {
+      key = 'end';
+      body = const SizedBox(height: 16);
     }
-    return const SizedBox(height: 16);
+    return MotionSwap(swapKey: key, child: body);
   }
+}
+
+Object _searchBodyKey(SearchState state, List<SearchHit> items) {
+  if (state.keyword.isEmpty) return 'history';
+  if (state.items.isEmpty && state.loading) return 'loading';
+  if (state.items.isEmpty && state.error != null) return 'error';
+  if (items.isEmpty &&
+      !state.loading &&
+      state.error == null &&
+      !state.hasMore) {
+    return 'empty:${state.keyword}';
+  }
+  return 'results:${state.keyword}';
 }

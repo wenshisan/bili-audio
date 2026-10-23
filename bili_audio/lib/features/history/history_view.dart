@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/motion/motion.dart';
 import '../../app/providers.dart';
 import '../../data/db/daos/history_dao.dart';
 import '../../l10n/l10n.dart';
@@ -36,60 +37,73 @@ class HistoryView extends ConsumerWidget {
     final history = ref.watch(historyProvider);
     final dao = ref.read(databaseProvider).historyDao;
 
-    return history.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text(errorText(l10n, e))),
-      data: (entries) {
-        if (entries.isEmpty) return Center(child: Text(l10n.historyEmpty));
-        final now = DateTime.now();
-        final children = <Widget>[
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              icon: const Icon(Icons.delete_sweep_outlined),
-              label: Text(l10n.historyClear),
-              onPressed: () async {
-                final ok = await showDialog<bool>(
-                  context: context,
-                  builder: (c) => AlertDialog(
-                    content: Text(l10n.historyClear),
-                    actions: [
-                      TextButton(
+    return MotionSwap(
+      swapKey: history.when(
+        loading: () => 'loading',
+        error: (_, _) => 'error',
+        data: (entries) => entries.isEmpty ? 'empty' : 'ready',
+      ),
+      child: history.when(
+        loading: () => const SkeletonList(leading: 44),
+        error: (e, _) => Center(child: Text(errorText(l10n, e))),
+        data: (entries) {
+          if (entries.isEmpty) return Center(child: Text(l10n.historyEmpty));
+          final now = DateTime.now();
+          final children = <Widget>[
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                icon: const Icon(Icons.delete_sweep_outlined),
+                label: Text(l10n.historyClear),
+                onPressed: () async {
+                  final ok = await showDialog<bool>(
+                    context: context,
+                    builder: (c) => AlertDialog(
+                      content: Text(l10n.historyClear),
+                      actions: [
+                        TextButton(
                           onPressed: () => Navigator.pop(c, false),
-                          child: Text(l10n.cancel)),
-                      FilledButton(
+                          child: Text(l10n.cancel),
+                        ),
+                        FilledButton(
                           onPressed: () => Navigator.pop(c, true),
-                          child: Text(l10n.confirm)),
-                    ],
-                  ),
-                );
-                if (ok == true) await dao.clear();
-              },
-            ),
-          ),
-        ];
-        HistoryGroup? last;
-        for (final e in entries) {
-          final group = historyGroupOf(e.history.playedAt, now);
-          if (group != last) {
-            last = group;
-            children.add(Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Text(
-                switch (group) {
-                  HistoryGroup.today => l10n.historyToday,
-                  HistoryGroup.yesterday => l10n.historyYesterday,
-                  HistoryGroup.thisWeek => l10n.historyThisWeek,
-                  HistoryGroup.earlier => l10n.historyEarlier,
+                          child: Text(l10n.confirm),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (ok == true) await dao.clear();
                 },
-                style: Theme.of(context).textTheme.titleSmall,
               ),
-            ));
+            ),
+          ];
+          HistoryGroup? last;
+          for (final e in entries) {
+            final group = historyGroupOf(e.history.playedAt, now);
+            if (group != last) {
+              last = group;
+              children.add(
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Text(switch (group) {
+                    HistoryGroup.today => l10n.historyToday,
+                    HistoryGroup.yesterday => l10n.historyYesterday,
+                    HistoryGroup.thisWeek => l10n.historyThisWeek,
+                    HistoryGroup.earlier => l10n.historyEarlier,
+                  }, style: Theme.of(context).textTheme.titleSmall),
+                ),
+              );
+            }
+            children.add(
+              ListEntrance(
+                index: children.length,
+                child: _HistoryTile(entry: e),
+              ),
+            );
           }
-          children.add(_HistoryTile(entry: e));
-        }
-        return ListView(children: children);
-      },
+          return ListEntranceScope(child: ListView(children: children));
+        },
+      ),
     );
   }
 }
@@ -107,12 +121,17 @@ class _HistoryTile extends ConsumerWidget {
     return Dismissible(
       key: ValueKey(h.id),
       direction: DismissDirection.endToStart,
-      background: ColoredBox(color: Theme.of(context).colorScheme.errorContainer),
+      background: ColoredBox(
+        color: Theme.of(context).colorScheme.errorContainer,
+      ),
       onDismissed: (_) => ref.read(databaseProvider).historyDao.remove(h.id),
       child: ListTile(
         leading: CoverImage(track.cover, size: 44),
-        title: Text(track.displayTitle,
-            maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(
+          track.displayTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

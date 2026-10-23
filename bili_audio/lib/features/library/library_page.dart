@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/adaptive/window_metrics.dart';
+import '../../app/motion/motion.dart';
 import '../../app/providers.dart';
 import '../../data/db/app_database.dart';
 import '../../l10n/l10n.dart';
@@ -25,20 +26,25 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final master = WindowMetricsScope.maybeOf(context)?.usesMasterDetail ?? false;
+    final master =
+        WindowMetricsScope.maybeOf(context)?.usesMasterDetail ?? false;
     final list = DefaultTabController(
       length: 2,
       child: Column(
         children: [
-          TabBar(tabs: [
-            Tab(text: l10n.navLibrary),
-            Tab(text: l10n.historyTitle),
-          ]),
+          TabBar(
+            tabs: [
+              Tab(text: l10n.navLibrary),
+              Tab(text: l10n.historyTitle),
+            ],
+          ),
           Expanded(
             child: TabBarView(
               children: [
                 _PlaylistGrid(
-                  onOpen: master ? (id) => setState(() => _selected = id) : null,
+                  onOpen: master
+                      ? (id) => setState(() => _selected = id)
+                      : null,
                 ),
                 const HistoryView(),
               ],
@@ -53,13 +59,16 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
         Expanded(child: list),
         const VerticalDivider(width: 1),
         Expanded(
-          child: _selected == null
-              ? Center(child: Text(l10n.libraryEmpty))
-              : PlaylistDetailPage(
-                  id: _selected!,
-                  embedded: true,
-                  onDeleted: () => setState(() => _selected = null),
-                ),
+          child: MotionSwap(
+            swapKey: _selected ?? 'none',
+            child: _selected == null
+                ? Center(child: Text(l10n.libraryEmpty))
+                : PlaylistDetailPage(
+                    id: _selected!,
+                    embedded: true,
+                    onDeleted: () => setState(() => _selected = null),
+                  ),
+          ),
         ),
       ],
     );
@@ -83,12 +92,16 @@ class _PlaylistGridState extends ConsumerState<_PlaylistGrid> {
     final l10n = context.l10n;
     final playlists = ref.watch(playlistsWithCountProvider);
     final width = WindowMetricsScope.maybeOf(context)?.width;
-    final grid = gridOverride ?? (width != null && width != WindowWidth.compact);
+    final grid =
+        gridOverride ?? (width != null && width != WindowWidth.compact);
 
     Future<void> create() async {
       final name = await showPlaylistNameDialog(context);
       if (name == null) return;
-      await ref.read(databaseProvider).playlistsDao.createPlaylist(
+      await ref
+          .read(databaseProvider)
+          .playlistsDao
+          .createPlaylist(
             PlaylistsCompanion.insert(name: name, source: const Value('local')),
           );
     }
@@ -100,47 +113,65 @@ class _PlaylistGridState extends ConsumerState<_PlaylistGrid> {
         label: Text(l10n.libraryCreate),
         onPressed: create,
       ),
-      body: playlists.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text(errorText(l10n, e))),
-        data: (list) {
-          if (list.isEmpty) return Center(child: Text(l10n.libraryEmpty));
-          final header = Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              tooltip: grid ? 'List' : 'Grid',
-              icon: Icon(grid ? Icons.view_list : Icons.grid_view),
-              onPressed: () => setState(() => gridOverride = !grid),
-            ),
-          );
-          final cards = [
-            for (final p in list)
-              _PlaylistCard(
-                playlist: p.playlist,
-                count: p.count,
-                grid: grid,
-                onOpen: widget.onOpen,
+      body: MotionSwap(
+        swapKey: playlists.when(
+          loading: () => 'loading',
+          error: (_, _) => 'error',
+          data: (list) => list.isEmpty ? 'empty' : 'ready',
+        ),
+        child: playlists.when(
+          loading: () => const SkeletonList(leading: 44),
+          error: (e, _) => Center(child: Text(errorText(l10n, e))),
+          data: (list) {
+            if (list.isEmpty) return Center(child: Text(l10n.libraryEmpty));
+            final header = Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                tooltip: grid ? 'List' : 'Grid',
+                icon: Icon(grid ? Icons.view_list : Icons.grid_view),
+                onPressed: () => setState(() => gridOverride = !grid),
               ),
-          ];
-          return grid
-              ? CustomScrollView(slivers: [
-                  SliverToBoxAdapter(child: header),
-                  SliverPadding(
+            );
+            final cards = [
+              for (var i = 0; i < list.length; i++)
+                ListEntrance(
+                  index: i,
+                  child: _PlaylistCard(
+                    playlist: list[i].playlist,
+                    count: list[i].count,
+                    grid: grid,
+                    onOpen: widget.onOpen,
+                  ),
+                ),
+            ];
+            final view = grid
+                ? GridView.extent(
+                    maxCrossAxisExtent: 180,
+                    childAspectRatio: 0.8,
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 88),
-                    sliver: SliverGrid.extent(
-                      maxCrossAxisExtent: 180,
-                      childAspectRatio: 0.8,
-                      mainAxisSpacing: 8,
-                      crossAxisSpacing: 8,
-                      children: cards,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    children: cards,
+                  )
+                : ListView(
+                    padding: const EdgeInsets.only(bottom: 88),
+                    children: cards,
+                  );
+            return ListEntranceScope(
+              child: Column(
+                children: [
+                  header,
+                  Expanded(
+                    child: MotionSwap(
+                      swapKey: grid ? 'grid' : 'list',
+                      child: view,
                     ),
                   ),
-                ])
-              : ListView(
-                  padding: const EdgeInsets.only(bottom: 88),
-                  children: [header, ...cards],
-                );
-        },
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -171,11 +202,15 @@ class _PlaylistCard extends StatelessWidget {
       }
       context.push('/playlist/${playlist.id}');
     }
+
     final icon = Icon(Icons.queue_music, color: scheme.onPrimaryContainer);
 
     if (!grid) {
       return ListTile(
-        leading: CircleAvatar(backgroundColor: scheme.primaryContainer, child: icon),
+        leading: CircleAvatar(
+          backgroundColor: scheme.primaryContainer,
+          child: icon,
+        ),
         title: Text(playlist.name),
         subtitle: Text(l10n.playlistTrackCount(count)),
         onTap: open,
@@ -199,10 +234,15 @@ class _PlaylistCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(playlist.name,
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Text(l10n.playlistTrackCount(count),
-                      style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    playlist.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    l10n.playlistTrackCount(count),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ),
             ),

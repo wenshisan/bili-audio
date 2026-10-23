@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/motion/motion.dart';
 import '../../app/providers.dart';
 import '../../data/db/app_database.dart' hide Track;
 import '../../domain/entities/audio_track.dart';
@@ -177,13 +178,15 @@ class _QueueListState extends ConsumerState<QueueList> {
     final ordered = q.orderedTracks;
 
     if (widget.upcomingOnly) {
-      return _upcoming(
-        context,
-        l10n,
-        q,
-        ordered,
-        onOpen: handler.skipToQueueItem,
-        onRemove: handler.removeOrderedAt,
+      return ListEntranceScope(
+        child: _upcoming(
+          context,
+          l10n,
+          q,
+          ordered,
+          onOpen: handler.skipToQueueItem,
+          onRemove: handler.removeOrderedAt,
+        ),
       );
     }
     if (ordered.isEmpty) {
@@ -241,11 +244,13 @@ class _QueueListState extends ConsumerState<QueueList> {
       );
     }
 
-    return Column(
-      children: [
-        _searchBar(l10n),
-        Expanded(child: list),
-      ],
+    return ListEntranceScope(
+      child: Column(
+        children: [
+          _searchBar(l10n),
+          Expanded(child: list),
+        ],
+      ),
     );
   }
 
@@ -355,34 +360,37 @@ Widget _queueTile({
   required Future<void> Function(int index) onOpen,
   required Future<void> Function(int index) onRemove,
 }) {
-  final tile = ListTile(
-    selected: current,
-    leading: CoverImage(track.cover, size: 44),
-    title: Text(
-      track.displayTitle,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
+  final tile = ListEntrance(
+    index: localIndex,
+    child: ListTile(
+      selected: current,
+      leading: CoverImage(track.cover, size: 44),
+      title: Text(
+        track.displayTitle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(track.displayArtist, maxLines: 1),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (current) const Icon(Icons.equalizer),
+          if (!upcomingOnly)
+            IconButton(
+              tooltip: removeTooltip,
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.close),
+              onPressed: () => onRemove(absolute),
+            ),
+          if (allowReorder && !current)
+            ReorderableDragStartListener(
+              index: localIndex,
+              child: const Icon(Icons.drag_handle),
+            ),
+        ],
+      ),
+      onTap: upcomingOnly ? null : () => onOpen(absolute),
     ),
-    subtitle: Text(track.displayArtist, maxLines: 1),
-    trailing: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (current) const Icon(Icons.equalizer),
-        if (!upcomingOnly)
-          IconButton(
-            tooltip: removeTooltip,
-            visualDensity: VisualDensity.compact,
-            icon: const Icon(Icons.close),
-            onPressed: () => onRemove(absolute),
-          ),
-        if (allowReorder && !current)
-          ReorderableDragStartListener(
-            index: localIndex,
-            child: const Icon(Icons.drag_handle),
-          ),
-      ],
-    ),
-    onTap: upcomingOnly ? null : () => onOpen(absolute),
   );
   if (upcomingOnly) return tile;
   return Dismissible(

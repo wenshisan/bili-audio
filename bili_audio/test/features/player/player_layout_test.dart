@@ -78,6 +78,7 @@ void main() {
             lyricsManagerProvider.overrideWithValue(
               LyricsManager(db, dir, providers: const []),
             ),
+            albumControllerProvider.overrideWith(_ReadyAlbum.new),
           ],
           child: const MaterialApp(
             locale: Locale('zh'),
@@ -88,8 +89,10 @@ void main() {
         ),
       );
       await tester.pump();
+      await tester.pump();
       expect(tester.takeException(), isNull);
       expect(find.text('晴天'), findsWidgets);
+      expect(find.textContaining('叶惠美'), findsOneWidget);
     });
   }
 

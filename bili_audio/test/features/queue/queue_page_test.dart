@@ -88,6 +88,8 @@ void main() {
       ),
     );
     await tester.pump();
+    // 跑完列表入场，并让入场窗口过期，后面的筛选不再重播。
+    await tester.pump(const Duration(milliseconds: 700));
   }
 
   Future<void> search(WidgetTester tester, String query) async {

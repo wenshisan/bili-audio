@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 
 import '../../domain/album/album_provider.dart';
 import '../../domain/title/title_cleaner.dart';
-import '../lyrics/lyrics_http.dart';
 
 export '../lyrics/lyrics_http.dart' show lyricsClient, lyricsRequestOptions;
 

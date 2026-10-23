@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/motion/motion.dart';
 import '../../app/providers.dart';
 import '../../data/db/app_database.dart';
+import '../../data/db/daos/playlists_dao.dart';
 import '../../domain/entities/audio_track.dart' as domain;
 import '../../l10n/l10n.dart';
 import '../common/add_to_playlist_sheet.dart';
@@ -40,7 +42,7 @@ class PlaylistDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
     final playlist = ref.watch(playlistProvider(id)).value;
-    final tracks = ref.watch(playlistTracksProvider(id)).value ?? const [];
+    final tracksAsync = ref.watch(playlistTracksProvider(id));
     final dao = ref.read(databaseProvider).playlistsDao;
     final actions = ref.read(playerActionsProvider);
     final readonly = playlist?.isReadonly ?? false;
@@ -48,7 +50,10 @@ class PlaylistDetailPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: !embedded,
-        title: Text(playlist?.name ?? ''),
+        title: MotionSwap(
+          swapKey: playlist?.name ?? '',
+          child: Text(playlist?.name ?? ''),
+        ),
         actions: [
           if (playlist != null && !readonly)
             PopupMenuButton<String>(
@@ -61,7 +66,9 @@ class PlaylistDetailPage extends ConsumerWidget {
                   );
                   if (name != null) {
                     await dao.updatePlaylist(
-                        id, PlaylistsCompanion(name: Value(name)));
+                      id,
+                      PlaylistsCompanion(name: Value(name)),
+                    );
                   }
                 } else if (v == 'delete') {
                   final ok = await showDialog<bool>(
@@ -70,11 +77,13 @@ class PlaylistDetailPage extends ConsumerWidget {
                       content: Text(l10n.libraryDeleteConfirm(playlist.name)),
                       actions: [
                         TextButton(
-                            onPressed: () => Navigator.pop(c, false),
-                            child: Text(l10n.cancel)),
+                          onPressed: () => Navigator.pop(c, false),
+                          child: Text(l10n.cancel),
+                        ),
                         FilledButton(
-                            onPressed: () => Navigator.pop(c, true),
-                            child: Text(l10n.delete)),
+                          onPressed: () => Navigator.pop(c, true),
+                          child: Text(l10n.delete),
+                        ),
                       ],
                     ),
                   );
@@ -96,79 +105,127 @@ class PlaylistDetailPage extends ConsumerWidget {
             ),
         ],
       ),
-      body: tracks.isEmpty
-          ? Center(child: Text(l10n.playlistEmpty))
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      FilledButton.icon(
-                        icon: const Icon(Icons.play_arrow),
-                        label: Text(l10n.playlistPlayAll),
-                        onPressed: () => actions.playList(tracks),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.shuffle),
-                        label: Text(l10n.playlistShuffle),
-                        onPressed: () => actions.playList(tracks, shuffle: true),
-                      ),
-                      const Spacer(),
-                      Text(l10n.playlistTrackCount(tracks.length)),
-                    ],
-                  ),
+      body: MotionSwap(
+        swapKey: tracksAsync.when(
+          loading: () => 'loading',
+          error: (_, _) => 'error',
+          data: (list) => list.isEmpty ? 'empty' : 'ready',
+        ),
+        child: tracksAsync.when(
+          loading: () => const SkeletonList(leading: 44),
+          error: (e, _) => Center(child: Text(errorText(l10n, e))),
+          data: (loaded) => loaded.isEmpty
+              ? Center(child: Text(l10n.playlistEmpty))
+              : _TrackList(
+                  id: id,
+                  tracks: loaded,
+                  readonly: readonly,
+                  actions: actions,
+                  dao: dao,
                 ),
-                Expanded(
-                  child: ReorderableListView.builder(
-                    buildDefaultDragHandles: false,
-                    itemCount: tracks.length,
-                    onReorderItem: readonly
-                        ? (_, _) {}
-                        : (from, to) {
-                            final order = [...tracks];
-                            order.insert(to, order.removeAt(from));
-                            dao.reorderTracks(
-                              playlistId: id,
-                              newOrder: [
-                                for (final t in order) (bvid: t.bvid, cid: t.cid)
-                              ],
-                            );
-                          },
-                    itemBuilder: (context, i) {
-                      final t = tracks[i];
-                      return Dismissible(
-                        key: ValueKey('${t.bvid}_${t.cid}'),
-                        direction: readonly
-                            ? DismissDirection.none
-                            : DismissDirection.endToStart,
-                        background: ColoredBox(
-                            color: Theme.of(context).colorScheme.errorContainer),
-                        onDismissed: (_) => dao.removeTrackFromPlaylist(
-                          playlistId: id,
-                          bvid: t.bvid,
-                          cid: t.cid,
-                        ),
-                        child: ListTile(
-                          leading: CoverImage(t.cover, size: 44),
-                          title: Text(t.displayTitle,
-                              maxLines: 1, overflow: TextOverflow.ellipsis),
-                          subtitle: Text(t.displayArtist, maxLines: 1),
-                          trailing: readonly
-                              ? null
-                              : ReorderableDragStartListener(
-                                  index: i,
-                                  child: const Icon(Icons.drag_handle),
-                                ),
-                          onTap: () => actions.playList(tracks, index: i),
-                        ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TrackList extends StatelessWidget {
+  const _TrackList({
+    required this.id,
+    required this.tracks,
+    required this.readonly,
+    required this.actions,
+    required this.dao,
+  });
+
+  final int id;
+  final List<domain.Track> tracks;
+  final bool readonly;
+  final PlayerActions actions;
+  final PlaylistsDao dao;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              FilledButton.icon(
+                icon: const Icon(Icons.play_arrow),
+                label: Text(l10n.playlistPlayAll),
+                onPressed: () => actions.playList(tracks),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.shuffle),
+                label: Text(l10n.playlistShuffle),
+                onPressed: () => actions.playList(tracks, shuffle: true),
+              ),
+              const Spacer(),
+              Text(l10n.playlistTrackCount(tracks.length)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ListEntranceScope(
+            child: ReorderableListView.builder(
+              buildDefaultDragHandles: false,
+              itemCount: tracks.length,
+              onReorderItem: readonly
+                  ? (_, _) {}
+                  : (from, to) {
+                      final order = [...tracks];
+                      order.insert(to, order.removeAt(from));
+                      dao.reorderTracks(
+                        playlistId: id,
+                        newOrder: [
+                          for (final t in order) (bvid: t.bvid, cid: t.cid),
+                        ],
                       );
                     },
+              itemBuilder: (context, i) {
+                final t = tracks[i];
+                return Dismissible(
+                  key: ValueKey('${t.bvid}_${t.cid}'),
+                  direction: readonly
+                      ? DismissDirection.none
+                      : DismissDirection.endToStart,
+                  background: ColoredBox(
+                    color: Theme.of(context).colorScheme.errorContainer,
                   ),
-                ),
-              ],
+                  onDismissed: (_) => dao.removeTrackFromPlaylist(
+                    playlistId: id,
+                    bvid: t.bvid,
+                    cid: t.cid,
+                  ),
+                  child: ListEntrance(
+                    index: i,
+                    child: ListTile(
+                      leading: CoverImage(t.cover, size: 44),
+                      title: Text(
+                        t.displayTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(t.displayArtist, maxLines: 1),
+                      trailing: readonly
+                          ? null
+                          : ReorderableDragStartListener(
+                              index: i,
+                              child: const Icon(Icons.drag_handle),
+                            ),
+                      onTap: () => actions.playList(tracks, index: i),
+                    ),
+                  ),
+                );
+              },
             ),
+          ),
+        ),
+      ],
     );
   }
 }
