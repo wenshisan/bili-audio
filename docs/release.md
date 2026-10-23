@@ -43,7 +43,7 @@ iOS 描述文件安装用三个 Actions secrets：`IOS_CERTIFICATE_P12_BASE64`�
 
 `https://wenshisan.github.io/bili-audio/`
 
-页面先请求 Latest 正式版；没有正式版，或正式版里没有安装包时，改用 `continuous`。按钮在第一次构建完成前会 404。页首有一段循环播放的功能演示。
+页面先请求 Latest 正式版；没有正式版，或正式版里没有安装包时，改用 `continuous`。按钮在第一次构建完成前会 404。页首有一段循环播放的功能演示。下载区有二维码，内容是 `https://wenshisan.github.io/bili-audio/get.html`：Android 打开后下载 APK，iPhone 在 Safari 里走描述文件安装。窄屏不显示这个二维码，直接用下面的按钮。
 
 iOS 按钮只在 Release 里已经有 `bili_audio-ios.ipa` 时可以点，并且只在 iPhone 的 Safari 里开始安装。安装清单 `manifest.plist` 在每次部署介绍页时重写：优先用正式版里的 IPA 地址，否则用 `continuous`。安装包构建成功后会再部署一次介绍页，让清单跟上新文件。
 

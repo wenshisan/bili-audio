@@ -36,7 +36,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
-          cp site/index.html _site/index.html
+          cp site/index.html site/get.html site/download.svg _site/
           cp -r site/demo _site/demo
           cp bili_audio/assets/app_icon.png _site/icon.png
           ipa_url="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-ios.ipa"
