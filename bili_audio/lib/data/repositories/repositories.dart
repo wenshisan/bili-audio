@@ -24,8 +24,39 @@ abstract interface class SearchRepository {
     void Function(List<SearchHit> items)? onItems,
   });
 
-  /// 音乐区当日热门。发现页在用户还没发起搜索时展示。
-  Future<Result<SearchHitPage>> dailyPopular();
+  /// 音乐区推荐。发现页在用户还没发起搜索时按 tab 展示。
+  Future<Result<DiscoverCharts>> dailyPopular();
+}
+
+/// 发现页推荐分类。
+enum DiscoverTab {
+  /// 音乐区排行，按近期播放热度。
+  heat,
+
+  /// 同一批热门里，投币、收藏相对播放量更高的。
+  rating,
+
+  /// 热门里标题为中文的歌曲。
+  chinese,
+}
+
+/// 一次拉榜得到的三个推荐列表。曲目都已经按 15 分钟规则展开。
+class DiscoverCharts {
+  const DiscoverCharts({
+    this.heat = const [],
+    this.rating = const [],
+    this.chinese = const [],
+  });
+
+  final List<SearchHit> heat;
+  final List<SearchHit> rating;
+  final List<SearchHit> chinese;
+
+  List<SearchHit> of(DiscoverTab tab) => switch (tab) {
+    DiscoverTab.heat => heat,
+    DiscoverTab.rating => rating,
+    DiscoverTab.chinese => chinese,
+  };
 }
 
 abstract interface class VideoRepository {

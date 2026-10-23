@@ -20,7 +20,7 @@ import 'search_controller.dart';
 
 /// 发现页 (M6.1)
 ///
-/// 还没搜索时展示音乐区当日热门。点击结果或播放按钮会用当前列表直接开播。
+/// 还没搜索时展示音乐区推荐，可在热度、评价、中文之间切换。
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
@@ -60,6 +60,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void _searchFor(String keyword) {
     _text.text = keyword;
     ref.read(searchControllerProvider.notifier).search(keyword);
+  }
+
+  void _selectChart(DiscoverTab tab) {
+    if (ref.read(searchControllerProvider).chart == tab) return;
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+    ref.read(searchControllerProvider.notifier).selectChart(tab);
   }
 
   /// 从第一条能直接播放的结果开始，已加载列表作为队列。
@@ -149,6 +155,14 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           child: Column(
             children: [
               if (state.keyword.isEmpty) _HistoryStrip(onTap: _searchFor),
+              if (state.keyword.isEmpty)
+                _ChartTabs(
+                  selected: state.chart,
+                  showPlay: items.isNotEmpty,
+                  count: items.length,
+                  onSelected: _selectChart,
+                  onPlayAll: () => _playAll(items),
+                ),
               Expanded(
                 child: MotionSwap(
                   swapKey: _searchBodyKey(state, items),
@@ -173,29 +187,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                       ),
                     _ => Column(
                       children: [
-                        if (items.isNotEmpty)
+                        if (items.isNotEmpty && state.keyword.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
                             child: Row(
                               children: [
-                                if (state.keyword.isEmpty) ...[
-                                  Flexible(
-                                    child: Text(
-                                      l10n.discoverDaily,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .titleSmall,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  FilledButton.icon(
-                                    icon: const Icon(Icons.play_arrow),
-                                    label: Text(l10n.playlistPlayAll),
-                                    onPressed: () => _playAll(items),
-                                  ),
-                                ],
                                 const Spacer(),
                                 Text(l10n.playlistTrackCount(items.length)),
                               ],
@@ -203,7 +199,9 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                           ),
                         Expanded(
                           child: ListEntranceScope(
-                            key: ValueKey(state.keyword),
+                            key: ValueKey(
+                              '${state.keyword}:${state.chart.name}',
+                            ),
                             child: ListView.builder(
                               controller: _scroll,
                               itemCount: items.length + 1,
@@ -562,5 +560,68 @@ Object _searchBodyKey(SearchState state, List<SearchHit> items) {
       !state.hasMore) {
     return state.keyword.isEmpty ? 'daily-empty' : 'empty:${state.keyword}';
   }
-  return state.keyword.isEmpty ? 'daily' : 'results:${state.keyword}';
+  return state.keyword.isEmpty
+      ? 'daily:${state.chart.name}'
+      : 'results:${state.keyword}';
+}
+
+class _ChartTabs extends StatelessWidget {
+  const _ChartTabs({
+    required this.selected,
+    required this.showPlay,
+    required this.count,
+    required this.onSelected,
+    required this.onPlayAll,
+  });
+
+  final DiscoverTab selected;
+  final bool showPlay;
+  final int count;
+  final ValueChanged<DiscoverTab> onSelected;
+  final VoidCallback onPlayAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final labels = {
+      DiscoverTab.heat: l10n.discoverTabHeat,
+      DiscoverTab.rating: l10n.discoverTabRating,
+      DiscoverTab.chinese: l10n.discoverTabChinese,
+    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: SizedBox(
+              height: 40,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: DiscoverTab.values.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final tab = DiscoverTab.values[index];
+                  return ChoiceChip(
+                    label: Text(labels[tab]!),
+                    selected: tab == selected,
+                    onSelected: (_) => onSelected(tab),
+                  );
+                },
+              ),
+            ),
+          ),
+          if (showPlay) ...[
+            const SizedBox(width: 8),
+            FilledButton.icon(
+              icon: const Icon(Icons.play_arrow),
+              label: Text(l10n.playlistPlayAll),
+              onPressed: onPlayAll,
+            ),
+            const SizedBox(width: 8),
+            Text(l10n.playlistTrackCount(count)),
+          ],
+        ],
+      ),
+    );
+  }
 }

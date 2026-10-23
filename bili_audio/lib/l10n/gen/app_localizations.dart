@@ -142,6 +142,24 @@ abstract class AppLocalizations {
   /// **'今天还没有可推荐的音乐'**
   String get discoverDailyEmpty;
 
+  /// No description provided for @discoverTabHeat.
+  ///
+  /// In zh, this message translates to:
+  /// **'热度'**
+  String get discoverTabHeat;
+
+  /// No description provided for @discoverTabRating.
+  ///
+  /// In zh, this message translates to:
+  /// **'评价最高'**
+  String get discoverTabRating;
+
+  /// No description provided for @discoverTabChinese.
+  ///
+  /// In zh, this message translates to:
+  /// **'中文'**
+  String get discoverTabChinese;
+
   /// No description provided for @searchNoResult.
   ///
   /// In zh, this message translates to:

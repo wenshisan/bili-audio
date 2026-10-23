@@ -45,25 +45,28 @@ class _PartialSearch implements SearchRepository {
   }
 
   @override
-  Future<Result<SearchHitPage>> dailyPopular() async =>
-      Result.success((items: const [], page: 1, total: 0, hasMore: false));
+  Future<Result<DiscoverCharts>> dailyPopular() async =>
+      const Result.success(DiscoverCharts());
 }
 
 class _ChartSearch implements SearchRepository {
-  _ChartSearch({this.dailyGate});
+  _ChartSearch({this.dailyGate, this.charts});
 
   final Completer<void>? dailyGate;
+  final DiscoverCharts? charts;
 
   @override
-  Future<Result<SearchHitPage>> dailyPopular() async {
+  Future<Result<DiscoverCharts>> dailyPopular() async {
     final gate = dailyGate;
     if (gate != null) await gate.future;
-    return Result.success((
-      items: [_hit('daily')],
-      page: 1,
-      total: 1,
-      hasMore: false,
-    ));
+    return Result.success(
+      charts ??
+          DiscoverCharts(
+            heat: [_hit('daily')],
+            rating: [_hit('daily')],
+            chinese: [_hit('daily')],
+          ),
+    );
   }
 
   @override
@@ -172,5 +175,51 @@ void main() {
     final end = container.read(searchControllerProvider);
     expect(end.keyword, '歌');
     expect(end.items.single.result.bvid, '歌');
+  });
+
+  test('推荐 tab 切换对应列表，清空搜索后仍停在该 tab', () async {
+    final db = AppDatabase.memory();
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        searchRepositoryProvider.overrideWithValue(
+          _ChartSearch(
+            charts: DiscoverCharts(
+              heat: [_hit('hot')],
+              rating: [_hit('rated')],
+              chinese: [_hit('cn')],
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(() async {
+      await container.read(searchHistoryProvider.future);
+      await Future<void>.delayed(Duration.zero);
+      container.dispose();
+      await db.close();
+    });
+
+    final notifier = container.read(searchControllerProvider.notifier);
+    await notifier.loadDaily();
+    expect(container.read(searchControllerProvider).chart, DiscoverTab.heat);
+    expect(
+      container.read(searchControllerProvider).items.single.result.bvid,
+      'hot',
+    );
+
+    notifier.selectChart(DiscoverTab.rating);
+    expect(
+      container.read(searchControllerProvider).items.single.result.bvid,
+      'rated',
+    );
+
+    notifier.selectChart(DiscoverTab.chinese);
+    await notifier.search('歌');
+    await notifier.search('');
+    final end = container.read(searchControllerProvider);
+    expect(end.keyword, isEmpty);
+    expect(end.chart, DiscoverTab.chinese);
+    expect(end.items.single.result.bvid, 'cn');
   });
 }

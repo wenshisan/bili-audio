@@ -83,7 +83,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SearchBar), findsOneWidget);
-    expect(find.text('今日热门'), findsOneWidget);
+    expect(find.text('热度'), findsOneWidget);
+    expect(find.text('评价最高'), findsOneWidget);
+    expect(find.text('中文'), findsOneWidget);
     expect(find.text('七里香 - 周杰伦'), findsOneWidget);
     expect(find.text('4 首'), findsOneWidget);
     expect(find.textContaining('超长'), findsNothing);

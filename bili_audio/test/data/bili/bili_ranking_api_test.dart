@@ -72,7 +72,7 @@ void main() {
     final result = await api.dailyMusic();
 
     expect(result.isSuccess, isTrue);
-    final items = result.valueOrNull!;
+    final items = result.valueOrNull!.heat;
     expect(items.map((item) => item.bvid), ['BV1short', 'BV1long']);
     final first = items.first;
     expect(first.cleanTitle, '周杰伦 - 晴天');
@@ -84,6 +84,48 @@ void main() {
     expect(first.cover, 'https://i0.hdslb.com/bfs/archive/cover.jpg');
     expect(items[1].filtered, isTrue);
     expect(items[1].cover, 'https://i0.hdslb.com/bfs/archive/long.jpg');
+  });
+
+  test('排行拆成热度、评价和中文', () async {
+    adapter.onGet(
+      '/x/web-interface/ranking/v2',
+      (server) => server.reply(200, {
+        'code': 0,
+        'data': {
+          'list': [
+            _video(
+              bvid: 'BVcn',
+              title: '周杰伦 - 晴天',
+              view: 20000,
+              like: 100,
+              coin: 10,
+              favorite: 10,
+            ),
+            _video(
+              bvid: 'BVjp',
+              title: '初音ミク live',
+              view: 50000,
+              like: 1000,
+              coin: 8000,
+              favorite: 1000,
+            ),
+            _video(bvid: 'BVsmall', title: '小众中文歌', view: 100, like: 90),
+            _video(bvid: 'BVen', title: 'PLAVE Special', view: 80000, like: 1),
+          ],
+        },
+      }),
+    );
+
+    final bundle = (await api.dailyMusic()).valueOrNull!;
+
+    expect(bundle.heat.map((item) => item.bvid), [
+      'BVcn',
+      'BVjp',
+      'BVsmall',
+      'BVen',
+    ]);
+    expect(bundle.chinese.map((item) => item.bvid), ['BVcn', 'BVsmall']);
+    expect(bundle.rating.map((item) => item.bvid), ['BVjp', 'BVcn', 'BVen']);
   });
 
   test('排行请求失败时返回网络错误', () async {
@@ -108,3 +150,21 @@ void main() {
     expect(result.errorOrNull, isA<NetworkError>());
   });
 }
+
+Map<String, Object> _video({
+  required String bvid,
+  required String title,
+  required int view,
+  int like = 0,
+  int coin = 0,
+  int favorite = 0,
+}) => {
+  'bvid': bvid,
+  'title': title,
+  'pic': '',
+  'duration': 180,
+  'cid': 1,
+  'videos': 1,
+  'owner': {'name': 'UP'},
+  'stat': {'view': view, 'like': like, 'coin': coin, 'favorite': favorite},
+};

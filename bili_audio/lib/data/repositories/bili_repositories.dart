@@ -61,9 +61,9 @@ class BiliSearchRepository implements SearchRepository {
     });
   }
 
-  /// 音乐区排行里时长合适的条目直接展示；多 P 且能拉分 P 时按每一 P 展开。
+  /// 音乐区排行拆成热度、评价、中文。多 P 只展开一次，三个列表共用结果。
   @override
-  Future<Result<SearchHitPage>> dailyPopular() async {
+  Future<Result<DiscoverCharts>> dailyPopular() async {
     final chart = ranking;
     if (chart == null) {
       return const Result.failure(
@@ -79,11 +79,36 @@ class BiliSearchRepository implements SearchRepository {
       );
       return Result.failure(result.errorOrNull!);
     }
-    final raw = result.valueOrNull ?? const <SearchResult>[];
-    final hits = <SearchHit>[];
-    for (final item in raw) {
+    final bundle = result.valueOrNull;
+    if (bundle == null) {
+      return const Result.failure(
+        AppError.unknown(message: 'music chart empty'),
+      );
+    }
+    final expanded = await _expandChart(bundle.heat);
+    List<SearchHit> take(List<SearchResult> source) => [
+      for (final item in source) ...?expanded[item.bvid],
+    ];
+    final charts = DiscoverCharts(
+      heat: take(bundle.heat),
+      rating: take(bundle.rating),
+      chinese: take(bundle.chinese),
+    );
+    AppLogger.i(
+      'daily music heat=${charts.heat.length} '
+      'rating=${charts.rating.length} chinese=${charts.chinese.length}',
+      tag: 'search',
+    );
+    return Result.success(charts);
+  }
+
+  Future<Map<String, List<SearchHit>>> _expandChart(
+    List<SearchResult> items,
+  ) async {
+    final out = <String, List<SearchHit>>{};
+    for (final item in items) {
       if ((item.totalPages ?? 1) > 1 && pageList != null) {
-        hits.addAll(await _expand(item));
+        out[item.bvid] = await _expand(item);
         continue;
       }
       if (item.duration > maxDuration) {
@@ -91,20 +116,12 @@ class BiliSearchRepository implements SearchRepository {
           'drop daily ${item.bvid} duration=${item.duration}s',
           tag: 'search',
         );
+        out[item.bvid] = const [];
         continue;
       }
-      hits.add(_hit(item));
+      out[item.bvid] = [_hit(item)];
     }
-    AppLogger.i(
-      'daily music raw=${raw.length} shown=${hits.length}',
-      tag: 'search',
-    );
-    return Result.success((
-      items: hits,
-      page: 1,
-      total: hits.length,
-      hasMore: false,
-    ));
+    return out;
   }
 
   /// 时长不超过 15 分钟的卡片先交出去。分P返回后按原位置替换，不必等整页结束。

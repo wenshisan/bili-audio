@@ -12,6 +12,7 @@ import '../../data/repositories/repositories.dart';
 class SearchState {
   const SearchState({
     this.keyword = '',
+    this.chart = DiscoverTab.heat,
     this.items = const [],
     this.page = 0,
     this.hasMore = false,
@@ -20,6 +21,7 @@ class SearchState {
   });
 
   final String keyword;
+  final DiscoverTab chart;
   final List<SearchHit> items;
   final int page;
   final bool hasMore;
@@ -28,6 +30,7 @@ class SearchState {
 
   SearchState copyWith({
     String? keyword,
+    DiscoverTab? chart,
     List<SearchHit>? items,
     int? page,
     bool? hasMore,
@@ -35,6 +38,7 @@ class SearchState {
     Object? Function()? error,
   }) => SearchState(
     keyword: keyword ?? this.keyword,
+    chart: chart ?? this.chart,
     items: items ?? this.items,
     page: page ?? this.page,
     hasMore: hasMore ?? this.hasMore,
@@ -53,6 +57,7 @@ class SearchController extends Notifier<SearchState> {
   int _generation = 0;
   int _emptyFollows = 0;
   bool _dailyInFlight = false;
+  DiscoverCharts? _charts;
 
   @override
   SearchState build() {
@@ -74,7 +79,7 @@ class SearchController extends Notifier<SearchState> {
     if (keyword.isEmpty) {
       _generation++;
       AppLogger.d('cleared', tag: 'search');
-      state = const SearchState();
+      state = SearchState(chart: state.chart);
       await loadDaily(force: true);
       return;
     }
@@ -83,7 +88,7 @@ class SearchController extends Notifier<SearchState> {
       return;
     }
     _emptyFollows = 0;
-    state = SearchState(keyword: keyword, loading: true);
+    state = SearchState(keyword: keyword, chart: state.chart, loading: true);
     unawaited(ref.read(searchHistoryProvider.notifier).add(keyword));
     await _load(1);
   }
@@ -98,7 +103,7 @@ class SearchController extends Notifier<SearchState> {
   Future<void> retry() async {
     if (state.keyword.isEmpty) {
       _generation++;
-      state = const SearchState();
+      state = SearchState(chart: state.chart);
       await loadDaily(force: true);
       return;
     }
@@ -106,27 +111,44 @@ class SearchController extends Notifier<SearchState> {
     await _load(state.page + 1);
   }
 
-  /// 未搜索时加载音乐区当日热门。已有推荐或正在搜索时不覆盖。
+  /// 切换推荐 tab。榜已经在内存里时不再请求。
+  void selectChart(DiscoverTab tab) {
+    if (state.keyword.isNotEmpty || tab == state.chart) return;
+    final charts = _charts;
+    if (charts == null) {
+      state = state.copyWith(chart: tab);
+      return;
+    }
+    state = SearchState(chart: tab, items: charts.of(tab));
+  }
+
+  /// 未搜索时加载音乐区推荐。已有推荐或正在搜索时不覆盖。
   ///
   /// [force] 用于清空搜索后重新拉榜。进行中的请求会被世代号丢掉。
   Future<void> loadDaily({bool force = false}) async {
     _timer?.cancel();
     if (state.keyword.isNotEmpty) return;
     if (_dailyInFlight && !force) return;
-    if (!force && state.items.isNotEmpty && state.error == null) return;
+    final cached = _charts;
+    if (!force && cached != null && state.error == null) {
+      state = SearchState(chart: state.chart, items: cached.of(state.chart));
+      return;
+    }
     _dailyInFlight = true;
     _emptyFollows = 0;
     final gen = ++_generation;
-    state = const SearchState(loading: true);
-    AppLogger.d('load daily gen=$gen', tag: 'search');
-    final Result<SearchHitPage> result;
+    final chart = state.chart;
+    state = SearchState(loading: true, chart: chart);
+    AppLogger.d('load daily gen=$gen chart=$chart', tag: 'search');
+    final Result<DiscoverCharts> result;
     try {
       result = await ref.read(searchRepositoryProvider).dailyPopular();
     } catch (e, st) {
       if (gen == _generation) _dailyInFlight = false;
       if (!ref.mounted || gen != _generation) return;
       AppLogger.e('daily failed', tag: 'search', error: e, stackTrace: st);
-      state = SearchState(loading: false, error: e);
+      _charts = null;
+      state = SearchState(loading: false, chart: state.chart, error: e);
       return;
     }
     if (gen == _generation) _dailyInFlight = false;
@@ -137,10 +159,16 @@ class SearchController extends Notifier<SearchState> {
     final data = result.valueOrNull;
     if (data == null) {
       AppLogger.w('daily failed error=${result.errorOrNull}', tag: 'search');
-      state = SearchState(loading: false, error: result.errorOrNull);
+      _charts = null;
+      state = SearchState(
+        loading: false,
+        chart: state.chart,
+        error: result.errorOrNull,
+      );
       return;
     }
-    state = SearchState(items: data.items, page: data.page, hasMore: false);
+    _charts = data;
+    state = SearchState(chart: state.chart, items: data.of(state.chart));
   }
 
   Future<void> _load(int page) async {

@@ -52,8 +52,9 @@ class _Chart implements MusicChartSource {
   final List<SearchResult> items;
 
   @override
-  Future<Result<List<SearchResult>>> dailyMusic() async =>
-      Result.success(items);
+  Future<Result<MusicChartBundle>> dailyMusic() async => Result.success(
+    MusicChartBundle(heat: items, rating: items, chinese: items),
+  );
 }
 
 class _StubSearchApi implements BiliSearchApi {
@@ -322,7 +323,7 @@ void main() {
       },
     );
 
-    final items = (await repo.dailyPopular()).valueOrNull!.items;
+    final items = (await repo.dailyPopular()).valueOrNull!.heat;
 
     expect(items.map((hit) => hit.result.bvid), [
       'BVmulti',

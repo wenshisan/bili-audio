@@ -56,7 +56,21 @@ class FakeSearchRepository implements SearchRepository {
   }
 
   @override
-  Future<Result<SearchHitPage>> dailyPopular() => search('');
+  Future<Result<DiscoverCharts>> dailyPopular() async {
+    final page = await search('');
+    if (page.isFailure) return Result.failure(page.errorOrNull!);
+    final playable = [
+      for (final hit in page.valueOrNull!.items)
+        if (hit.result.filtered != true && hit.result.duration <= 900) hit,
+    ];
+    return Result.success(
+      DiscoverCharts(
+        heat: playable,
+        rating: playable.reversed.toList(),
+        chinese: playable,
+      ),
+    );
+  }
 }
 
 class FakeVideoRepository implements VideoRepository {
