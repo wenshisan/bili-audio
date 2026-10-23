@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/adaptive/layout_settings.dart';
 import '../../../app/providers.dart';
-import '../../../app/widgets/region_surface.dart';
 import '../../../l10n/l10n.dart';
 import '../../lyrics/lyrics_view.dart';
 import '../../queue/queue_page.dart';
@@ -78,32 +77,26 @@ class _CarPlayerState extends ConsumerState<CarPlayer> {
                   ),
                 ),
                 const Expanded(
-                  child: RegionSurface(
-                    edge: RegionEdge.leading,
-                    child: KeyedSubtree(
-                      key: Key('car-side-pane'),
-                      child: _CarCover(),
-                    ),
+                  child: KeyedSubtree(
+                    key: Key('car-side-pane'),
+                    child: _CarCover(),
                   ),
                 ),
               ],
             ),
           ),
-          const RegionSurface(
-            edge: RegionEdge.top,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                PlayerProgressBar(),
-                PlayerControls(
-                  mainExtent: 76,
-                  iconExtent: 76,
-                  showQueue: false,
-                  showMode: false,
-                ),
-                SizedBox(height: 8),
-              ],
-            ),
+          const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PlayerProgressBar(),
+              PlayerControls(
+                mainExtent: 76,
+                iconExtent: 76,
+                showQueue: false,
+                showMode: false,
+              ),
+              SizedBox(height: 8),
+            ],
           ),
         ],
       ),
