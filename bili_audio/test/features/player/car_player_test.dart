@@ -113,8 +113,12 @@ void main() {
       expect(banner.bottom, lessThanOrEqualTo(lyrics.top + 1));
       expect(lyrics.center.dx, lessThan(intro.center.dx));
       expect(lyrics.right, lessThanOrEqualTo(intro.left));
-      expect(toggle.top, greaterThanOrEqualTo(lyrics.bottom - 1));
-      expect(toggle.bottom, lessThanOrEqualTo(play.top));
+      expect(toggle.left, greaterThanOrEqualTo(lyrics.left));
+      expect(toggle.left, lessThanOrEqualTo(lyrics.left + 20));
+      expect(toggle.top, greaterThanOrEqualTo(lyrics.top));
+      expect(toggle.top, lessThanOrEqualTo(lyrics.top + 20));
+      expect(toggle.right, lessThan(lyrics.right));
+      expect(toggle.height, inInclusiveRange(40, 56));
       expect(play.bottom, greaterThan(layout.bottom - 20));
       expect(play.width, greaterThanOrEqualTo(76));
       expect(tester.takeException(), isNull);
