@@ -8,6 +8,7 @@ import 'package:bili_audio/data/audio/cache_download_manager.dart';
 import 'package:bili_audio/data/db/app_database.dart';
 import 'package:bili_audio/data/player/bili_audio_handler.dart';
 import 'package:bili_audio/features/home/home_shell.dart';
+import 'package:bili_audio/features/player/player_page.dart';
 import 'package:bili_audio/l10n/l10n.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -100,6 +101,37 @@ void main() {
     await pumpAt(tester, const Size(1194, 834));
     expect(find.byType(NavigationRail), findsOneWidget);
     expect(find.byKey(const Key('now-playing-pane')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('播放页拉宽到桌面后收起全屏，露出三栏', (tester) async {
+    await pumpAt(tester, const Size(800, 800));
+    GoRouter.of(tester.element(find.text('search-body'))).push('/player');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('player-page')), findsOneWidget);
+    expect(find.byKey(const Key('now-playing-pane')), findsNothing);
+
+    tester.view.physicalSize = const Size(1280, 480);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('player-page')), findsOneWidget);
+    expect(find.byKey(const Key('now-playing-pane')), findsNothing);
+
+    tester.view.physicalSize = const Size(1280, 800);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('player-page')), findsNothing);
+    expect(find.byKey(const Key('now-playing-pane')), findsOneWidget);
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.text('search-body'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('桌面宽度打开播放页会立刻回到三栏', (tester) async {
+    await pumpAt(tester, const Size(1280, 800));
+    GoRouter.of(tester.element(find.text('search-body'))).push('/player');
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('player-page')), findsNothing);
+    expect(find.byKey(const Key('now-playing-pane')), findsOneWidget);
+    expect(find.text('search-body'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -265,6 +297,7 @@ Widget _harness(AppDatabase db, BiliAudioHandler handler) {
           ),
         ],
       ),
+      GoRoute(path: '/player', builder: (_, _) => const PlayerPage()),
     ],
   );
   return ProviderScope(

@@ -24,58 +24,116 @@ class PlayerPage extends ConsumerWidget {
     final handler = ref.read(audioHandlerProvider);
     final track = handler.currentTrack;
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-          icon: const Icon(Icons.keyboard_arrow_down),
-          onPressed: () => context.pop(),
+    return _PopWhenMasterDetail(
+      child: Scaffold(
+        key: const Key('player-page'),
+        appBar: AppBar(
+          leading: IconButton(
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            icon: const Icon(Icons.keyboard_arrow_down),
+            onPressed: () => context.pop(),
+          ),
+          actions: [if (track != null) _MoreMenu()],
         ),
-        actions: [if (track != null) _MoreMenu()],
-      ),
-      body: item == null || track == null
-          ? Center(child: Text(l10n.nothingPlaying))
-          : SafeArea(
-              child: LayoutBuilder(
-                builder: (context, c) {
-                  final metrics = WindowMetrics.fromSize(c.biggest);
-                  if (metrics.isShort) return _ShortPlayer(item: item);
-                  final cover = PlayerCoverSection(item: item);
-                  const lyrics = LyricsView();
-                  final sideBySide =
-                      metrics.width.index >= WindowWidth.expanded.index;
-                  return Column(
-                    children: [
-                      Expanded(
-                        child: sideBySide
-                            ? Row(
-                                children: [
-                                  Expanded(child: cover),
-                                  const Expanded(
-                                    child: RegionSurface(
-                                      shadow: RegionShadow.leading,
-                                      child: lyrics,
+        body: item == null || track == null
+            ? Center(child: Text(l10n.nothingPlaying))
+            : SafeArea(
+                child: LayoutBuilder(
+                  builder: (context, c) {
+                    final metrics = WindowMetrics.fromSize(c.biggest);
+                    if (metrics.isShort) return _ShortPlayer(item: item);
+                    final cover = PlayerCoverSection(item: item);
+                    const lyrics = LyricsView();
+                    final sideBySide =
+                        metrics.width.index >= WindowWidth.expanded.index;
+                    return Column(
+                      children: [
+                        Expanded(
+                          child: sideBySide
+                              ? Row(
+                                  children: [
+                                    Expanded(child: cover),
+                                    const Expanded(
+                                      child: RegionSurface(
+                                        shadow: RegionShadow.leading,
+                                        child: lyrics,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              )
-                            : Column(
-                                children: [
-                                  Expanded(flex: 3, child: cover),
-                                  const Expanded(flex: 2, child: lyrics),
-                                ],
-                              ),
-                      ),
-                      const PlayerProgressBar(),
-                      const PlayerControls(),
-                      const PlayerSleepIndicator(),
-                      const SizedBox(height: 16),
-                    ],
-                  );
-                },
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    Expanded(flex: 3, child: cover),
+                                    const Expanded(flex: 2, child: lyrics),
+                                  ],
+                                ),
+                        ),
+                        const PlayerProgressBar(),
+                        const PlayerControls(),
+                        const PlayerSleepIndicator(),
+                        const SizedBox(height: 16),
+                      ],
+                    );
+                  },
+                ),
               ),
-            ),
+      ),
     );
+  }
+}
+
+/// 内容区进入主从栏时关掉全屏播放页，露出底下的导航、页面和正在播放。
+class _PopWhenMasterDetail extends StatefulWidget {
+  const _PopWhenMasterDetail({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_PopWhenMasterDetail> createState() => _PopWhenMasterDetailState();
+}
+
+class _PopWhenMasterDetailState extends State<_PopWhenMasterDetail> {
+  var _leaving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest;
+        if (WindowMetrics.fromSize(size).usesMasterDetail) {
+          _requestPop(size);
+        } else {
+          _leaving = false;
+        }
+        return widget.child;
+      },
+    );
+  }
+
+  void _requestPop(Size size) {
+    if (_leaving) return;
+    final router = GoRouter.maybeOf(context);
+    if (router == null ||
+        router.state.matchedLocation != '/player' ||
+        !router.canPop()) {
+      return;
+    }
+    _leaving = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!WindowMetrics.fromSize(size).usesMasterDetail) {
+        _leaving = false;
+        return;
+      }
+      final current = GoRouter.maybeOf(context);
+      if (current == null ||
+          current.state.matchedLocation != '/player' ||
+          !current.canPop()) {
+        _leaving = false;
+        return;
+      }
+      current.pop();
+    });
   }
 }
 
