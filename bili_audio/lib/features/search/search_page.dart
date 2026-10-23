@@ -36,7 +36,11 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void initState() {
     super.initState();
     _text.text = ref.read(searchControllerProvider).keyword;
-    unawaited(ref.read(searchControllerProvider.notifier).loadDaily());
+    // 等这一帧建完再改 provider，避免在 initState 里通知监听者。
+    Future(() {
+      if (!mounted) return;
+      unawaited(ref.read(searchControllerProvider.notifier).loadDaily());
+    });
     _scroll.addListener(() {
       final current = ref.read(searchControllerProvider);
       if (current.items.isEmpty) return;

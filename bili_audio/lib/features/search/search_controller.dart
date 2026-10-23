@@ -52,11 +52,13 @@ class SearchController extends Notifier<SearchState> {
   Timer? _timer;
   int _generation = 0;
   int _emptyFollows = 0;
+  bool _dailyInFlight = false;
 
   @override
   SearchState build() {
     ref.onDispose(() => _timer?.cancel());
-    return const SearchState();
+    // 第一帧就是加载态。真正的请求由页面在帧后再发起。
+    return const SearchState(loading: true);
   }
 
   /// 输入变化: 防抖 500ms 后搜索
@@ -73,7 +75,7 @@ class SearchController extends Notifier<SearchState> {
       _generation++;
       AppLogger.d('cleared', tag: 'search');
       state = const SearchState();
-      await loadDaily();
+      await loadDaily(force: true);
       return;
     }
     if (keyword == state.keyword && state.items.isNotEmpty) {
@@ -97,7 +99,7 @@ class SearchController extends Notifier<SearchState> {
     if (state.keyword.isEmpty) {
       _generation++;
       state = const SearchState();
-      await loadDaily();
+      await loadDaily(force: true);
       return;
     }
     state = state.copyWith(loading: true, error: () => null);
@@ -105,12 +107,14 @@ class SearchController extends Notifier<SearchState> {
   }
 
   /// 未搜索时加载音乐区当日热门。已有推荐或正在搜索时不覆盖。
-  Future<void> loadDaily() async {
+  ///
+  /// [force] 用于清空搜索后重新拉榜。进行中的请求会被世代号丢掉。
+  Future<void> loadDaily({bool force = false}) async {
     _timer?.cancel();
     if (state.keyword.isNotEmpty) return;
-    if (state.loading || (state.items.isNotEmpty && state.error == null)) {
-      return;
-    }
+    if (_dailyInFlight && !force) return;
+    if (!force && state.items.isNotEmpty && state.error == null) return;
+    _dailyInFlight = true;
     _emptyFollows = 0;
     final gen = ++_generation;
     state = const SearchState(loading: true);
@@ -119,11 +123,13 @@ class SearchController extends Notifier<SearchState> {
     try {
       result = await ref.read(searchRepositoryProvider).dailyPopular();
     } catch (e, st) {
+      if (gen == _generation) _dailyInFlight = false;
       if (!ref.mounted || gen != _generation) return;
       AppLogger.e('daily failed', tag: 'search', error: e, stackTrace: st);
       state = SearchState(loading: false, error: e);
       return;
     }
+    if (gen == _generation) _dailyInFlight = false;
     if (!ref.mounted || gen != _generation || state.keyword.isNotEmpty) {
       AppLogger.d('stale daily dropped gen=$gen', tag: 'search');
       return;

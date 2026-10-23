@@ -64,10 +64,12 @@ void main() {
           locale: const Locale('zh'),
           localizationsDelegates: AppLocalizations.localizationsDelegates,
           supportedLocales: AppLocalizations.supportedLocales,
-          home: LayoutBuilder(
-            builder: (context, constraints) => WindowMetricsScope(
-              metrics: WindowMetrics.fromSize(constraints.biggest),
-              child: const SearchPage(),
+          home: Scaffold(
+            body: LayoutBuilder(
+              builder: (context, constraints) => WindowMetricsScope(
+                metrics: WindowMetrics.fromSize(constraints.biggest),
+                child: const SearchPage(),
+              ),
             ),
           ),
         ),
