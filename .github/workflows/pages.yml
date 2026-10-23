@@ -37,6 +37,7 @@ jobs:
         run: |
           mkdir -p _site
           cp site/index.html _site/index.html
+          cp -r site/demo _site/demo
           cp bili_audio/assets/app_icon.png _site/icon.png
           ipa_url="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-ios.ipa"
           version=$(awk '/^version:/ {print $2; exit}' bili_audio/pubspec.yaml)

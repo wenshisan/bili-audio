@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>bili-audio</title>
   <link rel="icon" href="icon.png">
   <style>
@@ -57,342 +57,39 @@
       align-items: center;
       margin: 8px 0 12px;
     }
-    .desktop {
-      width: 100%;
-      height: 440px;
-      border: 1px solid #3a332b;
+    .frame {
+      border: 1px solid var(--line);
       border-radius: 16px;
-      background: #171513;
       overflow: hidden;
+      background: #171513;
       box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
-      display: flex;
-      flex-direction: column;
     }
-    .chrome {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      height: 36px;
-      padding: 0 12px;
-      background: #211d18;
-      color: var(--muted);
-      font-size: 13px;
-      flex: none;
-    }
-    .lights { display: flex; gap: 6px; }
-    .lights i { width: 10px; height: 10px; border-radius: 50%; background: #3a332b; }
-    .lights i:first-child { background: #fb7299; }
-    .chrome .title { color: var(--text); }
-    .chrome .track { margin-left: auto; }
-    .app { flex: 1; min-height: 0; display: flex; }
-    .rail-fixed {
-      width: 112px;
-      flex: none;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-      padding: 16px 12px;
-      border-right: 1px solid #3a332b;
-      color: var(--muted);
-      font-size: 13px;
-    }
-    .rail-fixed span { display: flex; gap: 8px; align-items: center; white-space: nowrap; }
-    .rail-fixed i { width: 16px; height: 16px; border-radius: 4px; background: #3a332b; flex: none; }
-    .rail-fixed .here { color: var(--text); }
-    .rail-fixed .here i { background: #fb7299; }
-    .rail-fixed em { font-style: normal; }
-    .stage { position: relative; flex: 1; min-width: 0; overflow: hidden; }
-    .rail-fixed, .now-pane { flex-shrink: 0; }
-    .now-pane {
-      width: 168px;
-      flex: none;
-      border-left: 1px solid #3a332b;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 12px;
-      text-align: center;
-    }
-    .now-pane .art { width: 96px; height: 96px; margin: 8px 0 10px; }
-    .now-pane strong { font-size: 15px; }
-    .now-pane .lyric { margin-top: 8px; }
-    .now-pane .progress { width: 100%; margin: 10px 0 0; }
-    .stage .nav, .stage .dock { display: none; }
-    .scene {
-      position: absolute;
-      inset: 0;
-      display: none;
-      flex-direction: column;
-      padding: 14px 14px 10px;
-    }
-    .scene.on { display: flex; }
-    .scene.on .a {
-      animation-duration: var(--d);
-      animation-timing-function: linear;
-      animation-fill-mode: both;
-    }
-    .top, .nav, .row, .mini, .hit, .transport { display: flex; align-items: center; }
-    .top, .nav { justify-content: space-between; color: var(--muted); font-size: 12px; }
-    .nav { margin-top: auto; padding-top: 10px; }
-    .nav b, .dock b { color: #fb7299; }
-    .row, .mini, .hit { gap: 10px; }
-    .row { margin-top: 12px; padding: 8px; border-radius: 12px; }
-    .hit { margin-top: 14px; }
-    .thumb { width: 42px; height: 42px; border-radius: 8px; flex: none; background: linear-gradient(135deg, #fb7299, #7a3148); }
-    .row strong, .song, .mini strong, .hit strong { display: block; }
-    .row span, .artist, .mini span, .hit span, .cardlet small { color: var(--muted); font-size: 13px; }
-    .tag { color: #fb7299; font-size: 12px; }
-    .search, .part, .cardlet, .lock, .dialog, .menu, .sheet, .opt { background: #241f1b; border-radius: 12px; }
-    .search { margin-top: 22px; padding: 10px 12px; color: var(--muted); }
-    .typed { display: inline-block; overflow: hidden; white-space: nowrap; color: var(--text); vertical-align: bottom; }
-    .art { width: 148px; height: 148px; margin: 24px auto 12px; border-radius: 18px; background: linear-gradient(160deg, #fb7299, #3a1d28 70%); }
-    .art.sm { width: 92px; height: 92px; margin: 20px auto 12px; }
-    .song { text-align: center; font-size: 22px; }
-    .artist, .badge, .chip, .hint { text-align: center; }
-    .badge, .chip, .hint { color: var(--muted); font-size: 13px; }
-    .progress { height: 4px; margin: 16px 8px 8px; border-radius: 4px; background: #3a332b; overflow: hidden; }
-    .progress i { display: block; height: 100%; width: 42%; background: #fb7299; }
-    .lyric { text-align: center; color: #6f655b; margin: 4px 0; }
-    .lyric.on { color: var(--text); }
-    .part { display: flex; justify-content: space-between; margin-top: 12px; padding: 12px; outline: 2px solid transparent; }
-    .transport { justify-content: center; gap: 18px; margin-top: 18px; }
-    .transport b { min-width: 72px; text-align: center; padding: 8px 10px; border-radius: 999px; }
-    .sheet, .dialog, .menu { position: absolute; left: 16px; right: 16px; padding: 14px; }
-    .sheet { bottom: 16px; transform: translateY(120%); }
-    .dialog { top: 26%; }
-    .menu { left: auto; right: 24px; width: 168px; bottom: 28px; }
-    .opt { margin-top: 8px; padding: 10px 12px; }
-    .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .frame img { display: block; width: 100%; height: auto; background: #f4f7fb; }
+    .frame img.in { animation: shot-in 0.35s ease; }
+    @keyframes shot-in { from { opacity: 0.35; } to { opacity: 1; } }
     .caption { font-size: 22px; margin: 0 0 8px; }
     #demo-text { color: var(--muted); min-height: 4.8em; }
     #demo-count { margin: 8px 0 0; }
+    .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
     button.replay { background: transparent; color: var(--accent); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font: inherit; cursor: pointer; }
-
-    .scene-shuffle .q1 { background: #3a242c; }
-    .mode { position: relative; min-width: 5.5em; height: 1.2em; }
-    .mode .m2 { position: absolute; right: 0; top: 0; opacity: 0; }
-    .scene-shuffle.on .m1 { animation-name: mid-out; }
-    .scene-shuffle.on .m2 { animation-name: mid-in; }
-    .scene-shuffle.on .q1 { animation-name: hi-a; }
-    .scene-shuffle.on .q3 { animation-name: hi-b; }
-    .scene-shuffle.on .pn { animation-name: tap-next; }
-    .scene-shuffle.on .pp { animation-name: tap-prev; }
-    @keyframes mid-out { 0%, 14% { opacity: 1; } 22%, 100% { opacity: 0; } }
-    @keyframes mid-in { 0%, 14% { opacity: 0; } 22%, 100% { opacity: 1; } }
-    @keyframes hi-a { 0%, 40% { background: #3a242c; } 48%, 70% { background: transparent; } 78%, 100% { background: #3a242c; } }
-    @keyframes hi-b { 0%, 40% { background: transparent; } 48%, 70% { background: #3a242c; } 78%, 100% { background: transparent; } }
-    @keyframes tap-next { 0%, 36% { background: transparent; } 42%, 50% { background: #3a242c; } 56%, 100% { background: transparent; } }
-    @keyframes tap-prev { 0%, 72% { background: transparent; } 78%, 86% { background: #3a242c; } 92%, 100% { background: transparent; } }
-
-    .scene-cache .badge { display: grid; }
-    .scene-cache .badge span { grid-area: 1 / 1; }
-    .scene-cache .b2, .scene-cache .off { opacity: 0; }
-    .scene-cache.on .bar { animation-name: cache-bar; }
-    .scene-cache.on .b1 { animation-name: fade-early; }
-    .scene-cache.on .b2, .scene-cache.on .off { animation-name: fade-late; }
-    @keyframes cache-bar { 0% { width: 0; } 38% { width: 100%; } 48% { width: 8%; } 100% { width: 72%; } }
-    @keyframes fade-early { 0%, 36% { opacity: 1; } 46%, 100% { opacity: 0; } }
-    @keyframes fade-late { 0%, 42% { opacity: 0; } 52%, 100% { opacity: 1; } }
-
-    .scene-playlist .cardlet, .scene-playlist .mini { opacity: 0; }
-    .scene-playlist .typed { width: 0; }
-    .scene-playlist.on .sheet { animation-name: sheet; }
-    .scene-playlist.on .typed { animation-name: type-name; }
-    .scene-playlist.on .cardlet { animation-name: fade-late; }
-    .scene-playlist.on .mini { animation-name: mini-late; }
-    @keyframes sheet { 0%, 8% { transform: translateY(120%); } 16%, 40% { transform: none; } 52%, 100% { transform: translateY(120%); } }
-    @keyframes type-name { 0%, 16% { width: 0; } 32%, 100% { width: 2em; } }
-    @keyframes mini-late { 0%, 62% { opacity: 0; } 74%, 100% { opacity: 1; } }
-
-    .cardlet { padding: 12px; width: 100%; }
-    .cardlet small { display: block; }
-    .mini { margin-top: auto; padding: 8px; background: #241f1b; border-radius: 12px; }
-    .sizes {
-      flex: 1;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      gap: 12px;
-      padding-bottom: 8px;
-    }
-    .device {
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 10px;
-      border: 1px solid #3a332b;
-      background: #241f1b;
-      text-align: center;
-    }
-    .device b { font-size: 14px; }
-    .device span { color: var(--muted); font-size: 12px; }
-    .phone-d { width: 72px; height: 128px; border-radius: 16px; }
-    .tablet-d { width: 112px; height: 148px; border-radius: 12px; }
-    .desk-d { width: 168px; height: 108px; border-radius: 8px; outline: 2px solid #fb7299; }
-    .scene-sizes .hint { margin: 0; }
-
-    .scene-search .hit, .scene-search .typed { opacity: 1; }
-    .scene-search .typed { width: 0; opacity: 1; }
-    .scene-search .hit { opacity: 0; }
-    .scene-search.on .typed { animation-name: typing; }
-    .scene-search.on .h1 { animation-name: rise-a; }
-    .scene-search.on .h2 { animation-name: rise-b; }
-    .scene-search.on .h3 { animation-name: rise-c; }
-    @keyframes typing { 0%, 6% { width: 0; } 24%, 100% { width: 3.2em; } }
-    @keyframes rise-a { 0%, 16% { opacity: 0; transform: translateY(8px); } 30%, 100% { opacity: 1; transform: none; } }
-    @keyframes rise-b { 0%, 24% { opacity: 0; transform: translateY(8px); } 38%, 100% { opacity: 1; transform: none; } }
-    @keyframes rise-c { 0%, 32% { opacity: 0; transform: translateY(8px); } 46%, 100% { opacity: 0.45; transform: none; } }
-
-    .noise { display: inline-block; overflow: hidden; vertical-align: bottom; white-space: nowrap; }
-    .clean { opacity: 0; text-align: center; font-size: 22px; margin-top: 12px; }
-    .raw { margin-top: 36px; text-align: center; }
-    .scene-title.on .noise { animation-name: noise; }
-    .scene-title.on .raw { animation-name: raw-out; }
-    .scene-title.on .clean { animation-name: clean-in; }
-    @keyframes noise { 0%, 22% { max-width: 8em; opacity: 1; } 48%, 100% { max-width: 0; opacity: 0; } }
-    @keyframes raw-out { 0%, 52% { opacity: 1; } 72%, 100% { opacity: 0; } }
-    @keyframes clean-in { 0%, 52% { opacity: 0; } 72%, 100% { opacity: 1; } }
-
-    .scene-lyrics.on .bar { animation-name: grow; }
-    .scene-lyrics.on .la { animation-name: line-a; }
-    .scene-lyrics.on .lb { animation-name: line-b; }
-    .scene-lyrics.on .lc { animation-name: line-c; }
-    @keyframes grow { from { width: 8%; } to { width: 76%; } }
-    @keyframes line-a { 0%, 28% { color: #f4efe6; } 40%, 100% { color: #6f655b; } }
-    @keyframes line-b { 0%, 28% { color: #6f655b; } 40%, 66% { color: #f4efe6; } 78%, 100% { color: #6f655b; } }
-    @keyframes line-c { 0%, 66% { color: #6f655b; } 78%, 100% { color: #f4efe6; } }
-
-    .scene-seek.on .bar { animation-name: seek-bar; }
-    .scene-seek.on .lc { animation-name: seek-line; }
-    @keyframes seek-bar { 0%, 42% { width: 18%; } 56%, 100% { width: 74%; } }
-    @keyframes seek-line {
-      0%, 40% { color: #6f655b; box-shadow: none; }
-      48% { color: #f4efe6; box-shadow: 0 0 0 2px #fb7299; }
-      62%, 100% { color: #f4efe6; box-shadow: none; }
-    }
-
-    .titles { position: relative; min-height: 2.4em; margin-top: 18px; }
-    .scene-parts .song { text-align: left; font-size: 18px; margin: 0; }
-    .scene-parts .artist { text-align: left; }
-    .scene-parts .t2 { position: absolute; left: 0; top: 0; opacity: 0; }
-    .scene-parts.on .p2 { animation-name: pick; }
-    .scene-parts.on .t1 { animation-name: fade-early; }
-    .scene-parts.on .t2 { animation-name: fade-late; }
-    @keyframes pick { 0%, 36% { outline-color: transparent; } 50%, 100% { outline-color: #fb7299; } }
-
-    .scene-mini .player { max-height: 0; opacity: 0; overflow: hidden; }
-    .scene-mini .nb { position: absolute; left: 16px; right: 16px; bottom: 12px; opacity: 0; }
-    .scene-mini.on .na { animation-name: fade-early; }
-    .scene-mini.on .nb { animation-name: fade-late; }
-    .scene-mini.on .player { animation-name: expand; }
-    @keyframes expand { 0%, 52% { max-height: 0; opacity: 0; } 72%, 100% { max-height: 260px; opacity: 1; } }
-
-    .dim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.72); display: flex; align-items: center; justify-content: center; opacity: 0; }
-    .lock { width: 78%; text-align: center; padding: 18px; }
-    .lock .thumb { width: 72px; height: 72px; margin: 0 auto 10px; }
-    .scene-lock.on .dim { animation-name: dim; }
-    .scene-lock.on .pn { animation-name: tap-prev; }
-    @keyframes dim { 0%, 12% { opacity: 0; } 28%, 100% { opacity: 1; } }
-
-    .scene-offset .v2 { position: absolute; left: 0; right: 0; opacity: 0; }
-    .scene-offset .badge { position: relative; height: 1.4em; }
-    .scene-offset.on .early { animation-name: line-c; }
-    .scene-offset.on .late { animation-name: line-a; }
-    .scene-offset.on .v1 { animation-name: fade-early; }
-    .scene-offset.on .v2 { animation-name: fade-late; }
-
-    .big { width: 76px; height: 76px; border-radius: 50%; background: #fb7299; }
-    .seg { display: flex; background: #241f1b; border-radius: 999px; padding: 4px; margin: 12px 16px; }
-    .seg b, .seg span { flex: 1; text-align: center; border-radius: 999px; padding: 8px; }
-    .seg b { background: #3a332b; }
-    .scene-car .lyric-only { opacity: 0; }
-    .scene-car .seg .on { background: #3a332b; opacity: 0; }
-    .scene-car.on .queue-side { animation-name: fade-early; }
-    .scene-car.on .lyric-only, .scene-car.on .seg .on { animation-name: fade-late; }
-    .scene-car.on .seg b { animation-name: fade-early; }
-
-    .dots { display: flex; justify-content: center; gap: 14px; margin-top: 16px; }
-    .dots i { width: 22px; height: 22px; border-radius: 50%; }
-    .c1 { background: #fb7299; } .c2 { background: #6ea8fe; } .c3 { background: #e3a15a; }
-    .arts { position: relative; width: 148px; height: 148px; margin: 18px auto; }
-    .arts i { position: absolute; inset: 0; border-radius: 18px; }
-    .arts .p1 { background: linear-gradient(160deg, #fb7299, #3a1d28); }
-    .arts .p2 { background: linear-gradient(160deg, #6ea8fe, #1d2a3a); opacity: 0; }
-    .arts .p3 { background: linear-gradient(160deg, #e3a15a, #3a2a1d); opacity: 0; }
-    .scene-theme.on .p1 { animation-name: art-a; }
-    .scene-theme.on .p2 { animation-name: art-b; }
-    .scene-theme.on .p3 { animation-name: art-c; }
-    .scene-theme.on .c1 { animation-name: ring-a; }
-    .scene-theme.on .c2 { animation-name: ring-b; }
-    .scene-theme.on .c3 { animation-name: ring-c; }
-    @keyframes art-a { 0%, 28% { opacity: 1; } 40%, 100% { opacity: 0; } }
-    @keyframes art-b { 0%, 28% { opacity: 0; } 40%, 68% { opacity: 1; } 80%, 100% { opacity: 0; } }
-    @keyframes art-c { 0%, 68% { opacity: 0; } 80%, 100% { opacity: 1; } }
-    @keyframes ring-a { 0%, 28% { box-shadow: 0 0 0 3px #fff; } 40%, 100% { box-shadow: none; } }
-    @keyframes ring-b { 0%, 28% { box-shadow: none; } 40%, 68% { box-shadow: 0 0 0 3px #fff; } 80%, 100% { box-shadow: none; } }
-    @keyframes ring-c { 0%, 68% { box-shadow: none; } 80%, 100% { box-shadow: 0 0 0 3px #fff; } }
-
-    .qr {
-      width: 132px; height: 132px; margin: 28px auto 16px; border-radius: 8px;
-      background: linear-gradient(#171513 2px, transparent 2px), linear-gradient(90deg, #171513 2px, transparent 2px), #f4efe6;
-      background-size: 12px 12px;
-    }
-    .status { position: relative; height: 1.6em; text-align: center; }
-    .status b { position: absolute; left: 0; right: 0; font-weight: 400; opacity: 0; }
-    .status .s1 { opacity: 1; }
-    .scene-login.on .s1 { animation-name: step-a; }
-    .scene-login.on .s2 { animation-name: step-b; }
-    .scene-login.on .s3 { animation-name: step-c; }
-    @keyframes step-a { 0%, 28% { opacity: 1; } 36%, 100% { opacity: 0; } }
-    @keyframes step-b { 0%, 28% { opacity: 0; } 36%, 64% { opacity: 1; } 72%, 100% { opacity: 0; } }
-    @keyframes step-c { 0%, 64% { opacity: 0; } 72%, 100% { opacity: 1; } }
-
-    .tick { float: right; color: #fb7299; opacity: 0; }
-    .scene-quality .o2 .tick { opacity: 1; }
-    .scene-quality.on .o2 .tick, .scene-quality.on .hint { animation-name: fade-early; }
-    .scene-quality.on .o3 .tick { animation-name: fade-late; }
-
-    .toast { opacity: 0; }
-    .scene-cachelist.on .gone, .scene-rename.on .gone { animation-name: swipe; }
-    .scene-cachelist.on .toast { animation-name: fade-late; }
-    @keyframes swipe { 0%, 45% { transform: none; opacity: 1; } 70%, 100% { transform: translateX(110%); opacity: 0; } }
-
-    .scene-rename .name2 { position: absolute; left: 0; top: 0; opacity: 0; }
-    .scene-rename.on .name1 { animation-name: fade-early; }
-    .scene-rename.on .name2 { animation-name: fade-late; }
-
-    .block { margin-top: 14px; }
-    .scene-history .later { opacity: 0; }
-    .scene-history.on .d2 { animation-name: rise-b; }
-    .scene-history.on .d3 { animation-name: rise-c; }
-
-    .scene-sleep .chosen { outline: 2px solid transparent; border-radius: 12px; }
-    .scene-sleep.on .chosen { animation-name: pick; }
-    .scene-sleep.on .banner { animation-name: fade-late; }
-
-    .scene-update .dialog { opacity: 0; transform: translateY(8px); }
-    .scene-update.on .dialog { animation-name: pop; }
-    @keyframes pop { 0%, 12% { opacity: 0; transform: translateY(8px); } 28%, 100% { opacity: 1; transform: none; } }
-
-    .win { margin: 48px 20px 0; height: 160px; border: 1px solid #3a332b; border-radius: 12px; background: #241f1b; transform-origin: 100% 100%; }
-    .win .top { padding: 8px 10px; }
-    .scene-tray .menu { opacity: 0; }
-    .scene-tray.on .win { animation-name: shrink-win; }
-    .scene-tray.on .menu { animation-name: fade-late; }
-    @keyframes shrink-win { 0%, 18% { transform: none; } 55%, 100% { transform: translate(64px, 130px) scale(0.2); } }
-
     @media (max-width: 900px) {
-      .demo { grid-template-columns: 1fr; justify-items: stretch; }
-      .rail-fixed em { display: none; }
-      .rail-fixed { width: 48px; padding: 16px 8px; }
-      .now-pane { width: 120px; }
+      .demo { grid-template-columns: 1fr; }
     }
+    html.phone .frame { width: min(100%, 420px); margin-inline: auto; border-radius: 28px; }
+    html.phone main { padding: 20px 16px calc(40px + env(safe-area-inset-bottom)); }
+    html.phone header img { width: 56px; height: 56px; }
+    html.phone h1 { font-size: 28px; }
+    html.phone .lede { font-size: 16px; margin: 20px 0; }
+    html.phone .caption { font-size: 20px; }
+    html.phone #demo-text { min-height: 3.2em; }
+    html.phone .controls button.replay { flex: 1 1 30%; min-height: 44px; padding: 8px 10px; }
     @media (prefers-reduced-motion: reduce) {
-      .scene.on .a { animation: none !important; }
-      .scene-lyrics .lb { color: var(--text); }
-      .scene-lyrics .bar { width: 46%; }
+      .frame img.in { animation: none; }
     }
   </style>
+  <script>
+    if (window.matchMedia("(max-width: 720px)").matches) document.documentElement.classList.add("phone");
+  </script>
 </head>
 <body>
   <main>
@@ -406,193 +103,12 @@
     <p class="lede">只听 B 站音乐视频的音频。随机播放、边听边存、本地歌单，手机、平板和桌面随窗口伸缩。</p>
     <h2>看它怎么用</h2>
     <div class="demo" id="demo">
-      <div class="desktop" id="stage" aria-hidden="true">
-        <div class="chrome">
-          <span class="lights"><i></i><i></i><i></i></span>
-          <span class="title">bili-audio</span>
-          <span class="track">晴天 · 周杰伦</span>
-        </div>
-        <div class="app">
-          <div class="rail-fixed">
-            <span class="here"><i></i><em>发现</em></span>
-            <span><i></i><em>歌单</em></span>
-            <span><i></i><em>我的</em></span>
-          </div>
-          <div class="stage">
-        <section class="scene scene-shuffle" style="--d:5s" data-ms="5000" data-title="随机播放" data-text="下一首换一位歌手，上一首退回刚才听的那首。">
-          <div class="top"><span>队列</span><span class="mode"><b class="a m1">顺序播放</b><b class="a m2">智能随机</b></span></div>
-          <div class="row a q1"><i class="thumb"></i><div><strong>晴天</strong><span>周杰伦</span></div></div>
-          <div class="row q2"><i class="thumb"></i><div><strong>七里香</strong><span>周杰伦</span></div></div>
-          <div class="row a q3"><i class="thumb"></i><div><strong>富士山下</strong><span>陈奕迅</span></div></div>
-          <div class="transport"><b class="a pp">上一首</b><b class="a pn">下一首</b></div>
-        </section>
-        <section class="scene scene-cache" style="--d:5s" data-ms="5000" data-title="本地缓存" data-text="听过一次就存在本地，再听直接出声。">
-          <div class="top"><span>正在播放</span><span class="a off">离线</span></div>
-          <div class="art sm"></div>
-          <strong class="song">晴天</strong>
-          <div class="artist">周杰伦</div>
-          <div class="progress"><i class="a bar"></i></div>
-          <p class="badge"><span class="a b1">缓存中</span><span class="a b2">已缓存</span></p>
-        </section>
-        <section class="scene scene-playlist" style="--d:5s" data-ms="5000" data-title="歌单" data-text="收进自己的歌单，随时整张播放。">
-          <div class="top"><span>歌单</span></div>
-          <div class="cardlet a"><strong>通勤</strong><small>1 首</small></div>
-          <div class="mini a"><i class="thumb"></i><div><strong>晴天</strong><span>周杰伦</span></div></div>
-          <div class="sheet a"><div class="opt">新建</div><div class="search">名称 <span class="typed a">通勤</span></div></div>
-        </section>
-        <section class="scene scene-sizes" style="--d:4s" data-ms="4000" data-title="多种尺寸" data-text="现在演示的是桌面。同一套界面也适合手机、平板和其他尺寸。">
-          <div class="sizes">
-            <div class="device phone-d"><b>手机</b><span>窄屏</span></div>
-            <div class="device tablet-d"><b>平板</b><span>中等宽度</span></div>
-            <div class="device desk-d"><b>桌面</b><span>正在演示</span></div>
-          </div>
-          <p class="hint">同一套界面，按窗口宽高自己排</p>
-        </section>
-        <section class="scene scene-search" style="--d:4s" data-ms="4000" data-title="搜索" data-text="超过 15 分钟的视频会被滤掉。">
-          <div class="top"><span>9:41</span><span>发现</span></div>
-          <div class="search">搜索 <span class="typed a">七里香</span></div>
-          <div class="hit a h1"><i class="thumb"></i><div><strong>七里香</strong><span>周杰伦</span></div></div>
-          <div class="hit a h2"><i class="thumb"></i><div><strong>七里香</strong><span>翻唱 · 3:58</span></div></div>
-          <div class="hit a h3"><i class="thumb"></i><div><strong>演唱会回顾</strong><span class="tag">超过 15 分钟</span></div></div>
-          <div class="nav"><b>发现</b><span>歌单</span><span>我的</span></div>
-        </section>
-        <section class="scene scene-title" style="--d:4s" data-ms="4000" data-title="标题整理" data-text="标题整理成歌名和歌手。">
-          <p class="raw a"><span class="noise a">【Hi-Res】</span>周杰伦 - 晴天<span class="noise a">【无损音质】</span></p>
-          <p class="clean a">晴天 - 周杰伦</p>
-        </section>
-        <section class="scene scene-lyrics" style="--d:4s" data-ms="4000" data-title="歌词" data-text="只放音频，歌词跟着换行。">
-          <div class="top"><span>正在播放</span><span>歌词</span></div>
-          <div class="art sm"></div>
-          <strong class="song">晴天</strong>
-          <div class="artist">周杰伦</div>
-          <div class="progress"><i class="a bar"></i></div>
-          <p class="lyric a la">故事的小黄花</p>
-          <p class="lyric a lb">从出生那年就飘着</p>
-          <p class="lyric a lc">童年的荡秋千</p>
-        </section>
-        <section class="scene scene-seek" style="--d:4s" data-ms="4000" data-title="点歌词跳转" data-text="点一行，就从那里开始唱。">
-          <div class="art sm"></div>
-          <div class="progress"><i class="a bar"></i></div>
-          <p class="lyric">故事的小黄花</p>
-          <p class="lyric">从出生那年就飘着</p>
-          <p class="lyric a lc">童年的荡秋千</p>
-        </section>
-        <section class="scene scene-parts" style="--d:4s" data-ms="4000" data-title="分 P" data-text="合集按分 P 连着播。">
-          <div class="top"><span>合集</span><span>3 P</span></div>
-          <div class="titles"><strong class="song a t1">夜曲</strong><strong class="song a t2">夜曲 · 现场</strong></div>
-          <div class="artist">周杰伦</div>
-          <div class="part"><span>P1 夜曲</span><span>3:47</span></div>
-          <div class="part a p2"><span>P2 夜曲 · 现场</span><span>4:12</span></div>
-          <div class="part"><span>P3 夜曲 · 伴奏</span><span>3:46</span></div>
-        </section>
-        <section class="scene scene-mini" style="--d:4s" data-ms="4000" data-title="迷你播放条" data-text="换页面时音乐还在，点一下回到正在听的歌。">
-          <div class="top"><span>发现</span></div>
-          <div class="row"><i class="thumb"></i><div><strong>七里香</strong><span>周杰伦</span></div></div>
-          <div class="player a"><div class="art sm"></div><strong class="song">晴天</strong></div>
-          <div class="mini"><i class="thumb"></i><div><strong>晴天</strong><span>周杰伦</span></div></div>
-          <div class="nav a na"><b>发现</b><span>歌单</span><span>我的</span></div>
-          <div class="nav a nb"><span>发现</span><b>歌单</b><span>我的</span></div>
-        </section>
-        <section class="scene scene-sizes" style="--d:4s" data-ms="4000" data-title="多种尺寸" data-text="窗口变窄，或换到更小的设备上，导航和播放区会换成适合的尺寸。">
-          <div class="sizes">
-            <div class="device phone-d"><b>手机</b><span>底部导航</span></div>
-            <div class="device tablet-d"><b>平板</b><span>左侧图标</span></div>
-            <div class="device desk-d"><b>桌面</b><span>正在演示</span></div>
-          </div>
-          <p class="hint">播放不中断，只是排法跟着窗口变</p>
-        </section>
-        <section class="scene scene-lock" style="--d:4s" data-ms="4000" data-title="锁屏" data-text="锁屏也能切歌。">
-          <div class="top"><span>正在播放</span></div>
-          <div class="art sm"></div>
-          <strong class="song">晴天</strong>
-          <div class="dim a"><div class="lock"><i class="thumb"></i><strong>晴天</strong><div class="artist">周杰伦</div><div class="transport"><b>上一首</b><b class="a pn">下一首</b></div></div></div>
-        </section>
-        <section class="scene scene-offset" style="--d:4s" data-ms="4000" data-title="歌词偏移" data-text="歌词偏了，按 0.1 秒挪回去。">
-          <p class="lyric a early">故事的小黄花</p>
-          <p class="lyric on a late">从出生那年就飘着</p>
-          <p class="lyric">童年的荡秋千</p>
-          <p class="badge"><span class="a v1">+0.4 秒</span><span class="a v2">+0.3 秒</span></p>
-        </section>
-        <section class="scene scene-car" style="--d:4s" data-ms="4000" data-title="车机布局" data-text="大按钮，方便在车上点。">
-          <div class="top"><span>车机</span></div>
-          <div class="transport"><i class="big"></i></div>
-          <div class="seg"><b class="a">队列</b><span class="on a">歌词</span></div>
-          <div class="row a queue-side"><i class="thumb"></i><div><strong>晴天</strong><span>周杰伦</span></div></div>
-          <p class="lyric on a lyric-only">故事的小黄花</p>
-        </section>
-        <section class="scene scene-theme" style="--d:4s" data-ms="4000" data-title="主题色" data-text="主题色马上换。">
-          <div class="arts"><i class="a p1"></i><i class="a p2"></i><i class="a p3"></i></div>
-          <div class="dots"><i class="a c1"></i><i class="a c2"></i><i class="a c3"></i></div>
-        </section>
-        <section class="scene scene-login" style="--d:4s" data-ms="4000" data-title="扫码登录" data-text="用哔哩哔哩 App 扫码，登录后解锁更高音质。">
-          <div class="qr"></div>
-          <div class="status"><b class="a s1">等待扫描…</b><b class="a s2">已扫描，请在手机上确认</b><b class="a s3">登录成功</b></div>
-        </section>
-        <section class="scene scene-quality" style="--d:4s" data-ms="4000" data-title="音质" data-text="未登录最高 132K，登录后可以选更高音质。">
-          <div class="top"><span>默认音质</span></div>
-          <div class="opt">64K</div>
-          <div class="opt o2">132K <b class="tick a">●</b></div>
-          <div class="opt o3">192K <b class="tick a">●</b></div>
-          <div class="opt">Hi-Res</div>
-          <p class="hint a">未登录时最高 132K</p>
-        </section>
-        <section class="scene scene-cachelist" style="--d:4s" data-ms="4000" data-title="缓存管理" data-text="可以看占用，也可以清掉没放进歌单的缓存。">
-          <div class="top"><span>缓存</span></div>
-          <p class="badge">已缓存 12 首，共 480 MB</p>
-          <div class="progress"><i style="width:48%"></i></div>
-          <div class="row a gone"><i class="thumb"></i><div><strong>晴天</strong><span>4.2 MB</span></div></div>
-          <div class="row"><i class="thumb"></i><div><strong>七里香</strong><span>3.8 MB</span></div></div>
-          <p class="chip toast a">已清理 1 个文件</p>
-        </section>
-        <section class="scene scene-rename" style="--d:4s" data-ms="4000" data-title="歌单改名" data-text="歌单可以改名，也可以划掉其中一首。">
-          <div class="titles"><strong class="song a name1">通勤</strong><strong class="song a name2">夜路</strong></div>
-          <div class="row a gone"><i class="thumb"></i><div><strong>晴天</strong><span>周杰伦</span></div></div>
-          <div class="row"><i class="thumb"></i><div><strong>七里香</strong><span>周杰伦</span></div></div>
-        </section>
-        <section class="scene scene-history" style="--d:4s" data-ms="4000" data-title="播放历史" data-text="按今天、昨天和更早分组。">
-          <div class="top"><span>播放历史</span></div>
-          <div class="block"><div class="badge" style="text-align:left">今天</div><div class="row"><strong>晴天</strong></div></div>
-          <div class="block later a d2"><div class="badge" style="text-align:left">昨天</div><div class="row"><strong>七里香</strong></div></div>
-          <div class="block later a d3"><div class="badge" style="text-align:left">更早</div><div class="row"><strong>富士山下</strong></div></div>
-        </section>
-        <section class="scene scene-sleep" style="--d:4s" data-ms="4000" data-title="定时停止" data-text="可以选 30 分钟后停止，或播完当前这首。">
-          <div class="opt">关闭</div>
-          <div class="opt">15 分钟</div>
-          <div class="opt a chosen">30 分钟</div>
-          <div class="opt">60 分钟</div>
-          <div class="opt">播完当前</div>
-          <p class="chip banner a">30 分钟后停止</p>
-        </section>
-        <section class="scene scene-sizes" style="--d:4s" data-ms="4000" data-title="多种尺寸" data-text="手机、平板、桌面都能用，更宽或更窄的窗口也会自己排。">
-          <div class="sizes">
-            <div class="device phone-d"><b>手机</b><span>竖屏</span></div>
-            <div class="device tablet-d"><b>平板</b><span>横屏</span></div>
-            <div class="device desk-d"><b>桌面</b><span>正在演示</span></div>
-          </div>
-          <p class="hint">窄的用底部导航，宽的把正在播放留在右侧</p>
-        </section>
-        <section class="scene scene-update" style="--d:4s" data-ms="4000" data-title="检查更新" data-text="只提示带版本号的正式发布。">
-          <div class="top"><span>设置</span></div>
-          <div class="opt">检查更新</div>
-          <div class="dialog a"><strong>发现新版本</strong><p class="artist">v0.2.0</p><div class="opt">下载</div></div>
-        </section>
-        <section class="scene scene-tray" style="--d:4s" data-ms="4000" data-title="托盘" data-text="收到托盘里，关掉窗口不等于退出。">
-          <div class="win a"><div class="top"><span>bili-audio</span><span>晴天</span></div></div>
-          <div class="menu a"><div class="opt">显示主窗口</div><div class="opt">隐藏到托盘</div><div class="opt">退出</div></div>
-        </section>
-          </div>
-          <aside class="now-pane">
-            <div class="art"></div>
-            <strong>晴天</strong>
-            <div class="artist">周杰伦</div>
-            <p class="lyric on">故事的小黄花</p>
-            <div class="progress"><i></i></div>
-          </aside>
-        </div>
+      <div class="frame">
+        <img id="shot" alt="" src="demo/desk-search.png">
       </div>
       <div>
-        <p class="caption" id="demo-title">随机播放</p>
-        <p id="demo-text" aria-live="polite">下一首换一位歌手，上一首退回刚才听的那首。</p>
+        <p class="caption" id="demo-title">搜索</p>
+        <p id="demo-text" aria-live="polite">超过 15 分钟的视频会被滤掉。</p>
         <p class="note" id="demo-count"></p>
         <div class="controls">
           <button class="replay" type="button" id="prev">上一段</button>
@@ -648,32 +164,42 @@
       linux: "bili_audio-linux-amd64.deb",
       android: "bili_audio-android.apk",
     };
-    const stage = document.getElementById("stage");
-    const sceneEls = [...document.querySelectorAll(".scene")];
+    const scenes = [
+      { title: "搜索", text: "超过 15 分钟的视频会被滤掉。", desk: "demo/desk-search.png", phone: "demo/phone-search.png" },
+      { title: "正在播放", text: "只放音频。封面、进度和队列留在播放区。", desk: "demo/desk-player.png", phone: "demo/phone-player.png" },
+      { title: "歌单", text: "歌单保存在本机，点开就能整张播放。", desk: "demo/desk-library.png", phone: "demo/phone-library.png" },
+      { title: "我的", text: "音质、缓存、主题色和检查更新都在这里。", desk: "demo/desk-settings.png", phone: "demo/phone-settings.png" },
+    ];
+    const phoneQuery = window.matchMedia("(max-width: 720px)");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const shot = document.getElementById("shot");
     let index = 0;
     let timer = 0;
 
     function show(next) {
       window.clearTimeout(timer);
-      const count = sceneEls.length;
+      document.documentElement.classList.toggle("phone", phoneQuery.matches);
+      const count = scenes.length;
       index = ((next % count) + count) % count;
-      for (const el of sceneEls) el.classList.remove("on");
-      void stage.offsetWidth;
-      const scene = sceneEls[index];
-      scene.classList.add("on");
-      document.getElementById("demo-title").textContent = scene.dataset.title;
-      document.getElementById("demo-text").textContent = scene.dataset.text;
+      const scene = scenes[index];
+      const phone = document.documentElement.classList.contains("phone");
+      shot.classList.remove("in");
+      void shot.offsetWidth;
+      shot.src = phone ? scene.phone : scene.desk;
+      shot.alt = scene.title;
+      shot.classList.add("in");
+      document.getElementById("demo-title").textContent = scene.title;
+      document.getElementById("demo-text").textContent = scene.text;
       document.getElementById("demo-count").textContent = (index + 1) + " / " + count;
       if (reduced) return;
-      timer = window.setTimeout(() => show(index + 1), Number(scene.dataset.ms));
+      timer = window.setTimeout(() => show(index + 1), 4000);
     }
 
     document.getElementById("prev").addEventListener("click", () => show(index - 1));
     document.getElementById("next").addEventListener("click", () => show(index + 1));
     document.getElementById("replay").addEventListener("click", () => show(0));
-    const still = sceneEls.findIndex((el) => el.classList.contains("scene-lyrics"));
-    show(reduced ? (still < 0 ? 0 : still) : 0);
+    phoneQuery.addEventListener("change", () => show(index));
+    show(reduced ? 1 : 0);
 
     const iosLink = document.getElementById("ios");
     iosLink.addEventListener("click", (event) => {
