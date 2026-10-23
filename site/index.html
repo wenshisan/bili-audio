@@ -76,10 +76,19 @@
       background: #171513;
       box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
     }
+    .frame { position: relative; transition: height 0.6s ease; }
     .frame img { display: block; width: 100%; height: auto; background: #f4f7fb; }
-    .frame img.in { animation: shot-in 0.35s ease; }
-    @keyframes shot-in { from { opacity: 0.35; } to { opacity: 1; } }
-    .caption { font-size: 22px; margin: 0 0 8px; }
+    .frame img.out {
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 1;
+      opacity: 1;
+      pointer-events: none;
+    }
+    .frame img.out.fade { opacity: 0; transition: opacity 0.6s ease; }
+    .caption { font-size: 22px; margin: 0 0 8px; transition: opacity 0.45s ease; }
+    #demo-text { transition: opacity 0.45s ease; }
     #demo-text { color: var(--muted); min-height: 4.8em; }
     #demo-count { margin: 8px 0 0; }
     .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
@@ -112,7 +121,7 @@
     .scan span { color: var(--muted); font-size: 14px; }
     html.phone .scan { display: none; }
     @media (prefers-reduced-motion: reduce) {
-      .frame img.in { animation: none; }
+      .frame, .frame img.out, .caption, #demo-text { transition: none; }
     }
   </style>
   <script>
@@ -218,34 +227,108 @@
     ];
     const phoneQuery = window.matchMedia("(max-width: 720px)");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const frame = document.querySelector(".frame");
     const shot = document.getElementById("shot");
+    const titleEl = document.getElementById("demo-title");
+    const textEl = document.getElementById("demo-text");
     let index = 0;
     let timer = 0;
+    let copyTimer = 0;
+    let switchToken = 0;
 
-    function show(next) {
+    function sceneSrc(scene) {
+      return document.documentElement.classList.contains("phone") ? scene.phone : scene.desk;
+    }
+
+    function sameSrc(src) {
+      const current = shot.getAttribute("src") || "";
+      return current === src || current.endsWith("/" + src);
+    }
+
+    function writeCopy(scene, count, animate) {
+      window.clearTimeout(copyTimer);
+      document.getElementById("demo-count").textContent = count;
+      if (!animate) {
+        titleEl.textContent = scene.title;
+        textEl.textContent = scene.text;
+        titleEl.style.opacity = "";
+        textEl.style.opacity = "";
+        return;
+      }
+      titleEl.style.opacity = "0";
+      textEl.style.opacity = "0";
+      copyTimer = window.setTimeout(() => {
+        titleEl.textContent = scene.title;
+        textEl.textContent = scene.text;
+        titleEl.style.opacity = "1";
+        textEl.style.opacity = "1";
+      }, 200);
+    }
+
+    function show(next, animate) {
       window.clearTimeout(timer);
       document.documentElement.classList.toggle("phone", phoneQuery.matches);
       const count = scenes.length;
       index = ((next % count) + count) % count;
       const scene = scenes[index];
-      const phone = document.documentElement.classList.contains("phone");
-      shot.classList.remove("in");
-      void shot.offsetWidth;
-      shot.src = phone ? scene.phone : scene.desk;
-      shot.alt = scene.title;
-      shot.classList.add("in");
-      document.getElementById("demo-title").textContent = scene.title;
-      document.getElementById("demo-text").textContent = scene.text;
-      document.getElementById("demo-count").textContent = (index + 1) + " / " + count;
-      if (reduced) return;
-      timer = window.setTimeout(() => show(index + 1), 4000);
+      const src = sceneSrc(scene);
+      const token = ++switchToken;
+      const crossfade = animate !== false && !reduced && !sameSrc(src);
+      writeCopy(scene, (index + 1) + " / " + count, crossfade);
+
+      const finish = () => {
+        if (!reduced) timer = window.setTimeout(() => show(index + 1), 4000);
+        const upcoming = scenes[(index + 1) % count];
+        const ahead = new Image();
+        ahead.src = sceneSrc(upcoming);
+      };
+
+      if (!crossfade) {
+        shot.src = src;
+        shot.alt = scene.title;
+        finish();
+        return;
+      }
+
+      const pending = new Image();
+      pending.onload = () => {
+        if (token !== switchToken) return;
+        const ghost = shot.cloneNode();
+        ghost.removeAttribute("id");
+        ghost.className = "out";
+        ghost.alt = "";
+        frame.querySelectorAll("img.out").forEach((el) => el.remove());
+        frame.appendChild(ghost);
+        frame.style.height = frame.clientHeight + "px";
+        shot.src = src;
+        shot.alt = scene.title;
+        const nextHeight = frame.clientWidth * (pending.naturalHeight / pending.naturalWidth);
+        void frame.offsetHeight;
+        window.requestAnimationFrame(() => {
+          ghost.classList.add("fade");
+          frame.style.height = nextHeight + "px";
+        });
+        window.setTimeout(() => {
+          if (token !== switchToken) return;
+          ghost.remove();
+          frame.style.height = "";
+        }, 650);
+        finish();
+      };
+      pending.onerror = () => {
+        if (token !== switchToken) return;
+        shot.src = src;
+        shot.alt = scene.title;
+        finish();
+      };
+      pending.src = src;
     }
 
     document.getElementById("prev").addEventListener("click", () => show(index - 1));
     document.getElementById("next").addEventListener("click", () => show(index + 1));
     document.getElementById("replay").addEventListener("click", () => show(0));
     phoneQuery.addEventListener("change", () => show(index));
-    show(reduced ? 1 : 0);
+    show(reduced ? 1 : 0, false);
 
     const iosLink = document.getElementById("ios");
     iosLink.addEventListener("click", (event) => {
