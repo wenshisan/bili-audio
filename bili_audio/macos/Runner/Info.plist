@@ -30,5 +30,8 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
+	<!-- Intel 核显上 Impeller 会把 GPU 挂死，发行包改用 Skia。 -->
+	<key>FLTEnableImpeller</key>
+	<false/>
 </dict>
 </plist>

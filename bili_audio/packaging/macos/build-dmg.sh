@@ -77,9 +77,48 @@ if grep -qw "$FORBIDDEN" <<<"$BUILT"; then
   exit 1
 fi
 
+APP_BUNDLE="build/macos/Build/Products/Release/bili_audio.app"
+VOL_NAME="bili-audio"
 mkdir -p dist
+RW_DMG="dist/${DMG_NAME%.dmg}.rw.dmg"
+FINAL_DMG="dist/$DMG_NAME"
+MOUNT=""
+rm -f "$RW_DMG" "$FINAL_DMG"
+
+cleanup_dmg() {
+  if [[ -n "$MOUNT" ]]; then
+    hdiutil detach "$MOUNT" -force >/dev/null 2>&1 || true
+    rmdir "$MOUNT" 2>/dev/null || true
+  fi
+  rm -f "$RW_DMG"
+}
+trap cleanup_dmg EXIT
+
+# 先做可写映像，再放进 .app 和“应用程序”替身。
+# 直接 -srcfolder 可能把替身展开成整个 /Applications。
+APP_KB="$(du -sk "$APP_BUNDLE" | awk '{print $1}')"
 hdiutil create \
-  -volname "bili-audio" \
-  -srcfolder "build/macos/Build/Products/Release/bili_audio.app" \
-  -ov -format UDZO \
-  "dist/$DMG_NAME"
+  -size "$((APP_KB + 65536))k" \
+  -fs HFS+ \
+  -volname "$VOL_NAME" \
+  -ov \
+  "$RW_DMG"
+
+MOUNT="$(mktemp -d)"
+hdiutil attach "$RW_DMG" -mountpoint "$MOUNT" -nobrowse
+ditto "$APP_BUNDLE" "$MOUNT/bili_audio.app"
+# Finder 会把这个替身显示成“应用程序”，拖进去就是复制到 /Applications。
+ln -s /Applications "$MOUNT/Applications"
+
+if [[ ! -L "$MOUNT/Applications" ]]; then
+  echo "Applications alias missing from disk image" >&2
+  exit 1
+fi
+
+sync
+hdiutil detach "$MOUNT"
+rmdir "$MOUNT" 2>/dev/null || true
+MOUNT=""
+
+hdiutil convert "$RW_DMG" -format UDZO -ov -o "$FINAL_DMG"
+rm -f "$RW_DMG"

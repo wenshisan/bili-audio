@@ -11,6 +11,15 @@ void main() {
     expect(plist.contains('UIInterfaceOrientationLandscapeRight'), isTrue);
   });
 
+  test('macOS 关闭 Impeller，避免 Intel 核显挂死', () {
+    final plist = File('macos/Runner/Info.plist').readAsStringSync();
+    expect(plist.contains('<key>FLTEnableImpeller</key>'), isTrue);
+    expect(
+      RegExp(r'<key>FLTEnableImpeller</key>\s*<false\s*/>').hasMatch(plist),
+      isTrue,
+    );
+  });
+
   test('Android 清单可调整大小且不锁方向', () {
     final xml = File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
     expect(xml.contains('screenOrientation'), isFalse);
