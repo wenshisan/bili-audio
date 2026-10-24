@@ -108,7 +108,9 @@ MOUNT="$(mktemp -d)"
 hdiutil attach "$RW_DMG" -mountpoint "$MOUNT" -nobrowse
 ditto "$APP_BUNDLE" "$MOUNT/bili_audio.app"
 # Finder 会把这个替身显示成“应用程序”，拖进去就是复制到 /Applications。
+# 布局文件把应用放在左边、应用程序放在右边。按名称排列时替身会跑到左边。
 ln -s /Applications "$MOUNT/Applications"
+cp "$(dirname "$0")/dmg-layout.dsstore" "$MOUNT/.DS_Store"
 
 if [[ ! -L "$MOUNT/Applications" ]]; then
   echo "Applications alias missing from disk image" >&2
