@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# 打出单架构 macOS 磁盘映像。通用包在 7GB 的 macos-latest 上容易把 xcodebuild 撑死。
+# 打出单架构 macOS 磁盘映像。通用包在 CI 上容易把 xcodebuild 撑死。
 # 用法：build-dmg.sh arm64|x64
+# arm64 在 Apple Silicon runner 上编；x64 应在 Intel runner（如 macos-15-intel）上编。
 set -euo pipefail
 
 ARCH="${1:?usage: build-dmg.sh arm64|x64}"
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 APP="$ROOT/bili_audio"
 cd "$APP"
+
+HOST_ARCH="$(uname -m)"
+echo "host arch: $HOST_ARCH; target: $ARCH"
 
 flutter pub get
 
@@ -45,7 +49,11 @@ case "$ARCH" in
     DMG_NAME=bili_audio-macos-arm64.dmg
     ;;
   x64)
-    # Intel：从工程里排除 arm64，让 flutter/xcodebuild 只产出 x86_64。
+    # Intel runner 上 Release 默认仍是通用包；排除 arm64，只留 x86_64。
+    if [[ "$HOST_ARCH" != "x86_64" ]]; then
+      echo "x64 builds must run on an Intel Mac (host is $HOST_ARCH)" >&2
+      exit 1
+    fi
     printf '\n# CI: Intel-only release build\nEXCLUDED_ARCHS = arm64\n' \
       >> macos/Runner/Configs/Release.xcconfig
     EXPECTED=x86_64

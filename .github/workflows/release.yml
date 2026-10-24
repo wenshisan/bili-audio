@@ -65,7 +65,8 @@ jobs:
             target: macos-arm64
             macos_arch: arm64
           - name: macOS Intel
-            os: macos-latest
+            # Apple Silicon 上交叉编 x86_64 不可靠；用 GitHub 的 Intel runner 原生产出。
+            os: macos-15-intel
             target: macos-x64
             macos_arch: x64
           - name: iOS
