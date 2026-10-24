@@ -12,8 +12,14 @@ abstract class SecureStore {
 }
 
 class FlutterSecureStore implements SecureStore {
+  // macOS 发行包是 ad-hoc 签名, 没有 Keychain Sharing。
+  // Data Protection Keychain 会报 -34018 (缺少 entitlement),
+  // 传统钥匙串在沙盒内读写不需要该 entitlement。
   FlutterSecureStore([FlutterSecureStorage? storage])
-      : _storage = storage ?? const FlutterSecureStorage();
+      : _storage = storage ??
+            const FlutterSecureStorage(
+              mOptions: MacOsOptions(usesDataProtectionKeychain: false),
+            );
 
   static const _cookiesKey = 'bili_cookies';
   final FlutterSecureStorage _storage;
