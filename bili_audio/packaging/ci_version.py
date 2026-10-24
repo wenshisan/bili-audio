@@ -137,6 +137,7 @@ def release_notes(
 | Windows | `bili_audio-windows-x64-setup.exe` |
 | Linux | `bili_audio-linux-amd64.deb` |
 | macOS (Apple 芯片) | `bili_audio-macos-arm64.dmg` |
+| macOS (Intel) | `bili_audio-macos-x64.dmg` |
 | iOS | `bili_audio-ios.ipa`（描述文件安装，需签名 secrets） |
 
 构建号每次加一，已安装的客户端才能覆盖安装并提示升级。`continuous` 仍是预发布，只给介绍页做固定下载地址。

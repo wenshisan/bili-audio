@@ -98,7 +98,7 @@ B 站标题里常夹着音质、MV、4K、翻唱、中字这类修饰。列表�
 
 ### 在哪些系统上用
 
-Windows、macOS（Apple 芯片）、Linux、Android、iOS。安装包和签名限制见 `docs/release.md`。
+Windows、macOS（Apple 芯片与 Intel）、Linux、Android、iOS。安装包和签名限制见 `docs/release.md`。
 
 ## 介绍页上的画面
 

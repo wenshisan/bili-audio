@@ -10,6 +10,9 @@ const String windowsInstaller = 'bili_audio-windows-x64-setup.exe';
 /// Apple 芯片 macOS 安装包在 Release 里的文件名。
 const String macosArm64Installer = 'bili_audio-macos-arm64.dmg';
 
+/// Intel macOS 安装包在 Release 里的文件名。
+const String macosX64Installer = 'bili_audio-macos-x64.dmg';
+
 /// Linux x64 安装包在 Release 里的文件名。
 const String linuxAmd64Installer = 'bili_audio-linux-amd64.deb';
 
@@ -35,6 +38,7 @@ String? installerAssetName({
   'android' => androidInstaller,
   'windows' when architecture == 'x64' => windowsInstaller,
   'macos' when architecture == 'arm64' => macosArm64Installer,
+  'macos' when architecture == 'x64' => macosX64Installer,
   'linux' when architecture == 'x64' => linuxAmd64Installer,
   'ios' when architecture == 'arm64' => iosInstaller,
   _ => null,

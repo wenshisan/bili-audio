@@ -17,6 +17,10 @@ void main() {
         macosArm64Installer,
       );
       expect(
+        installerAssetName(operatingSystem: 'macos', architecture: 'x64'),
+        macosX64Installer,
+      );
+      expect(
         installerAssetName(operatingSystem: 'linux', architecture: 'x64'),
         linuxAmd64Installer,
       );
@@ -28,10 +32,6 @@ void main() {
 
     test('没有安装包的平台返回空', () {
       expect(
-        installerAssetName(operatingSystem: 'macos', architecture: 'x64'),
-        isNull,
-      );
-      expect(
         installerAssetName(operatingSystem: 'windows', architecture: 'arm64'),
         isNull,
       );
@@ -42,6 +42,7 @@ void main() {
     expect(installerKind(androidInstaller), InstallerKind.androidApk);
     expect(installerKind(windowsInstaller), InstallerKind.windowsSetup);
     expect(installerKind(macosArm64Installer), InstallerKind.macosDisk);
+    expect(installerKind(macosX64Installer), InstallerKind.macosDisk);
     expect(installerKind(linuxAmd64Installer), InstallerKind.linuxPackage);
     expect(installerKind(iosInstaller), InstallerKind.iosProfile);
     expect(installerKind('notes.txt'), isNull);

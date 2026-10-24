@@ -11,7 +11,8 @@
 | Android | `bili_audio-android.apk` | 通用 APK。签名密钥放在 Actions secrets，不进仓库，这样每次构建都能覆盖安装 |
 | Windows x64 | `bili_audio-windows-x64-setup.exe` | Inno Setup 安装程序，装到当前用户目录。未做代码签名 |
 | Linux x64 | `bili_audio-linux-amd64.deb` | 安装到 `/opt/bili_audio` |
-| macOS Apple 芯片 | `bili_audio-macos-arm64.dmg` | 未公证。Intel Mac 暂不打包 |
+| macOS Apple 芯片 | `bili_audio-macos-arm64.dmg` | 未公证 |
+| macOS Intel | `bili_audio-macos-x64.dmg` | 未公证。与 Apple 芯片包分开构建，避免通用包在 CI 上内存不够 |
 | iOS | `bili_audio-ios.ipa` | 用 Safari 打开介绍页，走 `itms-services` 描述文件安装。签名 secrets 没配时不产出这个文件 |
 
 Windows 若被 SmartScreen 拦住，选择仍要运行。macOS 在“系统设置 → 隐私与安全性”里允许打开。Android 需允许本应用安装未知应用。
@@ -63,7 +64,7 @@ iOS 按钮只在 Release 里已经有 `bili_audio-ios.ipa` 时可以点，并且
 - Windows：运行下载的安装程序。
 - macOS：`open` 磁盘映像。
 - Linux：`xdg-open` 打开 deb。
-- iOS：打开介绍页上的描述文件安装地址。Intel Mac、Windows ARM 没有对应附件，只说明有新版本并给出发布页地址。
+- iOS：打开介绍页上的描述文件安装地址。Windows ARM 没有对应附件，只说明有新版本并给出发布页地址。
 
 推送到 `main` 就会发出客户端能看到的升级。pubspec 仍是 `0.1.0+1` 时，第一次这样构建的安装包和标签是 `v0.1.0+2`，之后每次加一。安装包里的版本和标签一致：应用比较构建号，Android 的 versionCode 和 Linux 包版本也会变高，系统才允许覆盖安装。
 
