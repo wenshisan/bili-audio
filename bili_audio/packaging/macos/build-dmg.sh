@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # 打出单架构 macOS 磁盘映像。通用包在 CI 上容易把 xcodebuild 撑死。
 # 用法：build-dmg.sh arm64|x64
-# arm64 在 Apple Silicon runner 上编；x64 应在 Intel runner（如 macos-15-intel）上编。
+# 两个架构都在 Apple Silicon runner 上编：arm64 本机，x64 交叉编译。
+# （macos-15-intel 上 Flutter pub get 会长时间卡住。）
 set -euo pipefail
 
 ARCH="${1:?usage: build-dmg.sh arm64|x64}"
@@ -41,7 +42,7 @@ PY
 
 case "$ARCH" in
   arm64)
-    # Apple 芯片：只编 arm64，避免通用包占满 CI 内存。
+    # 只编 arm64，避免通用包占满 CI 内存。
     export FLUTTER_MACOS_ARM64_ONLY=true
     flutter config --enable-macos-arm64-only
     EXPECTED=arm64
@@ -49,13 +50,8 @@ case "$ARCH" in
     DMG_NAME=bili_audio-macos-arm64.dmg
     ;;
   x64)
-    # Intel runner 上 Release 默认仍是通用包；排除 arm64，只留 x86_64。
-    if [[ "$HOST_ARCH" != "x86_64" ]]; then
-      echo "x64 builds must run on an Intel Mac (host is $HOST_ARCH)" >&2
-      exit 1
-    fi
-    # xcconfig 里用 // 写注释；# 会被当成预处理器指令。
-    printf '\n// CI: Intel-only release build\nEXCLUDED_ARCHS = arm64\n' \
+    # 在 Apple Silicon 上交叉编 x86_64。xcconfig 注释必须用 //，# 是预处理器指令。
+    printf '\n// CI: Intel-only release build\nARCHS = x86_64\nEXCLUDED_ARCHS = arm64\n' \
       >> macos/Runner/Configs/Release.xcconfig
     EXPECTED=x86_64
     FORBIDDEN=arm64

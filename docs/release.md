@@ -12,7 +12,7 @@
 | Windows x64 | `bili_audio-windows-x64-setup.exe` | Inno Setup 安装程序，装到当前用户目录。未做代码签名 |
 | Linux x64 | `bili_audio-linux-amd64.deb` | 安装到 `/opt/bili_audio` |
 | macOS Apple 芯片 | `bili_audio-macos-arm64.dmg` | 未公证 |
-| macOS Intel | `bili_audio-macos-x64.dmg` | 未公证。在 `macos-15-intel` 上单独构建，并选用 Xcode 26（默认 16.4 编不过 `connectivity_plus`） |
+| macOS Intel | `bili_audio-macos-x64.dmg` | 未公证。在 Apple Silicon runner 上交叉编译 x86_64（Intel runner 上 Flutter pub get 会卡住） |
 | iOS | `bili_audio-ios.ipa` | 用 Safari 打开介绍页，走 `itms-services` 描述文件安装。签名 secrets 没配时不产出这个文件 |
 
 Windows 若被 SmartScreen 拦住，选择仍要运行。macOS 在“系统设置 → 隐私与安全性”里允许打开。Android 需允许本应用安装未知应用。
