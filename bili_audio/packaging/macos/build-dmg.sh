@@ -54,7 +54,8 @@ case "$ARCH" in
       echo "x64 builds must run on an Intel Mac (host is $HOST_ARCH)" >&2
       exit 1
     fi
-    printf '\n# CI: Intel-only release build\nEXCLUDED_ARCHS = arm64\n' \
+    # xcconfig 里用 // 写注释；# 会被当成预处理器指令。
+    printf '\n// CI: Intel-only release build\nEXCLUDED_ARCHS = arm64\n' \
       >> macos/Runner/Configs/Release.xcconfig
     EXPECTED=x86_64
     FORBIDDEN=arm64
