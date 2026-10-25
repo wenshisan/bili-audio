@@ -52,6 +52,9 @@ class InstallLaunchException implements Exception {
 const MethodChannel _installChannel = MethodChannel('bili_audio/install');
 
 /// 下载 Release 附件到临时目录，再按扩展名打开。
+///
+/// macOS 磁盘映像在打开前会去掉隔离标记。沙盒下载会写上这个标记，
+/// 从镜像拖进「应用程序」的副本因此无法启动。
 class LocalUpdateInstaller implements UpdateInstaller {
   /// 创建安装器。[dio] 为空时使用带 BiliAudio User-Agent 的客户端。
   LocalUpdateInstaller({Dio? dio, this.installApk = _installApk})
@@ -110,15 +113,36 @@ class LocalUpdateInstaller implements UpdateInstaller {
       case InstallerKind.windowsSetup:
         await Process.start(path, const [], mode: ProcessStartMode.detached);
       case InstallerKind.macosDisk:
-        await Process.start('open', [path], mode: ProcessStartMode.detached);
+        await clearMacDownloadQuarantine(path);
+        await _openAndWait('open', [path]);
       case InstallerKind.linuxPackage:
-        await Process.start('xdg-open', [
-          path,
-        ], mode: ProcessStartMode.detached);
+        await _openAndWait('xdg-open', [path]);
       case InstallerKind.iosProfile:
         await _openUrl(iosInstallUrl);
     }
   }
+}
+
+Future<void> _openAndWait(String executable, List<String> args) async {
+  final opened = await Process.run(executable, args);
+  if (opened.exitCode == 0) return;
+  final err = '${opened.stderr}'.trim();
+  throw InstallLaunchException(err.isEmpty ? '无法打开安装包' : err);
+}
+
+/// 去掉沙盒下载写上的 `com.apple.quarantine`。
+///
+/// 属性不存在时直接返回。清除失败也不中断安装，仍会继续打开镜像。
+Future<void> clearMacDownloadQuarantine(String path) async {
+  if (!Platform.isMacOS) return;
+  final result = await Process.run('/usr/bin/xattr', [
+    '-d',
+    'com.apple.quarantine',
+    path,
+  ]);
+  if (result.exitCode == 0) return;
+  final err = '${result.stderr}';
+  if (err.contains('No such xattr')) return;
 }
 
 Future<void> _openUrl(String url) async {

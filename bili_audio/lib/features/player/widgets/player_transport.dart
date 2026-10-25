@@ -405,7 +405,7 @@ String playModeLabel(BuildContext context, PlayMode mode) {
 }
 
 IconData playModeIcon(PlayMode mode) => switch (mode) {
-  PlayMode.sequential => Icons.trending_flat,
+  PlayMode.sequential => Icons.playlist_play,
   PlayMode.listLoop => Icons.repeat,
   PlayMode.singleLoop => Icons.repeat_one,
   PlayMode.shuffle => Icons.shuffle,

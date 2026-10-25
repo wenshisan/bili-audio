@@ -61,6 +61,7 @@ class _Installer implements UpdateInstaller {
 ProviderContainer _container({
   required ReleaseSource source,
   UpdateInstaller? installer,
+  Future<void> Function()? onQuit,
 }) {
   return ProviderContainer(
     overrides: [
@@ -73,6 +74,7 @@ ProviderContainer _container({
       ),
       if (installer != null)
         updateInstallerProvider.overrideWithValue(installer),
+      if (onQuit != null) appQuitProvider.overrideWithValue(onQuit),
     ],
   );
 }
@@ -123,6 +125,53 @@ void main() {
     expect(
       container.read(updateControllerProvider).phase,
       UpdatePhase.launched,
+    );
+  });
+
+  test('安装包打开后退出当前程序', () async {
+    var quits = 0;
+    final installer = _Installer();
+    final container = _container(
+      source: _Source(_release('v0.2.0')),
+      installer: installer,
+      onQuit: () async {
+        quits++;
+      },
+    );
+    addTearDown(container.dispose);
+    final controller = container.read(updateControllerProvider.notifier);
+
+    await controller.check();
+    await controller.downloadAndInstall();
+
+    expect(quits, 1);
+    expect(
+      container.read(updateControllerProvider).phase,
+      UpdatePhase.launched,
+    );
+  });
+
+  test('安装失败时不退出', () async {
+    var quits = 0;
+    final installer = _Installer()
+      ..error = const InstallLaunchException('下载失败');
+    final container = _container(
+      source: _Source(_release('v0.2.0')),
+      installer: installer,
+      onQuit: () async {
+        quits++;
+      },
+    );
+    addTearDown(container.dispose);
+    final controller = container.read(updateControllerProvider.notifier);
+
+    await controller.check();
+    await controller.downloadAndInstall();
+
+    expect(quits, 0);
+    expect(
+      container.read(updateControllerProvider).phase,
+      UpdatePhase.available,
     );
   });
 

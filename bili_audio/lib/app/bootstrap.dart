@@ -40,6 +40,7 @@ import '../data/repositories/bili_repositories.dart';
 import '../data/repositories/stream_url_manager.dart';
 import '../domain/entities/audio_track.dart';
 import '../domain/title/title_cleaner.dart';
+import 'platform/app_quit.dart';
 import 'platform/desktop_platform.dart';
 import 'platform/window_frame.dart';
 import 'theme.dart';
@@ -214,6 +215,7 @@ Future<List<Override>> bootstrap() async {
     appVersionSourceProvider.overrideWithValue(const PackageAppVersionSource()),
     releaseSourceProvider.overrideWithValue(GithubReleaseSource()),
     updateInstallerProvider.overrideWithValue(LocalUpdateInstaller()),
+    appQuitProvider.overrideWithValue(quitDesktopApp),
   ];
 }
 

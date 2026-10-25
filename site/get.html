@@ -5,15 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>下载 bili-audio</title>
   <link rel="icon" href="icon.png">
+  <script>
+    try {
+      if (localStorage.getItem("bili-theme") === "dark") document.documentElement.classList.add("dark");
+    } catch (e) {}
+  </script>
   <style>
     :root {
+      color-scheme: light;
+      --bg: #f2f3fa;
+      --text: #191c20;
+      --muted: #43474e;
+      --accent: #36618e;
+      --on-accent: #f8f9ff;
+    }
+    html.dark {
       color-scheme: dark;
       --bg: #14120f;
-      --card: #211d18;
-      --line: #3a332b;
       --text: #f4efe6;
       --muted: #b7ab9b;
       --accent: #e3a15a;
+      --on-accent: #14120f;
     }
     * { box-sizing: border-box; }
     body {
@@ -31,7 +43,7 @@
       padding: 14px 16px;
       border-radius: 12px;
       background: var(--accent);
-      color: #14120f;
+      color: var(--on-accent);
       font-weight: 650;
       text-align: center;
       text-decoration: none;

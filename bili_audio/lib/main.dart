@@ -9,7 +9,7 @@ import 'package:tray_manager/tray_manager.dart';
 
 import 'app/app.dart';
 import 'app/bootstrap.dart';
-import 'app/platform/window_frame.dart';
+import 'app/platform/app_quit.dart';
 import 'core/logging/app_logger.dart';
 import 'core/storage/path_manager.dart';
 
@@ -50,11 +50,7 @@ Future<void> _updateTrayMenu() async {
       MenuItem(
         key: 'exit',
         label: '退出',
-        onClick: (menuItem) async {
-          await WindowFrameStore.instance?.persist();
-          await trayManager.destroy();
-          exit(0);
-        },
+        onClick: (menuItem) => quitDesktopApp(),
       ),
     ],
   );

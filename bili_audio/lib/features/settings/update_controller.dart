@@ -118,6 +118,9 @@ final updateInstallerProvider = Provider<UpdateInstaller>(
   (ref) => const NoopUpdateInstaller(),
 );
 
+/// 安装包打开后的退出动作。测试中保持为空操作。
+final appQuitProvider = Provider<Future<void> Function()>((ref) => () async {});
+
 /// 检查 GitHub 正式版，并在有安装包时下载打开。
 class UpdateController extends Notifier<UpdateState> {
   @override
@@ -161,7 +164,7 @@ class UpdateController extends Notifier<UpdateState> {
     }
   }
 
-  /// 下载当前选中的安装包并打开。
+  /// 下载当前选中的安装包并打开，然后退出桌面端进程。
   Future<void> downloadAndInstall() async {
     final asset = state.asset;
     if (asset == null || state.phase == UpdatePhase.downloading) return;
@@ -189,6 +192,7 @@ class UpdateController extends Notifier<UpdateState> {
         asset: asset,
         progress: 1,
       );
+      await ref.read(appQuitProvider)();
     } on InstallPermissionException {
       state = UpdateState(
         phase: UpdatePhase.available,

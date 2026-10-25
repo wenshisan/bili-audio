@@ -7,6 +7,18 @@
   <link rel="icon" href="icon.png">
   <style>
     :root {
+      color-scheme: light;
+      --bg: #f2f3fa;
+      --card: #f8f9ff;
+      --line: #d8dadf;
+      --text: #191c20;
+      --muted: #43474e;
+      --accent: #36618e;
+      --on-accent: #f8f9ff;
+      --frame: #e7e8ee;
+      --shadow: 0 18px 40px rgba(25, 28, 32, 0.08);
+    }
+    html.dark {
       color-scheme: dark;
       --bg: #14120f;
       --card: #211d18;
@@ -14,6 +26,9 @@
       --text: #f4efe6;
       --muted: #b7ab9b;
       --accent: #e3a15a;
+      --on-accent: #14120f;
+      --frame: #171513;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
     }
     * { box-sizing: border-box; }
     body {
@@ -23,7 +38,30 @@
       font: 16px/1.6 "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
     }
     main { max-width: 1200px; margin: 0 auto; padding: 48px 20px 72px; }
-    header { display: flex; gap: 16px; align-items: center; }
+    header { display: flex; gap: 16px; align-items: flex-start; }
+    .brand { min-width: 0; }
+    .theme-switch {
+      margin-left: auto;
+      display: flex;
+      flex: none;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--card);
+    }
+    .theme-switch button {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font: inherit;
+      cursor: pointer;
+    }
+    .theme-switch button[aria-pressed="true"] {
+      background: var(--accent);
+      color: var(--on-accent);
+    }
     header img { width: 72px; height: 72px; border-radius: 16px; }
     h1 { font-size: 32px; line-height: 1.2; margin: 0 0 6px; font-weight: 650; }
     .mark { color: var(--muted); margin: 0; }
@@ -74,8 +112,8 @@
       border: 1px solid var(--line);
       border-radius: 16px;
       overflow: hidden;
-      background: #171513;
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      background: var(--frame);
+      box-shadow: var(--shadow);
     }
     .frame { position: relative; transition: height 0.6s ease; }
     .frame img { display: block; width: 100%; height: auto; background: #f4f7fb; }
@@ -163,6 +201,13 @@
     html.phone .caption { font-size: 20px; }
     html.phone #demo-text { min-height: 3.2em; }
     html.phone .controls button.replay { flex: 1 1 30%; min-height: 44px; padding: 8px 10px; }
+    html.phone header {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+    }
+    html.phone .theme-switch { grid-column: 1 / -1; margin-left: 0; justify-self: start; }
+    html.phone .theme-switch button { min-height: 40px; }
     .scan {
       display: flex;
       gap: 16px;
@@ -184,6 +229,9 @@
     }
   </style>
   <script>
+    try {
+      if (localStorage.getItem("bili-theme") === "dark") document.documentElement.classList.add("dark");
+    } catch (e) {}
     if (window.matchMedia("(max-width: 720px)").matches) document.documentElement.classList.add("phone");
   </script>
 </head>
@@ -191,10 +239,14 @@
   <main>
     <header>
       <img src="icon.png" alt="">
-      <div>
+      <div class="brand">
         <h1>bili-audio</h1>
         <p class="mark">第三方 · 个人学习 · 与哔哩哔哩官方无关</p>
         <p class="mark">联系 <a href="mailto:wenshisan@live.cn">wenshisan@live.cn</a></p>
+      </div>
+      <div class="theme-switch" role="group" aria-label="外观">
+        <button type="button" data-theme="light" aria-pressed="true">浅色</button>
+        <button type="button" data-theme="dark" aria-pressed="false">深色</button>
       </div>
     </header>
     <p class="lede">免费听 B 站的歌。只放音频，听过的歌没网也能随机接着播。</p>
@@ -298,6 +350,19 @@
     </footer>
   </main>
   <script>
+    const themeButtons = document.querySelectorAll(".theme-switch button");
+    function applyTheme(mode) {
+      document.documentElement.classList.toggle("dark", mode === "dark");
+      themeButtons.forEach((btn) => {
+        btn.setAttribute("aria-pressed", String(btn.dataset.theme === mode));
+      });
+      try { localStorage.setItem("bili-theme", mode); } catch (e) {}
+    }
+    themeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => applyTheme(btn.dataset.theme));
+    });
+    applyTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+
     const repo = "wenshisan/bili-audio";
     const files = {
       win: "bili_audio-windows-x64-setup.exe",
