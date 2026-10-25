@@ -101,6 +101,10 @@ class _UpdateDialog extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(l10n.updateDownloading((state.progress * 100).round())),
+              if (state.asset?.name.endsWith('.dmg') == true) ...[
+                const SizedBox(height: 8),
+                Text(l10n.updateMacAdmin),
+              ],
             ],
             if (state.failure != null) ...[
               const SizedBox(height: 12),
@@ -111,6 +115,8 @@ class _UpdateDialog extends ConsumerWidget {
               Text(
                 state.asset?.name.endsWith('.ipa') == true
                     ? l10n.updateLaunchedIos
+                    : state.asset?.name.endsWith('.dmg') == true
+                    ? l10n.updateLaunchedMac
                     : l10n.updateLaunched,
               ),
             ],

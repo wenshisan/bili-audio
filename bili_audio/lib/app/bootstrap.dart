@@ -57,6 +57,7 @@ import 'providers.dart';
 ///
 /// 要求 [PathManager.init] 已完成。失败时抛出, 由 main 展示启动错误页。
 Future<List<Override>> bootstrap() async {
+  unawaited(deletePreviousMacAppBundles());
   await initDesktopPlatform();
   AppLogger.i(
     'desktop ready os=${Platform.operatingSystem} smtc=$smtcAvailable',

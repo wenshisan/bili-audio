@@ -283,6 +283,8 @@
   "updateInstallIos": "通过描述文件安装",
   "updateLaunchedIos": "已打开安装页。请按系统提示安装，然后到「设置 → 通用 → VPN 与设备管理」信任描述文件",
   "updateLaunched": "已打开安装包，请按系统提示完成安装",
+  "updateLaunchedMac": "更新已经装好，应用即将重新打开",
+  "updateMacAdmin": "如果系统询问密码，是为了去掉隔离标记，否则替换后的应用无法打开",
   "updateCheckFailed": "检查更新失败",
   "updateDownloadFailed": "下载或打开安装包失败",
   "updatePermission": "请先允许本应用安装未知应用，然后重试"

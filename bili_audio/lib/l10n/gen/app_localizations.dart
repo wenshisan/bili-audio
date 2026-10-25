@@ -958,6 +958,18 @@ abstract class AppLocalizations {
   /// **'已打开安装包，请按系统提示完成安装'**
   String get updateLaunched;
 
+  /// No description provided for @updateLaunchedMac.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新已经装好，应用即将重新打开'**
+  String get updateLaunchedMac;
+
+  /// No description provided for @updateMacAdmin.
+  ///
+  /// In zh, this message translates to:
+  /// **'如果系统询问密码，是为了去掉隔离标记，否则替换后的应用无法打开'**
+  String get updateMacAdmin;
+
   /// No description provided for @updateCheckFailed.
   ///
   /// In zh, this message translates to:

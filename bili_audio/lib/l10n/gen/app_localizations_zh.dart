@@ -479,6 +479,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get updateLaunched => '已打开安装包，请按系统提示完成安装';
 
   @override
+  String get updateLaunchedMac => '更新已经装好，应用即将重新打开';
+
+  @override
+  String get updateMacAdmin => '如果系统询问密码，是为了去掉隔离标记，否则替换后的应用无法打开';
+
+  @override
   String get updateCheckFailed => '检查更新失败';
 
   @override
