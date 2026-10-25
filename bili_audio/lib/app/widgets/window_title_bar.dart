@@ -11,8 +11,8 @@ import 'region_surface.dart';
 ///
 /// 拖拽移动窗口，双击最大化或还原。
 /// Windows / Linux 高 48，左侧放 logo 与标题，右侧放最小化、最大化、关闭
-/// （关闭为隐藏到托盘）。macOS 使用系统红绿灯，不画这组按钮，logo 与标题靠右；
-/// 高度与系统标题条一致（28），红绿灯和 logo 的垂直中心都在距顶 14。
+/// （关闭为隐藏到托盘）。macOS 使用系统红绿灯，不画这组按钮，也不画 logo，
+/// 只把标题靠右；高度与系统标题条一致（28），红绿灯的垂直中心在距顶 14。
 class WindowTitleBar extends StatefulWidget {
   const WindowTitleBar({super.key, this.nativeWindowButtons});
 
@@ -78,10 +78,14 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
     final barHeight = WindowTitleBar.heightFor(
       nativeWindowButtons: nativeButtons,
     );
+    final title = Text(
+      context.l10n.appTitle,
+      style: theme.textTheme.titleSmall,
+    );
     final brand = <Widget>[
       Icon(Icons.music_note, size: 20, color: theme.colorScheme.primary),
       const SizedBox(width: 8),
-      Text(context.l10n.appTitle, style: theme.textTheme.titleSmall),
+      title,
     ];
     return RegionSurface(
       edge: RegionEdge.bottom,
@@ -111,7 +115,7 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
                 if (!nativeButtons) ...[const SizedBox(width: 16), ...brand],
                 const Spacer(),
                 if (nativeButtons) ...[
-                  ...brand,
+                  title,
                   const SizedBox(width: 16),
                 ] else ...[
                   _WindowControlButton(

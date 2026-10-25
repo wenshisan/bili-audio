@@ -13,6 +13,19 @@ const biliCdnHeaders = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
 };
 
+/// 播放器能识别的媒体类型。
+///
+/// B 站 CDN 对 DASH `.m4s` 常返回 `application/octet-stream`。
+/// macOS/iOS 经 just_audio 本地代理播放时，地址没有扩展名，
+/// AVPlayer 只根据 Content-Type 判断格式；非 audio/video 会报
+/// `(-11828) Cannot Open`。这时保留 [fallback]（DASH 音频为 `audio/mp4`）。
+String mediaContentType(String? header, {String fallback = 'audio/mp4'}) {
+  final raw = header?.split(';').first.trim().toLowerCase();
+  if (raw == null || raw.isEmpty) return fallback;
+  if (raw.startsWith('audio/') || raw.startsWith('video/')) return raw;
+  return fallback;
+}
+
 /// 单个音频的后台完整下载 (M3.2)
 ///
 /// 顺序写入 `.tmp`, 支持断点续传 (Range); 完成后 finalize 为正式文件。
@@ -117,7 +130,16 @@ class CacheDownloadTask {
       return _complete(downloaded);
     }
     if (res.statusCode == 200) downloaded = 0; // 服务端忽略 Range, 从头写
-    mime = res.headers.value(Headers.contentTypeHeader) ?? mime;
+    final headerMime = res.headers.value(Headers.contentTypeHeader);
+    final resolved = mediaContentType(headerMime, fallback: mime);
+    if (headerMime != null &&
+        headerMime.split(';').first.trim().toLowerCase() != resolved) {
+      AppLogger.d(
+        'content-type "$headerMime" is not media, using $resolved',
+        tag: 'cache',
+      );
+    }
+    mime = resolved;
     final total = _parseTotal(res) ?? -1;
     if (total <= 0) throw StateError('unknown content length');
     if (!_total.isCompleted) _total.complete(total);

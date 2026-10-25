@@ -51,7 +51,7 @@ class BiliAudioApp extends ConsumerWidget {
 ///
 /// 窗口背景在 main() 中设为透明, 这里用 ClipRRect 裁出圆角。
 /// 顶部标题栏可拖拽。Windows / Linux 在右侧放窗体按钮；
-/// macOS 保留系统红绿灯，标题栏与红绿灯同高，logo 与标题靠右并垂直居中。
+/// macOS 保留系统红绿灯，标题栏与红绿灯同高，标题靠右并垂直居中。
 class _DesktopWindowShell extends StatelessWidget {
   const _DesktopWindowShell({required this.child});
 

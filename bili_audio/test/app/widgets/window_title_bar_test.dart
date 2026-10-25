@@ -66,17 +66,15 @@ void main() {
     expect(find.byIcon(Icons.close), findsNothing);
     expect(find.byIcon(Icons.fullscreen_exit), findsNothing);
 
+    expect(find.byIcon(Icons.music_note), findsNothing);
+
     final title = tester.getCenter(find.text('bili-audio'));
-    final logo = tester.getCenter(find.byIcon(Icons.music_note));
-    expect(logo.dx, lessThan(title.dx));
-    expect(logo.dx, greaterThan(400));
-    expect(title.dx, greaterThan(logo.dx));
+    expect(title.dx, greaterThan(400));
     expect(tester.getTopRight(find.text('bili-audio')).dx, closeTo(800 - 16, 8));
     expect(
       tester.getSize(find.byType(WindowTitleBar)).height,
       WindowTitleBar.macBarHeight,
     );
-    expect(logo.dy, closeTo(WindowTitleBar.macBarHeight / 2, 1));
-    expect(title.dy, closeTo(logo.dy, 1));
+    expect(title.dy, closeTo(WindowTitleBar.macBarHeight / 2, 1));
   });
 }

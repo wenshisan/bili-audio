@@ -7,6 +7,7 @@ import 'dart:async';
 import 'package:just_audio/just_audio.dart';
 
 import 'cache_download_manager.dart';
+import 'cache_download_task.dart';
 
 /// 边听边存音频源 (M3.2, D5)
 ///
@@ -63,7 +64,7 @@ class CachingStreamAudioSource extends StreamAudioSource {
       sourceLength: start != null ? total : null,
       contentLength: e - s,
       offset: start,
-      contentType: task.mime,
+      contentType: mediaContentType(task.mime),
       stream: task.read(s, e),
     );
   }

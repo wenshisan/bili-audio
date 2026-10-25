@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:bili_audio/data/audio/audio_cache_store.dart';
 import 'package:bili_audio/data/audio/cache_download_manager.dart';
+import 'package:bili_audio/data/audio/cache_download_task.dart';
 import 'package:bili_audio/data/audio/caching_stream_audio_source.dart';
 import 'package:bili_audio/data/db/app_database.dart';
 import 'package:dio/dio.dart';
@@ -11,9 +12,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// 模拟 CDN: 支持 Range, 分块慢速输出, 可配置 403
 class _FakeCdn implements HttpClientAdapter {
-  _FakeCdn(this.data);
+  _FakeCdn(this.data, {this.contentType = 'audio/mp4'});
 
   final Uint8List data;
+  String contentType;
   final requests = <RequestOptions>[];
   final forbiddenUrls = <String>{};
 
@@ -44,7 +46,7 @@ class _FakeCdn implements HttpClientAdapter {
       range == null ? 200 : 206,
       headers: {
         Headers.contentLengthHeader: ['${body.length}'],
-        Headers.contentTypeHeader: ['audio/mp4'],
+        Headers.contentTypeHeader: [contentType],
         if (range != null)
           'content-range': ['bytes $start-${data.length - 1}/${data.length}'],
       },
@@ -139,6 +141,21 @@ void main() {
     expect(res.sourceLength, data.length);
     expect(resolved, 0);
     expect(cdn.requests, isEmpty);
+  });
+
+  test('CDN 的 octet-stream 不传给播放器', () async {
+    cdn.contentType = 'application/octet-stream';
+    final source = CachingStreamAudioSource(
+      cacheKey: 'k',
+      resolveUrl: () async => 'https://cdn/a',
+      downloads: manager,
+    );
+
+    final res = await source.request();
+
+    expect(res.contentType, 'audio/mp4');
+    expect(mediaContentType('video/mp4; charset=binary'), 'video/mp4');
+    expect(mediaContentType('audio/flac'), 'audio/flac');
   });
 
   test('音频源: 未缓存时流式返回并在后台写满缓存', () async {
