@@ -25,5 +25,14 @@ void main() {
     expect(xml.contains('screenOrientation'), isFalse);
     expect(xml.contains('compatible-screens'), isFalse);
     expect(xml.contains('resizeableActivity="false"'), isFalse);
+    expect(
+      xml.contains('android:networkSecurityConfig="@xml/network_security_config"'),
+      isTrue,
+    );
+    final security = File(
+      'android/app/src/main/res/xml/network_security_config.xml',
+    ).readAsStringSync();
+    expect(security.contains('cleartextTrafficPermitted="true"'), isTrue);
+    expect(security.contains('>127.0.0.1<'), isTrue);
   });
 }

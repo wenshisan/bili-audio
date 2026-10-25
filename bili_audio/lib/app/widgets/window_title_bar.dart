@@ -9,17 +9,31 @@ import 'region_surface.dart';
 
 /// 自定义窗口标题栏。
 ///
-/// 拖拽移动窗口，双击最大化或还原，高度 48px。
-/// Windows / Linux 在左侧放 logo 与标题，右侧放最小化、最大化、关闭
-/// （关闭为隐藏到托盘）。macOS 使用系统红绿灯，不画这组按钮，logo 与标题靠右。
+/// 拖拽移动窗口，双击最大化或还原。
+/// Windows / Linux 高 48，左侧放 logo 与标题，右侧放最小化、最大化、关闭
+/// （关闭为隐藏到托盘）。macOS 使用系统红绿灯，不画这组按钮，logo 与标题靠右；
+/// 高度与系统标题条一致（28），红绿灯和 logo 的垂直中心都在距顶 14。
 class WindowTitleBar extends StatefulWidget {
   const WindowTitleBar({super.key, this.nativeWindowButtons});
 
   /// 为 null 时按平台决定：macOS 为 true。
   final bool? nativeWindowButtons;
 
-  /// 标题栏高度。
+  /// Windows / Linux 标题栏高度，也是窗体按钮的点击区域。
   static const double barHeight = 48;
+
+  /// macOS 隐藏标题后，系统标题条高度。
+  ///
+  /// 红绿灯按钮高 16、距内容区顶 6，垂直中心在 14，与这 28 的中线重合。
+  static const double macBarHeight = 28;
+
+  /// 当前平台标题栏高度。macOS 为 [macBarHeight]，其余桌面为 [barHeight]。
+  static double get platformBarHeight =>
+      !kIsWeb && Platform.isMacOS ? macBarHeight : barHeight;
+
+  /// 按是否使用系统窗体按钮选择高度。
+  static double heightFor({required bool nativeWindowButtons}) =>
+      nativeWindowButtons ? macBarHeight : barHeight;
 
   @override
   State<WindowTitleBar> createState() => _WindowTitleBarState();
@@ -61,6 +75,9 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final nativeButtons = _nativeWindowButtons;
+    final barHeight = WindowTitleBar.heightFor(
+      nativeWindowButtons: nativeButtons,
+    );
     final brand = <Widget>[
       Icon(Icons.music_note, size: 20, color: theme.colorScheme.primary),
       const SizedBox(width: 8),
@@ -70,8 +87,9 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
       edge: RegionEdge.bottom,
       extent: 6,
       child: SizedBox(
-        height: WindowTitleBar.barHeight,
+        height: barHeight,
         child: Stack(
+          alignment: Alignment.center,
           children: [
             // 下层: 拖拽和双击最大化
             Positioned.fill(

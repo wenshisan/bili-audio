@@ -31,7 +31,10 @@ void main() {
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
-          body: WindowTitleBar(nativeWindowButtons: native),
+          body: Align(
+            alignment: Alignment.topCenter,
+            child: WindowTitleBar(nativeWindowButtons: native),
+          ),
         ),
       ),
     );
@@ -50,6 +53,9 @@ void main() {
     expect(logo.dx, lessThan(title.dx));
     expect(title.dx, lessThan(400));
     expect(tester.getCenter(find.byIcon(Icons.close)).dx, greaterThan(title.dx));
+    expect(tester.getSize(find.byType(WindowTitleBar)).height, WindowTitleBar.barHeight);
+    expect(logo.dy, closeTo(WindowTitleBar.barHeight / 2, 1));
+    expect(tester.getCenter(find.byIcon(Icons.close)).dy, closeTo(logo.dy, 1));
   });
 
   testWidgets('macOS 不画右侧窗体按钮，标题靠右', (tester) async {
@@ -66,5 +72,11 @@ void main() {
     expect(logo.dx, greaterThan(400));
     expect(title.dx, greaterThan(logo.dx));
     expect(tester.getTopRight(find.text('bili-audio')).dx, closeTo(800 - 16, 8));
+    expect(
+      tester.getSize(find.byType(WindowTitleBar)).height,
+      WindowTitleBar.macBarHeight,
+    );
+    expect(logo.dy, closeTo(WindowTitleBar.macBarHeight / 2, 1));
+    expect(title.dy, closeTo(logo.dy, 1));
   });
 }
