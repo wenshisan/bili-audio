@@ -86,7 +86,7 @@ void main() {
     expect(items[1].cover, 'https://i0.hdslb.com/bfs/archive/long.jpg');
   });
 
-  test('排行拆成热度、评价和中文', () async {
+  test('排行拆成热度、评价和音乐分区，并去掉音乐区以外的稿件', () async {
     adapter.onGet(
       '/x/web-interface/ranking/v2',
       (server) => server.reply(200, {
@@ -94,23 +94,41 @@ void main() {
         'data': {
           'list': [
             _video(
-              bvid: 'BVcn',
-              title: '周杰伦 - 晴天',
+              bvid: 'BVorig',
+              title: '原创曲',
               view: 20000,
               like: 100,
               coin: 10,
               favorite: 10,
+              pid: 1003,
+              tidv2: 2016,
             ),
             _video(
-              bvid: 'BVjp',
-              title: '初音ミク live',
+              bvid: 'BVcover',
+              title: '翻唱曲',
               view: 50000,
               like: 1000,
               coin: 8000,
               favorite: 1000,
+              pid: 1003,
+              tidv2: 2020,
             ),
-            _video(bvid: 'BVsmall', title: '小众中文歌', view: 100, like: 90),
-            _video(bvid: 'BVen', title: 'PLAVE Special', view: 80000, like: 1),
+            _video(
+              bvid: 'BVmv',
+              title: '一支 MV',
+              view: 100,
+              like: 90,
+              pid: 1003,
+              tidv2: 2017,
+            ),
+            _video(
+              bvid: 'BVgame',
+              title: '游戏实况',
+              view: 80000,
+              like: 1,
+              pid: 4,
+              tidv2: 999,
+            ),
           ],
         },
       }),
@@ -118,14 +136,15 @@ void main() {
 
     final bundle = (await api.dailyMusic()).valueOrNull!;
 
-    expect(bundle.heat.map((item) => item.bvid), [
-      'BVcn',
-      'BVjp',
-      'BVsmall',
-      'BVen',
+    expect(bundle.heat.map((item) => item.bvid), ['BVorig', 'BVcover', 'BVmv']);
+    expect(bundle.zones[MusicZone.original]!.map((item) => item.bvid), [
+      'BVorig',
     ]);
-    expect(bundle.chinese.map((item) => item.bvid), ['BVcn', 'BVsmall']);
-    expect(bundle.rating.map((item) => item.bvid), ['BVjp', 'BVcn', 'BVen']);
+    expect(bundle.zones[MusicZone.cover]!.map((item) => item.bvid), [
+      'BVcover',
+    ]);
+    expect(bundle.zones[MusicZone.mv]!.map((item) => item.bvid), ['BVmv']);
+    expect(bundle.rating.map((item) => item.bvid), ['BVcover', 'BVorig']);
   });
 
   test('排行请求失败时返回网络错误', () async {
@@ -158,6 +177,8 @@ Map<String, Object> _video({
   int like = 0,
   int coin = 0,
   int favorite = 0,
+  int? pid,
+  int? tidv2,
 }) => {
   'bvid': bvid,
   'title': title,
@@ -167,4 +188,6 @@ Map<String, Object> _video({
   'videos': 1,
   'owner': {'name': 'UP'},
   'stat': {'view': view, 'like': like, 'coin': coin, 'favorite': favorite},
+  'pid_v2': ?pid,
+  'tidv2': ?tidv2,
 };

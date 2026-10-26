@@ -25,37 +25,107 @@ abstract interface class SearchRepository {
   });
 
   /// 音乐区推荐。发现页在用户还没发起搜索时按 tab 展示。
+  ///
+  /// 热度、评价和排行榜分区来自同一次拉榜。年代要再调 [eraChart]。
   Future<Result<DiscoverCharts>> dailyPopular();
+
+  /// 音乐区里某一年代的短视频，按播放量从高到低。
+  Future<Result<List<SearchHit>>> eraChart(DiscoverTab tab);
+}
+
+/// 发现页上的两档推荐。
+enum DiscoverGroup {
+  /// 音乐区排行，以及排行里的子分区。
+  ranking,
+
+  /// 按歌曲年代搜索。
+  era,
 }
 
 /// 发现页推荐分类。
 enum DiscoverTab {
   /// 音乐区排行，按近期播放热度。
-  heat,
+  heat(DiscoverGroup.ranking),
 
   /// 同一批热门里，投币、收藏相对播放量更高的。
-  rating,
+  rating(DiscoverGroup.ranking),
 
-  /// 热门里标题为中文的歌曲。
-  chinese,
+  /// 排行榜里的原创音乐。
+  original(DiscoverGroup.ranking),
+
+  /// 排行榜里的翻唱。
+  cover(DiscoverGroup.ranking),
+
+  /// 排行榜里的 MV。
+  mv(DiscoverGroup.ranking),
+
+  /// 排行榜里的音乐现场。
+  live(DiscoverGroup.ranking),
+
+  /// 排行榜里的演奏。
+  perform(DiscoverGroup.ranking),
+
+  /// 排行榜里的 VOCALOID。
+  vocaloid(DiscoverGroup.ranking),
+
+  /// 排行榜里的 AI 音乐。
+  ai(DiscoverGroup.ranking),
+
+  /// 2020 年代的流行歌曲。
+  y2020(DiscoverGroup.era),
+
+  /// 2010 年代的流行歌曲。
+  y2010(DiscoverGroup.era),
+
+  /// 2000 年代的经典歌曲。
+  y2000(DiscoverGroup.era),
+
+  /// 90 年代的经典歌曲。
+  y1990(DiscoverGroup.era),
+
+  /// 80 年代的经典歌曲。
+  y1980(DiscoverGroup.era),
+
+  /// 70 年代的经典歌曲。
+  y1970(DiscoverGroup.era);
+
+  const DiscoverTab(this.group);
+
+  final DiscoverGroup group;
+
+  static const ranking = <DiscoverTab>[
+    heat,
+    rating,
+    original,
+    cover,
+    mv,
+    live,
+    perform,
+    vocaloid,
+    ai,
+  ];
+
+  static const eras = <DiscoverTab>[y2020, y2010, y2000, y1990, y1980, y1970];
 }
 
-/// 一次拉榜得到的三个推荐列表。曲目都已经按 15 分钟规则展开。
+/// 一次拉榜得到的热度、评价和排行榜分区。曲目都已经按 15 分钟规则展开。
+///
+/// 年代不在这里，见 [SearchRepository.eraChart]。
 class DiscoverCharts {
   const DiscoverCharts({
     this.heat = const [],
     this.rating = const [],
-    this.chinese = const [],
+    this.zones = const {},
   });
 
   final List<SearchHit> heat;
   final List<SearchHit> rating;
-  final List<SearchHit> chinese;
+  final Map<DiscoverTab, List<SearchHit>> zones;
 
   List<SearchHit> of(DiscoverTab tab) => switch (tab) {
     DiscoverTab.heat => heat,
     DiscoverTab.rating => rating,
-    DiscoverTab.chinese => chinese,
+    _ => zones[tab] ?? const [],
   };
 }
 

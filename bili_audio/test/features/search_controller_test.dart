@@ -47,6 +47,10 @@ class _PartialSearch implements SearchRepository {
   @override
   Future<Result<DiscoverCharts>> dailyPopular() async =>
       const Result.success(DiscoverCharts());
+
+  @override
+  Future<Result<List<SearchHit>>> eraChart(DiscoverTab tab) async =>
+      const Result.success([]);
 }
 
 class _ChartSearch implements SearchRepository {
@@ -60,14 +64,13 @@ class _ChartSearch implements SearchRepository {
     final gate = dailyGate;
     if (gate != null) await gate.future;
     return Result.success(
-      charts ??
-          DiscoverCharts(
-            heat: [_hit('daily')],
-            rating: [_hit('daily')],
-            chinese: [_hit('daily')],
-          ),
+      charts ?? DiscoverCharts(heat: [_hit('daily')], rating: [_hit('daily')]),
     );
   }
+
+  @override
+  Future<Result<List<SearchHit>>> eraChart(DiscoverTab tab) async =>
+      Result.success([_hit(tab.name)]);
 
   @override
   Future<Result<SearchHitPage>> search(
@@ -187,7 +190,9 @@ void main() {
             charts: DiscoverCharts(
               heat: [_hit('hot')],
               rating: [_hit('rated')],
-              chinese: [_hit('cn')],
+              zones: {
+                DiscoverTab.original: [_hit('orig')],
+              },
             ),
           ),
         ),
@@ -208,18 +213,55 @@ void main() {
       'hot',
     );
 
-    notifier.selectChart(DiscoverTab.rating);
+    await notifier.selectChart(DiscoverTab.rating);
     expect(
       container.read(searchControllerProvider).items.single.result.bvid,
       'rated',
     );
 
-    notifier.selectChart(DiscoverTab.chinese);
+    await notifier.selectChart(DiscoverTab.original);
     await notifier.search('歌');
     await notifier.search('');
     final end = container.read(searchControllerProvider);
     expect(end.keyword, isEmpty);
-    expect(end.chart, DiscoverTab.chinese);
-    expect(end.items.single.result.bvid, 'cn');
+    expect(end.chart, DiscoverTab.original);
+    expect(end.items.single.result.bvid, 'orig');
+  });
+
+  test('年代分区按需加载，切回排行榜后仍记得上次的年代', () async {
+    final db = AppDatabase.memory();
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        searchRepositoryProvider.overrideWithValue(_ChartSearch()),
+      ],
+    );
+    addTearDown(() async {
+      await container.read(searchHistoryProvider.future);
+      await Future<void>.delayed(Duration.zero);
+      container.dispose();
+      await db.close();
+    });
+
+    final notifier = container.read(searchControllerProvider.notifier);
+    await notifier.loadDaily();
+    await notifier.selectChart(DiscoverTab.y1990);
+    expect(container.read(searchControllerProvider).chart, DiscoverTab.y1990);
+    expect(
+      container.read(searchControllerProvider).items.single.result.bvid,
+      'y1990',
+    );
+
+    await notifier.selectChart(DiscoverTab.rating);
+    expect(
+      container.read(searchControllerProvider).items.single.result.bvid,
+      'daily',
+    );
+
+    await notifier.selectChart(notifier.preferred(DiscoverGroup.era));
+    final end = container.read(searchControllerProvider);
+    expect(end.chart, DiscoverTab.y1990);
+    expect(end.items.single.result.bvid, 'y1990');
+    expect(end.loading, isFalse);
   });
 }

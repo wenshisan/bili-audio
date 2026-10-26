@@ -5,6 +5,7 @@ import 'package:bili_audio/data/bili/bili_ranking_api.dart';
 import 'package:bili_audio/data/bili/bili_search_api.dart';
 import 'package:bili_audio/data/bili/models/search_result.dart';
 import 'package:bili_audio/data/repositories/bili_repositories.dart';
+import 'package:bili_audio/data/repositories/repositories.dart';
 import 'package:bili_audio/data/repositories/fake_repositories.dart';
 import 'package:bili_audio/domain/entities/app_error.dart';
 import 'package:bili_audio/domain/entities/audio_track.dart';
@@ -35,6 +36,8 @@ class _ListSearchApi implements BiliSearchApi {
     int page = 1,
     int pageSize = 20,
     List<int> tids = const [3],
+    String? order,
+    int? duration,
   }) async => Result.success(
     SearchPage(
       items: items,
@@ -47,14 +50,52 @@ class _ListSearchApi implements BiliSearchApi {
 }
 
 class _Chart implements MusicChartSource {
-  _Chart(this.items);
+  _Chart(this.items, {this.zones = const {}});
 
   final List<SearchResult> items;
+  final Map<MusicZone, List<SearchResult>> zones;
 
   @override
   Future<Result<MusicChartBundle>> dailyMusic() async => Result.success(
-    MusicChartBundle(heat: items, rating: items, chinese: items),
+    MusicChartBundle(heat: items, rating: items, zones: zones),
   );
+}
+
+class _EraSearchApi implements BiliSearchApi {
+  String? keyword;
+  String? order;
+  int? duration;
+  int? pageSize;
+  List<int>? tids;
+
+  @override
+  Future<Result<SearchPage>> searchVideo({
+    required String keyword,
+    int page = 1,
+    int pageSize = 20,
+    List<int> tids = const [3],
+    String? order,
+    int? duration,
+  }) async {
+    this.keyword = keyword;
+    this.order = order;
+    this.duration = duration;
+    this.pageSize = pageSize;
+    this.tids = tids;
+    return Result.success(
+      SearchPage(
+        items: [
+          _item('BVera', '90年代 晴天', 180),
+          _item('BVlong', '90年代 演唱会', 1200),
+          _item('BVera', '90年代 晴天 重复', 200),
+        ],
+        page: page,
+        pageSize: pageSize,
+        total: 3,
+        hasMore: false,
+      ),
+    );
+  }
 }
 
 class _StubSearchApi implements BiliSearchApi {
@@ -64,6 +105,8 @@ class _StubSearchApi implements BiliSearchApi {
     int page = 1,
     int pageSize = 20,
     List<int> tids = const [3],
+    String? order,
+    int? duration,
   }) async => const Result.success(
     SearchPage(
       items: [
@@ -291,11 +334,16 @@ void main() {
     final repo = BiliSearchRepository(
       _StubSearchApi(),
       cleaner,
-      ranking: _Chart([
-        _item('BVlong', '超长单曲', 960),
-        _item('BVmulti', '歌曲合集', 2400).copyWith(totalPages: 3),
-        _item('BVshort', '周杰伦 - 晴天', 180).copyWith(cid: 8),
-      ]),
+      ranking: _Chart(
+        [
+          _item('BVlong', '超长单曲', 960),
+          _item('BVmulti', '歌曲合集', 2400).copyWith(totalPages: 3),
+          _item('BVshort', '周杰伦 - 晴天', 180).copyWith(cid: 8),
+        ],
+        zones: {
+          MusicZone.original: [_item('BVshort', '周杰伦 - 晴天', 180)],
+        },
+      ),
       pageList: (bvid) async {
         if (bvid != 'BVmulti') {
           return const Result.failure(AppError.notFound());
@@ -323,7 +371,8 @@ void main() {
       },
     );
 
-    final items = (await repo.dailyPopular()).valueOrNull!.heat;
+    final charts = (await repo.dailyPopular()).valueOrNull!;
+    final items = charts.heat;
 
     expect(items.map((hit) => hit.result.bvid), [
       'BVmulti',
@@ -336,6 +385,25 @@ void main() {
     expect(items[2].result.cid, 8);
     expect(items[2].cleaned.name, '晴天');
     expect(items[2].cleaned.artist, '周杰伦');
+    expect(charts.of(DiscoverTab.original).single.result.bvid, 'BVshort');
+  });
+
+  test('年代推荐按播放量搜索短视频，并去掉超长和重复', () async {
+    final api = _EraSearchApi();
+    final repo = BiliSearchRepository(
+      api,
+      TitleCleaner(const TitleRuleConfig(version: 1, rules: [])),
+    );
+
+    final items = (await repo.eraChart(DiscoverTab.y1990)).valueOrNull!;
+
+    expect(api.keyword, BiliSearchRepository.eraKeyword[DiscoverTab.y1990]);
+    expect(api.order, 'click');
+    expect(api.duration, BiliSearchRepository.eraDurationBand);
+    expect(api.pageSize, BiliSearchRepository.eraPageSize);
+    expect(api.tids, [3]);
+    expect(items.map((hit) => hit.result.bvid), ['BVera']);
+    expect(items.single.result.duration, 180);
   });
 
   group('Fake 仓储', () {

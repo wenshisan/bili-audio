@@ -142,6 +142,18 @@ abstract class AppLocalizations {
   /// **'今天还没有可推荐的音乐'**
   String get discoverDailyEmpty;
 
+  /// No description provided for @discoverGroupRanking.
+  ///
+  /// In zh, this message translates to:
+  /// **'排行榜'**
+  String get discoverGroupRanking;
+
+  /// No description provided for @discoverGroupEra.
+  ///
+  /// In zh, this message translates to:
+  /// **'年代'**
+  String get discoverGroupEra;
+
   /// No description provided for @discoverTabHeat.
   ///
   /// In zh, this message translates to:
@@ -154,11 +166,83 @@ abstract class AppLocalizations {
   /// **'评价最高'**
   String get discoverTabRating;
 
-  /// No description provided for @discoverTabChinese.
+  /// No description provided for @discoverTabOriginal.
   ///
   /// In zh, this message translates to:
-  /// **'中文'**
-  String get discoverTabChinese;
+  /// **'原创'**
+  String get discoverTabOriginal;
+
+  /// No description provided for @discoverTabCover.
+  ///
+  /// In zh, this message translates to:
+  /// **'翻唱'**
+  String get discoverTabCover;
+
+  /// No description provided for @discoverTabMv.
+  ///
+  /// In zh, this message translates to:
+  /// **'MV'**
+  String get discoverTabMv;
+
+  /// No description provided for @discoverTabLive.
+  ///
+  /// In zh, this message translates to:
+  /// **'现场'**
+  String get discoverTabLive;
+
+  /// No description provided for @discoverTabPerform.
+  ///
+  /// In zh, this message translates to:
+  /// **'演奏'**
+  String get discoverTabPerform;
+
+  /// No description provided for @discoverTabVocaloid.
+  ///
+  /// In zh, this message translates to:
+  /// **'VOCALOID'**
+  String get discoverTabVocaloid;
+
+  /// No description provided for @discoverTabAi.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI音乐'**
+  String get discoverTabAi;
+
+  /// No description provided for @discoverTabY2020.
+  ///
+  /// In zh, this message translates to:
+  /// **'20年代'**
+  String get discoverTabY2020;
+
+  /// No description provided for @discoverTabY2010.
+  ///
+  /// In zh, this message translates to:
+  /// **'10年代'**
+  String get discoverTabY2010;
+
+  /// No description provided for @discoverTabY2000.
+  ///
+  /// In zh, this message translates to:
+  /// **'00年代'**
+  String get discoverTabY2000;
+
+  /// No description provided for @discoverTabY1990.
+  ///
+  /// In zh, this message translates to:
+  /// **'90年代'**
+  String get discoverTabY1990;
+
+  /// No description provided for @discoverTabY1980.
+  ///
+  /// In zh, this message translates to:
+  /// **'80年代'**
+  String get discoverTabY1980;
+
+  /// No description provided for @discoverTabY1970.
+  ///
+  /// In zh, this message translates to:
+  /// **'70年代'**
+  String get discoverTabY1970;
 
   /// No description provided for @searchNoResult.
   ///

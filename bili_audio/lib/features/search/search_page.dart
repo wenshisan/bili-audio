@@ -20,7 +20,7 @@ import 'search_controller.dart';
 
 /// 发现页 (M6.1)
 ///
-/// 还没搜索时展示音乐区推荐，可在热度、评价、中文之间切换。
+/// 还没搜索时展示音乐区推荐，可在排行榜分区和年代之间切换。
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
@@ -65,7 +65,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   void _selectChart(DiscoverTab tab) {
     if (ref.read(searchControllerProvider).chart == tab) return;
     if (_scroll.hasClients) _scroll.jumpTo(0);
-    ref.read(searchControllerProvider.notifier).selectChart(tab);
+    unawaited(ref.read(searchControllerProvider.notifier).selectChart(tab));
+  }
+
+  void _selectGroup(DiscoverGroup group) {
+    final current = ref.read(searchControllerProvider).chart;
+    if (current.group == group) return;
+    _selectChart(ref.read(searchControllerProvider.notifier).preferred(group));
   }
 
   /// 从第一条能直接播放的结果开始，已加载列表作为队列。
@@ -161,6 +167,7 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                   showPlay: items.isNotEmpty,
                   count: items.length,
                   onSelected: _selectChart,
+                  onSelectGroup: _selectGroup,
                   onPlayAll: () => _playAll(items),
                 ),
               Expanded(
@@ -565,12 +572,38 @@ Object _searchBodyKey(SearchState state, List<SearchHit> items) {
       : 'results:${state.keyword}';
 }
 
+String _discoverGroupLabel(AppLocalizations l10n, DiscoverGroup group) =>
+    switch (group) {
+      DiscoverGroup.ranking => l10n.discoverGroupRanking,
+      DiscoverGroup.era => l10n.discoverGroupEra,
+    };
+
+String _discoverTabLabel(AppLocalizations l10n, DiscoverTab tab) =>
+    switch (tab) {
+      DiscoverTab.heat => l10n.discoverTabHeat,
+      DiscoverTab.rating => l10n.discoverTabRating,
+      DiscoverTab.original => l10n.discoverTabOriginal,
+      DiscoverTab.cover => l10n.discoverTabCover,
+      DiscoverTab.mv => l10n.discoverTabMv,
+      DiscoverTab.live => l10n.discoverTabLive,
+      DiscoverTab.perform => l10n.discoverTabPerform,
+      DiscoverTab.vocaloid => l10n.discoverTabVocaloid,
+      DiscoverTab.ai => l10n.discoverTabAi,
+      DiscoverTab.y2020 => l10n.discoverTabY2020,
+      DiscoverTab.y2010 => l10n.discoverTabY2010,
+      DiscoverTab.y2000 => l10n.discoverTabY2000,
+      DiscoverTab.y1990 => l10n.discoverTabY1990,
+      DiscoverTab.y1980 => l10n.discoverTabY1980,
+      DiscoverTab.y1970 => l10n.discoverTabY1970,
+    };
+
 class _ChartTabs extends StatelessWidget {
   const _ChartTabs({
     required this.selected,
     required this.showPlay,
     required this.count,
     required this.onSelected,
+    required this.onSelectGroup,
     required this.onPlayAll,
   });
 
@@ -578,48 +611,64 @@ class _ChartTabs extends StatelessWidget {
   final bool showPlay;
   final int count;
   final ValueChanged<DiscoverTab> onSelected;
+  final ValueChanged<DiscoverGroup> onSelectGroup;
   final VoidCallback onPlayAll;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final labels = {
-      DiscoverTab.heat: l10n.discoverTabHeat,
-      DiscoverTab.rating: l10n.discoverTabRating,
-      DiscoverTab.chinese: l10n.discoverTabChinese,
-    };
+    final tabs = selected.group == DiscoverGroup.ranking
+        ? DiscoverTab.ranking
+        : DiscoverTab.eras;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: SizedBox(
-              height: 40,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: DiscoverTab.values.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final tab = DiscoverTab.values[index];
-                  return ChoiceChip(
-                    label: Text(labels[tab]!),
-                    selected: tab == selected,
-                    onSelected: (_) => onSelected(tab),
-                  );
-                },
-              ),
-            ),
+          Row(
+            children: [
+              for (final group in DiscoverGroup.values) ...[
+                ChoiceChip(
+                  label: Text(_discoverGroupLabel(l10n, group)),
+                  selected: group == selected.group,
+                  onSelected: (_) => onSelectGroup(group),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ],
           ),
-          if (showPlay) ...[
-            const SizedBox(width: 8),
-            FilledButton.icon(
-              icon: const Icon(Icons.play_arrow),
-              label: Text(l10n.playlistPlayAll),
-              onPressed: onPlayAll,
-            ),
-            const SizedBox(width: 8),
-            Text(l10n.playlistTrackCount(count)),
-          ],
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 40,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: tabs.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final tab = tabs[index];
+                      return ChoiceChip(
+                        label: Text(_discoverTabLabel(l10n, tab)),
+                        selected: tab == selected,
+                        onSelected: (_) => onSelected(tab),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              if (showPlay) ...[
+                const SizedBox(width: 8),
+                FilledButton.icon(
+                  icon: const Icon(Icons.play_arrow),
+                  label: Text(l10n.playlistPlayAll),
+                  onPressed: onPlayAll,
+                ),
+                const SizedBox(width: 8),
+                Text(l10n.playlistTrackCount(count)),
+              ],
+            ],
+          ),
         ],
       ),
     );

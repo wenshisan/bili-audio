@@ -34,13 +34,55 @@ class AppLocalizationsZh extends AppLocalizations {
   String get discoverDailyEmpty => '今天还没有可推荐的音乐';
 
   @override
+  String get discoverGroupRanking => '排行榜';
+
+  @override
+  String get discoverGroupEra => '年代';
+
+  @override
   String get discoverTabHeat => '热度';
 
   @override
   String get discoverTabRating => '评价最高';
 
   @override
-  String get discoverTabChinese => '中文';
+  String get discoverTabOriginal => '原创';
+
+  @override
+  String get discoverTabCover => '翻唱';
+
+  @override
+  String get discoverTabMv => 'MV';
+
+  @override
+  String get discoverTabLive => '现场';
+
+  @override
+  String get discoverTabPerform => '演奏';
+
+  @override
+  String get discoverTabVocaloid => 'VOCALOID';
+
+  @override
+  String get discoverTabAi => 'AI音乐';
+
+  @override
+  String get discoverTabY2020 => '20年代';
+
+  @override
+  String get discoverTabY2010 => '10年代';
+
+  @override
+  String get discoverTabY2000 => '00年代';
+
+  @override
+  String get discoverTabY1990 => '90年代';
+
+  @override
+  String get discoverTabY1980 => '80年代';
+
+  @override
+  String get discoverTabY1970 => '70年代';
 
   @override
   String get searchNoResult => '没有找到相关结果';

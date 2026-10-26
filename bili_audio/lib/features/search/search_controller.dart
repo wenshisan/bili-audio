@@ -55,9 +55,13 @@ class SearchController extends Notifier<SearchState> {
 
   Timer? _timer;
   int _generation = 0;
+  int _eraGeneration = 0;
   int _emptyFollows = 0;
   bool _dailyInFlight = false;
   DiscoverCharts? _charts;
+  final _eras = <DiscoverTab, List<SearchHit>>{};
+  DiscoverTab _rankingTab = DiscoverTab.heat;
+  DiscoverTab _eraTab = DiscoverTab.y2020;
 
   @override
   SearchState build() {
@@ -111,15 +115,40 @@ class SearchController extends Notifier<SearchState> {
     await _load(state.page + 1);
   }
 
-  /// 切换推荐 tab。榜已经在内存里时不再请求。
-  void selectChart(DiscoverTab tab) {
+  /// 这一档上次选中的 tab。切换排行榜和年代时用。
+  DiscoverTab preferred(DiscoverGroup group) => switch (group) {
+    DiscoverGroup.ranking => _rankingTab,
+    DiscoverGroup.era => _eraTab,
+  };
+
+  /// 切换推荐 tab。排行榜已在内存里时不再请求；年代第一次点开才搜索。
+  Future<void> selectChart(DiscoverTab tab) async {
     if (state.keyword.isNotEmpty || tab == state.chart) return;
-    final charts = _charts;
-    if (charts == null) {
-      state = state.copyWith(chart: tab);
+    _remember(tab);
+    if (tab.group == DiscoverGroup.ranking) {
+      final charts = _charts;
+      if (charts == null) {
+        state = state.copyWith(chart: tab, items: const []);
+        return;
+      }
+      state = SearchState(chart: tab, items: charts.of(tab));
       return;
     }
-    state = SearchState(chart: tab, items: charts.of(tab));
+    final cached = _eras[tab];
+    if (cached != null) {
+      state = SearchState(chart: tab, items: cached);
+      return;
+    }
+    await _loadEra(tab, dailyGen: _generation);
+  }
+
+  void _remember(DiscoverTab tab) {
+    switch (tab.group) {
+      case DiscoverGroup.ranking:
+        _rankingTab = tab;
+      case DiscoverGroup.era:
+        _eraTab = tab;
+    }
   }
 
   /// 未搜索时加载音乐区推荐。已有推荐或正在搜索时不覆盖。
@@ -131,11 +160,22 @@ class SearchController extends Notifier<SearchState> {
     if (_dailyInFlight && !force) return;
     final cached = _charts;
     if (!force && cached != null && state.error == null) {
-      state = SearchState(chart: state.chart, items: cached.of(state.chart));
+      final tab = state.chart;
+      if (tab.group == DiscoverGroup.era) {
+        final era = _eras[tab];
+        if (era != null) {
+          state = SearchState(chart: tab, items: era);
+          return;
+        }
+        await _loadEra(tab, dailyGen: _generation);
+        return;
+      }
+      state = SearchState(chart: tab, items: cached.of(tab));
       return;
     }
     _dailyInFlight = true;
     _emptyFollows = 0;
+    if (force) _eras.clear();
     final gen = ++_generation;
     final chart = state.chart;
     state = SearchState(loading: true, chart: chart);
@@ -148,6 +188,10 @@ class SearchController extends Notifier<SearchState> {
       if (!ref.mounted || gen != _generation) return;
       AppLogger.e('daily failed', tag: 'search', error: e, stackTrace: st);
       _charts = null;
+      if (state.chart.group == DiscoverGroup.era && state.keyword.isEmpty) {
+        await _loadEra(state.chart, dailyGen: gen);
+        return;
+      }
       state = SearchState(loading: false, chart: state.chart, error: e);
       return;
     }
@@ -160,6 +204,10 @@ class SearchController extends Notifier<SearchState> {
     if (data == null) {
       AppLogger.w('daily failed error=${result.errorOrNull}', tag: 'search');
       _charts = null;
+      if (state.chart.group == DiscoverGroup.era) {
+        await _loadEra(state.chart, dailyGen: gen);
+        return;
+      }
       state = SearchState(
         loading: false,
         chart: state.chart,
@@ -168,7 +216,51 @@ class SearchController extends Notifier<SearchState> {
       return;
     }
     _charts = data;
-    state = SearchState(chart: state.chart, items: data.of(state.chart));
+    final tab = state.chart;
+    if (tab.group == DiscoverGroup.era) {
+      final era = _eras[tab];
+      if (era != null) {
+        state = SearchState(chart: tab, items: era);
+        return;
+      }
+      await _loadEra(tab, dailyGen: gen);
+      return;
+    }
+    state = SearchState(chart: tab, items: data.of(tab));
+  }
+
+  Future<void> _loadEra(DiscoverTab tab, {required int dailyGen}) async {
+    final gen = ++_eraGeneration;
+    state = SearchState(loading: true, chart: tab);
+    final Result<List<SearchHit>> result;
+    try {
+      result = await ref.read(searchRepositoryProvider).eraChart(tab);
+    } catch (e, st) {
+      if (!_eraCurrent(tab, gen, dailyGen)) return;
+      AppLogger.e('era failed', tag: 'search', error: e, stackTrace: st);
+      state = SearchState(loading: false, chart: tab, error: e);
+      return;
+    }
+    if (!_eraCurrent(tab, gen, dailyGen)) return;
+    final items = result.valueOrNull;
+    if (items == null) {
+      state = SearchState(
+        loading: false,
+        chart: tab,
+        error: result.errorOrNull,
+      );
+      return;
+    }
+    _eras[tab] = items;
+    if (state.keyword.isNotEmpty || state.chart != tab) return;
+    state = SearchState(chart: tab, items: items);
+  }
+
+  bool _eraCurrent(DiscoverTab tab, int gen, int dailyGen) {
+    if (!ref.mounted || gen != _eraGeneration || dailyGen != _generation) {
+      return false;
+    }
+    return state.keyword.isEmpty && state.chart == tab;
   }
 
   Future<void> _load(int page) async {

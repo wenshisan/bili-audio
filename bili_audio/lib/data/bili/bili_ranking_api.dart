@@ -7,26 +7,51 @@ import 'models/search_result.dart';
 
 /// 音乐区热门榜。发现页在用户还没搜索时用它做推荐。
 abstract interface class MusicChartSource {
-  /// 音乐区排行，并拆成热度、评价、中文三份列表。
+  /// 音乐区排行，并拆成热度、评价和子分区。
   Future<Result<MusicChartBundle>> dailyMusic();
 }
 
-/// 同一份音乐区排行拆出的三个推荐列表，顺序即展示顺序。
+/// 排行榜 v2 里适合当歌曲听的音乐子分区。
+///
+/// `tidv2` 见分区一览。乐评、教学、歌单和饭拍不单列。
+enum MusicZone {
+  original(2016),
+  cover(2020),
+  mv(2017),
+  live(2018),
+  perform(2021),
+  vocaloid(2022),
+  ai(2023);
+
+  const MusicZone(this.tid);
+
+  final int tid;
+
+  static MusicZone? fromTid(int? tid) {
+    if (tid == null) return null;
+    for (final zone in values) {
+      if (zone.tid == tid) return zone;
+    }
+    return null;
+  }
+}
+
+/// 同一份音乐区排行拆出的推荐列表，顺序即展示顺序。
 class MusicChartBundle {
   const MusicChartBundle({
     required this.heat,
     required this.rating,
-    required this.chinese,
+    this.zones = const {},
   });
 
-  /// 榜单原顺序。
+  /// 音乐区榜单原顺序。父分区不是音乐的条目已去掉。
   final List<SearchResult> heat;
 
   /// 播放量达到门槛后，按投币、收藏、点赞相对播放量从高到低。
   final List<SearchResult> rating;
 
-  /// [heat] 里标题为中文、且不含日文假名或韩文的条目。
-  final List<SearchResult> chinese;
+  /// [heat] 按子分区拆开，每个列表仍是榜单顺序。
+  final Map<MusicZone, List<SearchResult>> zones;
 }
 
 /// B 站音乐区排行 (rid=1003)。
@@ -38,7 +63,7 @@ class BiliRankingApi implements MusicChartSource {
 
   final BiliHttp _http;
 
-  /// 排行榜 v2 里的音乐分区，不是搜索接口的 tid=3。
+  /// 排行榜 v2 里的音乐分区，也是稿件 `pid_v2`。不是搜索接口的 tid=3。
   static const musicRid = 1003;
 
   /// 评价榜忽略播放量过低的稿件，避免少量互动把比例抬上去。
@@ -85,24 +110,27 @@ class BiliRankingApi implements MusicChartSource {
   }
 
   MusicChartBundle _bundle(List<_Ranked> entries) {
-    final rated = [
+    final music = [
       for (final entry in entries)
+        if (entry.zonePid == null || entry.zonePid == musicRid) entry,
+    ];
+    final rated = [
+      for (final entry in music)
         if (entry.rating >= 0) entry,
     ]..sort((a, b) => b.rating.compareTo(a.rating));
+    final zones = <MusicZone, List<SearchResult>>{
+      for (final zone in MusicZone.values) zone: [],
+    };
+    for (final entry in music) {
+      final zone = MusicZone.fromTid(entry.zoneTid);
+      if (zone == null) continue;
+      zones[zone]?.add(entry.result);
+    }
     return MusicChartBundle(
-      heat: [for (final entry in entries) entry.result],
+      heat: [for (final entry in music) entry.result],
       rating: [for (final entry in rated) entry.result],
-      chinese: [
-        for (final entry in entries)
-          if (_isChineseTitle(entry.result.cleanTitle)) entry.result,
-      ],
+      zones: zones,
     );
-  }
-
-  /// 有至少两个汉字，且没有假名或韩文，视为中文标题。
-  bool _isChineseTitle(String title) {
-    if (RegExp(r'[\u3040-\u30ff\uac00-\ud7af]').hasMatch(title)) return false;
-    return RegExp(r'[\u4e00-\u9fff]').allMatches(title).length >= 2;
   }
 
   _Ranked? _parse(Map<String, dynamic> item) {
@@ -124,6 +152,8 @@ class BiliRankingApi implements MusicChartSource {
     final pages = _positive(item['videos']) ?? 1;
 
     return _Ranked(
+      zonePid: _positive(item['pid_v2']),
+      zoneTid: _positive(item['tidv2']),
       result: SearchResult(
         bvid: bvid,
         title: title,
@@ -173,9 +203,13 @@ class _Ranked {
     required this.like,
     required this.coin,
     required this.favorite,
+    this.zonePid,
+    this.zoneTid,
   });
 
   final SearchResult result;
+  final int? zonePid;
+  final int? zoneTid;
   final int view;
   final int like;
   final int coin;

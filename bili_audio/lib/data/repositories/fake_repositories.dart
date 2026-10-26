@@ -67,9 +67,20 @@ class FakeSearchRepository implements SearchRepository {
       DiscoverCharts(
         heat: playable,
         rating: playable.reversed.toList(),
-        chinese: playable,
+        zones: {
+          for (final tab in DiscoverTab.ranking)
+            if (tab != DiscoverTab.heat && tab != DiscoverTab.rating)
+              tab: playable,
+        },
       ),
     );
+  }
+
+  @override
+  Future<Result<List<SearchHit>>> eraChart(DiscoverTab tab) async {
+    final page = await dailyPopular();
+    if (page.isFailure) return Result.failure(page.errorOrNull!);
+    return Result.success(page.valueOrNull?.heat ?? const []);
   }
 }
 

@@ -61,7 +61,7 @@ class BiliSearchRepository implements SearchRepository {
     });
   }
 
-  /// 音乐区排行拆成热度、评价、中文。多 P 只展开一次，三个列表共用结果。
+  /// 音乐区排行拆成热度、评价和子分区。多 P 只展开一次，各列表共用结果。
   @override
   Future<Result<DiscoverCharts>> dailyPopular() async {
     final chart = ranking;
@@ -92,14 +92,75 @@ class BiliSearchRepository implements SearchRepository {
     final charts = DiscoverCharts(
       heat: take(bundle.heat),
       rating: take(bundle.rating),
-      chinese: take(bundle.chinese),
+      zones: {
+        for (final entry in _zoneTabs.entries)
+          entry.value: take(bundle.zones[entry.key] ?? const []),
+      },
     );
     AppLogger.i(
       'daily music heat=${charts.heat.length} '
-      'rating=${charts.rating.length} chinese=${charts.chinese.length}',
+      'rating=${charts.rating.length} '
+      'zones=${charts.zones.values.fold<int>(0, (n, list) => n + list.length)}',
       tag: 'search',
     );
     return Result.success(charts);
+  }
+
+  /// 年代搜索词。播放量排序，只要 10 分钟以内的音乐区视频。
+  static const eraKeyword = <DiscoverTab, String>{
+    DiscoverTab.y2020: '2020年代 流行歌曲',
+    DiscoverTab.y2010: '2010年代 流行歌曲',
+    DiscoverTab.y2000: '2000年代 经典歌曲',
+    DiscoverTab.y1990: '90年代 经典歌曲',
+    DiscoverTab.y1980: '80年代 经典歌曲',
+    DiscoverTab.y1970: '70年代 经典歌曲',
+  };
+
+  static const eraDurationBand = 1;
+  static const eraPageSize = 30;
+
+  static const _zoneTabs = <MusicZone, DiscoverTab>{
+    MusicZone.original: DiscoverTab.original,
+    MusicZone.cover: DiscoverTab.cover,
+    MusicZone.mv: DiscoverTab.mv,
+    MusicZone.live: DiscoverTab.live,
+    MusicZone.perform: DiscoverTab.perform,
+    MusicZone.vocaloid: DiscoverTab.vocaloid,
+    MusicZone.ai: DiscoverTab.ai,
+  };
+
+  @override
+  Future<Result<List<SearchHit>>> eraChart(DiscoverTab tab) async {
+    final keyword = eraKeyword[tab];
+    if (keyword == null) return const Result.success([]);
+    final result = await _api.searchVideo(
+      keyword: keyword,
+      pageSize: eraPageSize,
+      order: 'click',
+      duration: eraDurationBand,
+    );
+    if (result.isFailure) {
+      AppLogger.e(
+        'era "$keyword" failed',
+        tag: 'search',
+        error: result.errorOrNull,
+      );
+      return Result.failure(result.errorOrNull!);
+    }
+    final page = result.valueOrNull;
+    if (page == null) {
+      return const Result.failure(AppError.unknown(message: 'era chart empty'));
+    }
+    final seen = <String>{};
+    final items = <SearchHit>[
+      for (final item in page.items)
+        if (item.duration <= maxDuration && seen.add(item.bvid)) _hit(item),
+    ];
+    AppLogger.i(
+      'era "$keyword" raw=${page.items.length} shown=${items.length}',
+      tag: 'search',
+    );
+    return Result.success(items);
   }
 
   Future<Map<String, List<SearchHit>>> _expandChart(

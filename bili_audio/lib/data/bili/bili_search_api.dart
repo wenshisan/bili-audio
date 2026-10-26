@@ -17,11 +17,15 @@ class BiliSearchApi {
   /// [page] 页码 (从 1 开始)
   /// [pageSize] 每页数量
   /// [tids] 分区 ID (默认 3=音乐主分区)
+  ///
+  /// [order] 为 `click` 时按播放量。 [duration] 为 1 时只要 10 分钟以内。
   Future<Result<SearchPage>> searchVideo({
     required String keyword,
     int page = 1,
     int pageSize = 20,
     List<int> tids = const [3],
+    String? order,
+    int? duration,
   }) async {
     try {
       final response = await _http.dio.get<Map<String, dynamic>>(
@@ -32,16 +36,17 @@ class BiliSearchApi {
           'page': page,
           'page_size': pageSize,
           if (tids.isNotEmpty) 'tids': tids.join(','),
+          'order': ?order,
+          'duration': ?duration,
         },
-        options: Options(extra: {
-          'wbi': true,
-          'risk_guarded': true,
-          'risk_retry': true,
-        }),
+        options: Options(
+          extra: {'wbi': true, 'risk_guarded': true, 'risk_retry': true},
+        ),
       );
 
       final data = response.data!['data'] as Map<String, dynamic>;
-      final items = (data['result'] as List<dynamic>?)
+      final items =
+          (data['result'] as List<dynamic>?)
               ?.map((item) => _parseSearchItem(item as Map<String, dynamic>))
               .where((item) => item != null)
               .cast<SearchResult>()
@@ -51,13 +56,15 @@ class BiliSearchApi {
       final numResults = data['numResults'] as int? ?? 0;
       final numPages = data['numPages'] as int? ?? 1;
 
-      return Result.success(SearchPage(
-        items: items,
-        page: page,
-        pageSize: pageSize,
-        total: numResults,
-        hasMore: page < numPages,
-      ));
+      return Result.success(
+        SearchPage(
+          items: items,
+          page: page,
+          pageSize: pageSize,
+          total: numResults,
+          hasMore: page < numPages,
+        ),
+      );
     } on DioException catch (e) {
       final error = e.error;
       if (error is AppError) {
@@ -109,7 +116,13 @@ class BiliSearchApi {
     for (var i = 0; i < parts.length; i++) {
       final value = int.tryParse(parts[i]);
       if (value == null) return null;
-      seconds += value * (i == 0 ? 1 : i == 1 ? 60 : 3600);
+      seconds +=
+          value *
+          (i == 0
+              ? 1
+              : i == 1
+              ? 60
+              : 3600);
     }
     return seconds;
   }
