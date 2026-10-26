@@ -80,8 +80,9 @@ flutter:
 # 商店包由 packaging/windows/build-msix.ps1 传入 Partner Center 的身份，并加上 --store。
 msix_config:
   display_name: 音赴光年
-  publisher_display_name: 音赴光年
-  identity_name: YinFuGuangNian.YinFuGuangNian
+  publisher_display_name: 追光狗
+  identity_name: 423A5ECF.492838BFDFE29
+  publisher: CN=D5BAF385-F7A8-4ECE-8FDE-486214BE3347
   logo_path: assets/app_icon.png
   output_path: dist
   output_name: bili_audio-windows-x64

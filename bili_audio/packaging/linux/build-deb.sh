@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 BUNDLE="$ROOT/bili_audio/build/linux/x64/release/bundle"

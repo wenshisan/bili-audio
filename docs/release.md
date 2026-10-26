@@ -22,16 +22,16 @@ Windows 若被 SmartScreen 拦住，选择仍要运行。macOS 在“系统设�
 
 商店只收 MSIX。第一次上架要在 [Partner Center](https://partner.microsoft.com/dashboard) 里手动提交；这台构建机没有商店账号，不能代为送审。
 
-1. 用开发者账号新建应用，类型选 MSIX，保留名称 `音赴光年`。不要保留 `bili-audio`、`哔哩` 或 `B站`。名称里出现这些字样，审核会把它当成对方的应用；写“第三方”或“与官方无关”也不能抵消。名称三个月不用会被收回。
-2. 打开该应用的 Product management → Product identity，抄下三项，设成仓库 Actions secrets：`MSSTORE_IDENTITY_NAME`（Package/Identity/Name）、`MSSTORE_PUBLISHER`（以 `CN=` 开头）、`MSSTORE_PUBLISHER_DISPLAY_NAME`。三项都要和页面上的大小写一致。
-3. 推送到 `main` 后，Windows 任务会额外打出 `bili_audio-windows-x64-store.msix`。三个 secrets 都没配时跳过，安装程序照旧发布。只配了一部分时，Windows 任务失败。
+1. 应用已经在 Partner Center 保留，名称是 `音赴光年`，发布者显示名是 `追光狗`。
+2. 包标识写在 `bili_audio/pubspec.yaml` 的 `msix_config`：`identity_name` 为 `423A5ECF.492838BFDFE29`，`publisher` 为 `CN=D5BAF385-F7A8-4ECE-8FDE-486214BE3347`，`publisher_display_name` 为 `追光狗`。这三项要和 Product identity 页面上的大小写一致。
+3. 推送到 `main` 后，Windows 任务会打出 `bili_audio-windows-x64-store.msix`，并同时打出原来的安装程序。
 4. 在 Partner Center 新建提交，把这个 msix 传到 Packages。商店会重新签名，所以这个文件不能在本机双击安装。
-5. 同一份提交里还要填：免费或定价、市场、年龄分级、至少一张截图、隐私政策网址。应用会联网并保存登录凭据，没有隐私政策地址过不了审核。商店列表的名称用 `音赴光年`，英文名 Soundward Lightyear。简短说明：「音赴光年，声遇星河。在电脑上听音频。可以搜索、看歌词、做本地歌单、随机播放，听过的曲目会留在本机。」详细说明先写口号，再写正读与反读：乐曲奔赴遥远光年，声音跨越星海；年光赴音，岁月流光奔赴音声，时光归于旋律。然后写播放、歌词、歌单、随机和离线缓存。登录凭据只在本机。说明里只写播放器本身，不写其他服务的名称。
+5. 同一份提交里还要填：免费或定价、市场、年龄分级、至少一张截图、隐私政策网址。应用会联网并保存登录凭据，隐私政策地址用 `https://wenshisan.github.io/bili-audio/privacy.html`。介绍页部署之后这个地址才会打开。商店列表的名称用 `音赴光年`，英文名 Soundward Lightyear。简短说明：「音赴光年，声遇星河。在电脑上听音频。可以搜索、看歌词、做本地歌单、随机播放，听过的曲目会留在本机。」详细说明先写口号，再写正读与反读：乐曲奔赴遥远光年，声音跨越星海；年光赴音，岁月流光奔赴音声，时光归于旋律。然后写播放、歌词、歌单、随机和离线缓存。登录凭据只在本机。说明里只写播放器本身，不写其他服务的名称。
 6. Submission options 会问为什么需要 `runFullTrust`。这是 Win32 桌面程序，窗口、托盘、系统媒体控制和本机凭据存储都要完整信任。
 
 商店包用 `--dart-define=MICROSOFT_STORE=true` 编译，设置里不再检查 GitHub 更新，升级走商店。直接下载的 exe 不受影响。版本第四位用构建号：`0.1.0+2` 的商店版本是 `0.1.0.2`，每次提交都要比上一包大。
 
-本地在配好那三个环境变量后，于 `bili_audio` 目录执行 `powershell -File packaging/windows/build-msix.ps1`。
+本地在 `bili_audio` 目录执行 `powershell -File packaging/windows/build-msix.ps1`。
 
 Android 签名用四个 Actions secrets：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_PASSWORD`、`ANDROID_KEY_ALIAS`。没配时 APK 用 debug 签名，换一台构建机后就不能覆盖安装。本地要打同一把签名时，把 keystore 放到 `bili_audio/android/app/ci-release.keystore`（已被 gitignore），并写 `bili_audio/android/key.properties`：
 

@@ -6,6 +6,9 @@ project(runner LANGUAGES CXX)
 # work.
 #
 # Any new source files that you add to the application should be added here.
+# GitHub 的 Windows 镜像是英文代码页。不指定 65001 时，rc.exe 读不懂
+# Runner.rc 里的中文产品名，报 RC2104。
+string(APPEND CMAKE_RC_FLAGS " /c 65001")
 add_executable(${BINARY_NAME} WIN32
   "flutter_window.cpp"
   "main.cpp"

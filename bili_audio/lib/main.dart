@@ -174,7 +174,7 @@ Future<void> _runApp(Zone rootZone) async {
       backgroundColor: Colors.transparent,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.hidden,
-      title: productTitle(),
+      title: productName,
     );
 
     await windowManager.waitUntilReadyToShow(windowOptions, () async {

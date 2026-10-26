@@ -1,37 +1,26 @@
-param(
-  [switch]$SkipIfUnconfigured
-)
-
 $ErrorActionPreference = 'Stop'
 $appRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..')
 Set-Location $appRoot
 
-$identity = $env:MSSTORE_IDENTITY_NAME
-$publisher = $env:MSSTORE_PUBLISHER
-$publisherName = $env:MSSTORE_PUBLISHER_DISPLAY_NAME
-$values = @($identity, $publisher, $publisherName)
-$missingCount = @($values | Where-Object { [string]::IsNullOrWhiteSpace($_) }).Count
-$configured = $values.Count - $missingCount
-
-if ($missingCount -gt 0) {
-  $message = @'
-Microsoft Store package identity is not set.
-In Partner Center open the app, then Product management, then Product identity.
-Set MSSTORE_IDENTITY_NAME, MSSTORE_PUBLISHER, and MSSTORE_PUBLISHER_DISPLAY_NAME.
-'@
-  if ($SkipIfUnconfigured -and $configured -eq 0) {
-    Write-Host $message
-    exit 0
-  }
-  Write-Error $message
+# 默认身份来自 pubspec.yaml 的 msix_config，与 Partner Center 的 Product identity 一致。
+# 设置同名环境变量时改用环境变量。
+$createArgs = @(
+  'run', 'msix:create', '--store',
+  '--build-windows', 'true',
+  '--windows-build-args', '--dart-define=MICROSOFT_STORE=true',
+  '--output-path', 'dist',
+  '--output-name', 'bili_audio-windows-x64-store'
+)
+if (-not [string]::IsNullOrWhiteSpace($env:MSSTORE_IDENTITY_NAME)) {
+  $createArgs += @('--identity-name', $env:MSSTORE_IDENTITY_NAME)
+}
+if (-not [string]::IsNullOrWhiteSpace($env:MSSTORE_PUBLISHER)) {
+  $createArgs += @('--publisher', $env:MSSTORE_PUBLISHER)
+}
+if (-not [string]::IsNullOrWhiteSpace($env:MSSTORE_PUBLISHER_DISPLAY_NAME)) {
+  $createArgs += @('--publisher-display-name', $env:MSSTORE_PUBLISHER_DISPLAY_NAME)
 }
 
 New-Item -ItemType Directory -Force -Path dist | Out-Null
-dart run msix:create --store `
-  --build-windows true `
-  --windows-build-args "--dart-define=MICROSOFT_STORE=true" `
-  --identity-name $identity `
-  --publisher $publisher `
-  --publisher-display-name $publisherName `
-  --output-path dist `
-  --output-name bili_audio-windows-x64-store
+dart @createArgs
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

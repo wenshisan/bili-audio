@@ -52,13 +52,15 @@ jobs:
       matrix:
         include:
           - name: Android
-            os: ubuntu-latest
+            # ubuntu-latest 正在从 24.04 迁到 26.04，Android SDK 在新镜像上会构建失败。
+            os: ubuntu-24.04
             target: android
           - name: Windows
             os: windows-latest
             target: windows
           - name: Linux
-            os: ubuntu-latest
+            # 同上。26.04 还会把 tray_manager 的弃用警告变成编译错误。
+            os: ubuntu-24.04
             target: linux
           - name: macOS arm64
             os: macos-latest
@@ -162,16 +164,14 @@ jobs:
       - name: Build Microsoft Store package
         if: matrix.target == 'windows'
         shell: pwsh
-        env:
-          MSSTORE_IDENTITY_NAME: ${{ secrets.MSSTORE_IDENTITY_NAME }}
-          MSSTORE_PUBLISHER: ${{ secrets.MSSTORE_PUBLISHER }}
-          MSSTORE_PUBLISHER_DISPLAY_NAME: ${{ secrets.MSSTORE_PUBLISHER_DISPLAY_NAME }}
-        run: ./bili_audio/packaging/windows/build-msix.ps1 -SkipIfUnconfigured
+        run: ./bili_audio/packaging/windows/build-msix.ps1
 
       - name: Build Linux package
         if: matrix.target == 'linux'
         working-directory: bili_audio
         run: |
+          export LANG=C.UTF-8
+          export LC_ALL=C.UTF-8
           flutter pub get
           flutter build linux --release
           sed -i 's/\r$//' packaging/linux/build-deb.sh

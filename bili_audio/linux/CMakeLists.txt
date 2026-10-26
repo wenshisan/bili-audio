@@ -74,6 +74,14 @@ set_target_properties(${BINARY_NAME}
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+# Ubuntu 26 的 ayatana-appindicator 把 app_indicator_new 标成弃用。
+# 插件会调用 APPLY_STANDARD_SETTINGS，其中的 -Werror 会把这条警告变成构建失败。
+foreach(plugin ${FLUTTER_PLUGIN_LIST})
+  if(TARGET ${plugin}_plugin)
+    target_compile_options(${plugin}_plugin PRIVATE -Wno-error=deprecated-declarations)
+  endif()
+endforeach()
+
 
 # === Installation ===
 # By default, "installing" just makes a relocatable bundle in the build

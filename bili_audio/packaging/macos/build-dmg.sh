@@ -4,6 +4,8 @@
 # 两个架构都在 Apple Silicon runner 上编：arm64 本机，x64 交叉编译。
 # （macos-15-intel 上 Flutter pub get 会长时间卡住。）
 set -euo pipefail
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
 
 ARCH="${1:?usage: build-dmg.sh arm64|x64}"
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
@@ -26,12 +28,15 @@ swift = re.compile(r'\.macOS\("(10\.\d+|11\.0)"\)')
 pod = re.compile(r"""(\.osx\.deployment_target\s*=\s*['"])(?:10\.\d+|11\.0)(['"])""")
 changed = 0
 for path in hosted.rglob("*"):
-    if path.name == "Package.swift":
-        text = path.read_text(encoding="utf-8")
-        new, count = swift.subn('.macOS("12.0")', text)
-    elif path.suffix == ".podspec":
-        text = path.read_text(encoding="utf-8")
-        new, count = pod.subn(r"\g<1>12.0\2", text)
+    if path.name == "Package.swift" or path.suffix == ".podspec":
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if path.name == "Package.swift":
+            new, count = swift.subn('.macOS("12.0")', text)
+        else:
+            new, count = pod.subn(r"\g<1>12.0\2", text)
     else:
         continue
     if count:

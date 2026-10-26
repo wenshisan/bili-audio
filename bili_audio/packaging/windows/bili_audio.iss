@@ -6,7 +6,7 @@
 AppId={{8C4E2A17-6B5D-4F0A-9E3C-1D7A5B8C0E42}
 AppName=音赴光年
 AppVersion={#MyAppVersion}
-AppPublisher=音赴光年
+AppPublisher=追光狗
 DefaultDirName={localappdata}\BiliAudio
 DisableProgramGroupPage=yes
 OutputDir=..\..\dist
