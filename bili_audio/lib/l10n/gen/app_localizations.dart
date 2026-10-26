@@ -781,13 +781,13 @@ abstract class AppLocalizations {
   /// No description provided for @loginTitle.
   ///
   /// In zh, this message translates to:
-  /// **'登录哔哩哔哩'**
+  /// **'登录'**
   String get loginTitle;
 
   /// No description provided for @loginScan.
   ///
   /// In zh, this message translates to:
-  /// **'使用哔哩哔哩 App 扫描二维码'**
+  /// **'使用手机 App 扫描二维码'**
   String get loginScan;
 
   /// No description provided for @loginWaiting.

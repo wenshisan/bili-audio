@@ -380,10 +380,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get loginTitle => '登录哔哩哔哩';
+  String get loginTitle => '登录';
 
   @override
-  String get loginScan => '使用哔哩哔哩 App 扫描二维码';
+  String get loginScan => '使用手机 App 扫描二维码';
 
   @override
   String get loginWaiting => '等待扫描…';
