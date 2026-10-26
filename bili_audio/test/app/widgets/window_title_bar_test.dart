@@ -1,4 +1,5 @@
 import 'package:bili_audio/app/widgets/window_title_bar.dart';
+import 'package:bili_audio/domain/update/distribution.dart';
 import 'package:bili_audio/l10n/l10n.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -48,7 +49,7 @@ void main() {
     expect(find.byIcon(Icons.crop_square), findsOneWidget);
     expect(find.byIcon(Icons.close), findsOneWidget);
 
-    final title = tester.getCenter(find.text('bili-audio'));
+    final title = tester.getCenter(find.text(productName));
     final logo = tester.getCenter(find.byIcon(Icons.music_note));
     expect(logo.dx, lessThan(title.dx));
     expect(title.dx, lessThan(400));
@@ -68,9 +69,9 @@ void main() {
 
     expect(find.byIcon(Icons.music_note), findsNothing);
 
-    final title = tester.getCenter(find.text('bili-audio'));
+    final title = tester.getCenter(find.text(productName));
     expect(title.dx, greaterThan(400));
-    expect(tester.getTopRight(find.text('bili-audio')).dx, closeTo(800 - 16, 8));
+    expect(tester.getTopRight(find.text(productName)).dx, closeTo(800 - 16, 8));
     expect(
       tester.getSize(find.byType(WindowTitleBar)).height,
       WindowTitleBar.macBarHeight,

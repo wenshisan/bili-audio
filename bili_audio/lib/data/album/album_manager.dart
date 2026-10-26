@@ -56,7 +56,8 @@ class AlbumManager {
   }) : providers = [...providers]
          ..sort((a, b) => a.priority.compareTo(b.priority));
 
-  static const _cacheVersion = 1;
+  /// 2: 四位分 P 序号以前留在歌名里，当时记成「没有专辑」的结果要重查。
+  static const _cacheVersion = 2;
 
   final Directory dir;
   final List<AlbumProvider> providers;
@@ -345,10 +346,10 @@ class AlbumManager {
     final out = <AlbumQuery>[];
 
     void add(String title, String? artist, {required bool omitArtistFilter}) {
-      final name = title.trim();
+      final corpus = TitleCleaner.searchCorpus(title, artist: artist);
+      final name = corpus.title.trim();
       if (name.isEmpty) return;
-      final trimmed = artist?.trim();
-      final normArtist = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+      final normArtist = corpus.artist;
       final omit = omitArtistFilter && normArtist != null;
       final key = _searchKey(name, normArtist, omit: omit);
       final exists = out.any(
@@ -404,10 +405,10 @@ class AlbumManager {
   ({String title, String? artist}) _primary(AlbumQuery q) {
     final raw = q.rawTitle?.trim();
     final source = (raw != null && raw.isNotEmpty) ? raw : q.title;
-    final loose = TitleCleaner.parseLoose(source);
+    final loose = TitleCleaner.searchCorpus(source);
     final fresh = cleaner?.clean(source);
     final freshName = fresh?.name.trim() ?? '';
-    final looseName = loose.name.trim();
+    final looseName = loose.title.trim();
     final useFresh =
         freshName.isNotEmpty &&
         (looseName.isEmpty || freshName.length < looseName.length);

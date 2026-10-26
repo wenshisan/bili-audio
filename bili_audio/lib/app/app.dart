@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../domain/update/distribution.dart';
 import '../l10n/l10n.dart';
 import 'adaptive/player_shortcuts.dart';
 import 'platform/window_frame.dart';
@@ -23,7 +24,7 @@ class BiliAudioApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeState = ref.watch(themeControllerProvider);
     return MaterialApp.router(
-      onGenerateTitle: (context) => context.l10n.appTitle,
+      onGenerateTitle: (context) => productTitle(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('zh'),
@@ -99,7 +100,7 @@ class _MacPlaybackMenu extends ConsumerWidget {
     return PlatformMenuBar(
       menus: [
         PlatformMenu(
-          label: l10n.appTitle,
+          label: productTitle(),
           menus: [
             PlatformMenuItem(
               label: l10n.actionPlay,

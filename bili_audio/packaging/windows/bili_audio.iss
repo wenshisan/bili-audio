@@ -4,9 +4,9 @@
 
 [Setup]
 AppId={{8C4E2A17-6B5D-4F0A-9E3C-1D7A5B8C0E42}
-AppName=bili-audio
+AppName=音赴光年
 AppVersion={#MyAppVersion}
-AppPublisher=bili-audio
+AppPublisher=音赴光年
 DefaultDirName={localappdata}\BiliAudio
 DisableProgramGroupPage=yes
 OutputDir=..\..\dist
@@ -27,8 +27,8 @@ Source: "..\..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ign
 Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加任务:"; Flags: unchecked
 
 [Icons]
-Name: "{autoprograms}\bili-audio"; Filename: "{app}\bili_audio.exe"
-Name: "{userdesktop}\bili-audio"; Filename: "{app}\bili_audio.exe"; Tasks: desktopicon
+Name: "{autoprograms}\音赴光年"; Filename: "{app}\bili_audio.exe"
+Name: "{userdesktop}\音赴光年"; Filename: "{app}\bili_audio.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\bili_audio.exe"; Description: "启动 bili-audio"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\bili_audio.exe"; Description: "启动音赴光年"; Flags: nowait postinstall skipifsilent

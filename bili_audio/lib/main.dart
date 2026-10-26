@@ -12,6 +12,7 @@ import 'app/bootstrap.dart';
 import 'app/platform/app_quit.dart';
 import 'core/logging/app_logger.dart';
 import 'core/storage/path_manager.dart';
+import 'domain/update/distribution.dart';
 
 /// 单实例通道: 当第二个实例启动并检测到已有实例运行时, 原生层会向本实例
 /// 发送 "showMainWindow" 调用
@@ -83,7 +84,7 @@ Future<void> initSystemTray() async {
     await trayManager.setIcon(
       Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png',
     );
-    await trayManager.setToolTip('bili-audio');
+    await trayManager.setToolTip(productTitle());
     await _updateTrayMenu();
     trayManager.addListener(_TrayHandler());
   } catch (e, st) {
@@ -173,7 +174,7 @@ Future<void> _runApp(Zone rootZone) async {
       backgroundColor: Colors.transparent,
       skipTaskbar: false,
       titleBarStyle: TitleBarStyle.hidden,
-      title: 'bili-audio',
+      title: productTitle(),
     );
 
     await windowManager.waitUntilReadyToShow(windowOptions, () async {

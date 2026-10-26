@@ -159,6 +159,15 @@ jobs:
           [System.IO.File]::WriteAllText($issPath, $text, $utf8Bom)
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DMyAppVersion=$version" $issPath
 
+      - name: Build Microsoft Store package
+        if: matrix.target == 'windows'
+        shell: pwsh
+        env:
+          MSSTORE_IDENTITY_NAME: ${{ secrets.MSSTORE_IDENTITY_NAME }}
+          MSSTORE_PUBLISHER: ${{ secrets.MSSTORE_PUBLISHER }}
+          MSSTORE_PUBLISHER_DISPLAY_NAME: ${{ secrets.MSSTORE_PUBLISHER_DISPLAY_NAME }}
+        run: ./bili_audio/packaging/windows/build-msix.ps1 -SkipIfUnconfigured
+
       - name: Build Linux package
         if: matrix.target == 'linux'
         working-directory: bili_audio

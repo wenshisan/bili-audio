@@ -163,6 +163,35 @@ void main() {
     expect(await provider.search(query), isEmpty);
   });
 
+  test('精确搜索失败且关键词搜索超时时，不把不可变空列表当成无歌词', () async {
+    var calls = 0;
+    final failing = Dio(BaseOptions(baseUrl: 'https://lrclib.net'));
+    failing.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          calls++;
+          final timeout = calls > 1;
+          handler.reject(
+            DioException(
+              requestOptions: options,
+              type: timeout
+                  ? DioExceptionType.receiveTimeout
+                  : DioExceptionType.badResponse,
+              response: timeout
+                  ? null
+                  : Response(requestOptions: options, statusCode: 500),
+            ),
+          );
+        },
+      ),
+    );
+
+    expect(
+      LrclibProvider(dio: failing).search(query),
+      throwsA(isA<LyricsSourceUnavailable>()),
+    );
+  });
+
   test('读取超时抛出歌词源不可用', () async {
     final failing = Dio(BaseOptions(baseUrl: 'https://lrclib.net'));
     failing.interceptors.add(

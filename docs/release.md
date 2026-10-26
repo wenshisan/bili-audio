@@ -2,7 +2,7 @@
 
 安装包由 GitHub Actions 构建，挂到 GitHub Release 上。介绍页和软件里的“检查更新”都读这个 Release。
 
-仓库：`wenshisan/bili-audio`。Release 附件名写在 `bili_audio/lib/domain/update/installer_asset.dart`，改名时 Action、介绍页和这段文档要一起改。仓库需要公开，否则介绍页和未登录的 GitHub API 都下不到文件。
+安装后显示的名称是「音赴光年」。仓库仍是 `wenshisan/bili-audio`，安装包文件名仍以 `bili_audio` 开头，写在 `bili_audio/lib/domain/update/installer_asset.dart`。改这些文件名时，Action、介绍页和这段文档要一起改。仓库需要公开，否则介绍页和未登录的 GitHub API 都下不到文件。
 
 ## 安装包
 
@@ -10,12 +10,28 @@
 | --- | --- | --- |
 | Android | `bili_audio-android.apk` | 通用 APK。签名密钥放在 Actions secrets，不进仓库，这样每次构建都能覆盖安装 |
 | Windows x64 | `bili_audio-windows-x64-setup.exe` | Inno Setup 安装程序，装到当前用户目录。未做代码签名 |
+| Windows 商店 | `bili_audio-windows-x64-store.msix` | 只在 Partner Center 身份齐全时产出。上传到 Microsoft Store，不能双击安装。这个包由商店更新，里面没有“检查更新” |
 | Linux x64 | `bili_audio-linux-amd64.deb` | 安装到 `/opt/bili_audio` |
 | macOS Apple 芯片 | `bili_audio-macos-arm64.dmg` | 未公证 |
 | macOS Intel | `bili_audio-macos-x64.dmg` | 未公证。在 Apple Silicon runner 上交叉编译 x86_64（Intel runner 上 Flutter pub get 会卡住） |
 | iOS | `bili_audio-ios.ipa` | 用 Safari 打开介绍页，走 `itms-services` 描述文件安装。签名 secrets 没配时不产出这个文件 |
 
 Windows 若被 SmartScreen 拦住，选择仍要运行。macOS 在“系统设置 → 隐私与安全性”里允许打开。Android 需允许本应用安装未知应用。
+
+## Microsoft Store
+
+商店只收 MSIX。第一次上架要在 [Partner Center](https://partner.microsoft.com/dashboard) 里手动提交；这台构建机没有商店账号，不能代为送审。
+
+1. 用开发者账号新建应用，类型选 MSIX，保留名称 `音赴光年`。不要保留 `bili-audio`、`哔哩` 或 `B站`。名称里出现这些字样，审核会把它当成对方的应用；写“第三方”或“与官方无关”也不能抵消。名称三个月不用会被收回。
+2. 打开该应用的 Product management → Product identity，抄下三项，设成仓库 Actions secrets：`MSSTORE_IDENTITY_NAME`（Package/Identity/Name）、`MSSTORE_PUBLISHER`（以 `CN=` 开头）、`MSSTORE_PUBLISHER_DISPLAY_NAME`。三项都要和页面上的大小写一致。
+3. 推送到 `main` 后，Windows 任务会额外打出 `bili_audio-windows-x64-store.msix`。三个 secrets 都没配时跳过，安装程序照旧发布。只配了一部分时，Windows 任务失败。
+4. 在 Partner Center 新建提交，把这个 msix 传到 Packages。商店会重新签名，所以这个文件不能在本机双击安装。
+5. 同一份提交里还要填：免费或定价、市场、年龄分级、至少一张截图、隐私政策网址。应用会联网并保存登录凭据，没有隐私政策地址过不了审核。商店列表的名称用 `音赴光年`。简短说明：「音赴光年。在电脑上听音频。可以搜索、看歌词、做本地歌单、随机播放，听过的曲目会留在本机。」详细说明先写播放、歌词、歌单、随机和离线缓存，最后再写一句：登录使用的是用户自己的哔哩哔哩账号，凭据只在本机；音赴光年由个人独立开发并发布，与哔哩哔哩没有合作、赞助或授权关系。不要把产品写成「哔哩哔哩播放器」或「第三方客户端」。
+6. Submission options 会问为什么需要 `runFullTrust`。这是 Win32 桌面程序，窗口、托盘、系统媒体控制和本机凭据存储都要完整信任。
+
+商店包用 `--dart-define=MICROSOFT_STORE=true` 编译，设置里不再检查 GitHub 更新，升级走商店。直接下载的 exe 不受影响。版本第四位用构建号：`0.1.0+2` 的商店版本是 `0.1.0.2`，每次提交都要比上一包大。
+
+本地在配好那三个环境变量后，于 `bili_audio` 目录执行 `powershell -File packaging/windows/build-msix.ps1`。
 
 Android 签名用四个 Actions secrets：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_PASSWORD`、`ANDROID_KEY_ALIAS`。没配时 APK 用 debug 签名，换一台构建机后就不能覆盖安装。本地要打同一把签名时，把 keystore 放到 `bili_audio/android/app/ci-release.keystore`（已被 gitignore），并写 `bili_audio/android/key.properties`：
 

@@ -1,16 +1,21 @@
 import 'dart:math';
 
-import '../text_normalization.dart';
+import '../title/fuzzy_match.dart';
 import '../title/title_cleaner.dart';
 
 /// 歌词相似度评分器 (M1.5)
 ///
-/// 用于评估搜索到的歌词是否匹配当前曲目。
+/// 用于评估搜索到的歌词是否匹配当前曲目。歌名和歌手走 [FuzzyMatcher]。
 class LyricsScorer {
-  LyricsScorer({this.autoThreshold = 0.80, this.manualThreshold = 0.60});
+  LyricsScorer({
+    this.autoThreshold = 0.80,
+    this.manualThreshold = 0.60,
+    FuzzyMatcher? fuzzy,
+  }) : _fuzzy = fuzzy ?? const FuzzyMatcher();
 
   final double autoThreshold;
   final double manualThreshold;
+  final FuzzyMatcher _fuzzy;
 
   /// 计算匹配得分
   ///
@@ -109,47 +114,16 @@ class LyricsScorer {
     return match;
   }
 
-  /// 标题相似度
-  double _titleSimilarity(String a, String b) {
-    final normA = normalizeForMatch(a);
-    final normB = normalizeForMatch(b);
+  double _titleSimilarity(String a, String b) => _fuzzy.similarity(a, b);
 
-    // Levenshtein + Jaccard
-    final lev = _levenshteinSimilarity(normA, normB);
-    final jaccard = _jaccardSimilarity(_tokenize(normA), _tokenize(normB));
-
-    // 中文串额外计算拼音相似度
-    var pinyinSim = 0.0;
-    if (_hasChinese(a) || _hasChinese(b)) {
-      final pinyinA = toPinyin(normA);
-      final pinyinB = toPinyin(normB);
-      pinyinSim = _levenshteinSimilarity(pinyinA, pinyinB);
-    }
-
-    final contained = _containmentSimilarity(normA, normB);
-    return [lev, jaccard, pinyinSim, contained].reduce(max);
-  }
-
-  /// 歌手相似度 (多歌手取最大值)
+  /// 歌手相似度。多名歌手拆开后取最高的一对。
   double _artistSimilarity(String a, String b) {
-    if (a.isEmpty || b.isEmpty) return 0.0;
-
-    final artistsA = _splitArtists(a);
-    final artistsB = _splitArtists(b);
+    if (a.isEmpty || b.isEmpty) return 0;
 
     var maxSim = 0.0;
-    for (final artA in artistsA) {
-      for (final artB in artistsB) {
-        final normA = normalizeForMatch(artA);
-        final normB = normalizeForMatch(artB);
-        var sim = _levenshteinSimilarity(normA, normB);
-        if (sim < 1 && (_hasChinese(artA) || _hasChinese(artB))) {
-          sim = max(
-            sim,
-            _levenshteinSimilarity(toPinyin(normA), toPinyin(normB)),
-          );
-        }
-        maxSim = max(maxSim, sim);
+    for (final artA in _splitArtists(a)) {
+      for (final artB in _splitArtists(b)) {
+        maxSim = max(maxSim, _fuzzy.similarity(artA, artB));
       }
     }
     return maxSim;
@@ -161,107 +135,6 @@ class LyricsScorer {
     return max(0.0, 1.0 - delta / 10.0);
   }
 
-  /// Levenshtein 距离相似度
-  double _levenshteinSimilarity(String a, String b) {
-    if (a == b) return 1.0;
-    if (a.isEmpty || b.isEmpty) return 0.0;
-
-    final maxLen = max(a.length, b.length);
-    final distance = _levenshteinDistance(a, b);
-    return max(0.0, 1.0 - distance / maxLen);
-  }
-
-  /// Levenshtein 距离
-  int _levenshteinDistance(String a, String b) {
-    if (a == b) return 0;
-    if (a.isEmpty) return b.length;
-    if (b.isEmpty) return a.length;
-
-    final matrix = List.generate(
-      a.length + 1,
-      (i) => List.filled(b.length + 1, 0),
-    );
-
-    for (var i = 0; i <= a.length; i++) {
-      matrix[i][0] = i;
-    }
-    for (var j = 0; j <= b.length; j++) {
-      matrix[0][j] = j;
-    }
-
-    for (var i = 1; i <= a.length; i++) {
-      for (var j = 1; j <= b.length; j++) {
-        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
-        matrix[i][j] = [
-          matrix[i - 1][j] + 1,
-          matrix[i][j - 1] + 1,
-          matrix[i - 1][j - 1] + cost,
-        ].reduce(min);
-      }
-    }
-
-    return matrix[a.length][b.length];
-  }
-
-  /// 一方包含另一方，且多出来的只是 Live / 无损 / 年份时视为同一首歌。
-  double _containmentSimilarity(String a, String b) {
-    if (a.isEmpty || b.isEmpty) return 0;
-    final shorter = a.length <= b.length ? a : b;
-    final longer = a.length <= b.length ? b : a;
-    if (shorter.length < 2 || !longer.contains(shorter)) return 0;
-    final extra = longer
-        .replaceFirst(shorter, '')
-        .replaceAll(RegExp(r'[\s\d._+\-]+'), '');
-    if (extra.isEmpty || _versionExtra.hasMatch(extra)) return 0.92;
-    return 0;
-  }
-
-  static final _versionExtra = RegExp(
-    r'^(?:live|remix|cover|inst|instrumental|acoustic|demo|ost|mv|pv|tv|ver|version|hires|flac|dsd|ape|wav|official|翻唱|现场|演唱会|钢琴|吉他|伴奏|纯音乐|女声|男声|烟嗓|完整|原版|歌词)+$',
-    caseSensitive: false,
-  );
-
-  /// Jaccard 相似度
-  double _jaccardSimilarity(Set<String> a, Set<String> b) {
-    if (a.isEmpty && b.isEmpty) return 1.0;
-    if (a.isEmpty || b.isEmpty) return 0.0;
-
-    final intersection = a.intersection(b).length;
-    final union = a.union(b).length;
-    return intersection / union;
-  }
-
-  /// 分词
-  Set<String> _tokenize(String text) {
-    // 中文按字，拉丁按空白/标点
-    final tokens = <String>{};
-    final buffer = StringBuffer();
-
-    for (final char in text.runes) {
-      final str = String.fromCharCode(char);
-      if (_isChinese(str)) {
-        if (buffer.isNotEmpty) {
-          tokens.add(buffer.toString());
-          buffer.clear();
-        }
-        tokens.add(str);
-      } else if (RegExp(r'[a-z0-9]').hasMatch(str)) {
-        buffer.write(str);
-      } else {
-        if (buffer.isNotEmpty) {
-          tokens.add(buffer.toString());
-          buffer.clear();
-        }
-      }
-    }
-
-    if (buffer.isNotEmpty) {
-      tokens.add(buffer.toString());
-    }
-
-    return tokens;
-  }
-
   /// 拆分歌手列表
   List<String> _splitArtists(String artists) {
     return artists
@@ -269,15 +142,6 @@ class LyricsScorer {
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
-  }
-
-  bool _isChinese(String char) {
-    final code = char.runes.first;
-    return code >= 0x4e00 && code <= 0x9fff;
-  }
-
-  bool _hasChinese(String text) {
-    return text.runes.any((code) => code >= 0x4e00 && code <= 0x9fff);
   }
 }
 

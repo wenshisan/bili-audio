@@ -150,6 +150,25 @@ class TitleCleaner {
     );
   }
 
+  /// 搜索前先抽出歌名和歌手。`0065. 洋葱 - 五月天` 里的 `0065` 是分 P 序号，不进入搜索词。
+  static ({String title, String? artist}) searchCorpus(
+    String raw, {
+    String? artist,
+  }) {
+    final loose = parseLoose(raw);
+    final extracted = loose.name.trim();
+    final title = extracted.isEmpty ? raw.trim() : extracted;
+    final given = artist?.trim();
+    if (given != null && given.isNotEmpty) {
+      return (title: title, artist: given);
+    }
+    final parsed = loose.artist?.trim();
+    return (
+      title: title,
+      artist: parsed == null || parsed.isEmpty ? null : parsed,
+    );
+  }
+
   /// 不依赖规则文件，把 `007.周杰伦-稻香` 这类分P标题拆成歌名和歌手。
   ///
   /// 歌词搜索在清洗器未注入、或库里的歌名仍是原标题时走这里。
@@ -205,7 +224,7 @@ class TitleCleaner {
     var text = raw;
     text = text.replaceAll(RegExp(r'——.{8,}'), '');
     text = text.replaceAll(RegExp(r'[ \t]{2,}\S.*$'), '');
-    text = text.replaceFirst(RegExp(r'^\d{1,3}[.、．]\s*'), '');
+    text = text.replaceFirst(RegExp(r'^\d{1,4}[.、．]\s*'), '');
     text = text.replaceAll(
       RegExp(
         r'[|｜丨][^|｜丨]*?(?:试听|录音棚|百万|无损|Hi-?Res|4K|字幕|中字)[^|｜丨]*',

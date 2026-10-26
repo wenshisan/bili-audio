@@ -248,6 +248,30 @@ void main() {
     expect(provider.queries, hasLength(1));
   });
 
+  test('0065 是干扰，搜索语料只有洋葱和五月天', () async {
+    final provider = _RecordingProvider();
+    final m = LyricsManager(db, dir, providers: [provider]);
+
+    await m.find(
+      const LyricsQuery(
+        bvid: 'BV1',
+        cid: 1,
+        title: '0065. 洋葱 - 五月天',
+        artist: '五月天',
+        rawTitle: '0065. 洋葱 - 五月天',
+        duration: Duration(seconds: 240),
+      ),
+    );
+
+    expect(provider.queries, isNotEmpty);
+    expect(provider.queries.first.title, '洋葱');
+    expect(provider.queries.first.artist, '五月天');
+    for (final query in provider.queries) {
+      expect(query.title.contains('0065'), isFalse, reason: query.title);
+      expect(query.artist?.contains('0065'), isNot(true));
+    }
+  });
+
   test('未注入清洗器时仍把分P标题拆开再搜索', () async {
     final provider = _RecordingProvider();
     final m = LyricsManager(db, dir, providers: [provider]);

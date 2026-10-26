@@ -67,4 +67,38 @@ void main() {
     expect(result.first.matchScore, greaterThanOrEqualTo(0.8));
     expect(result.first.lyrics.lines.single.text, contains('太多的抱怨'));
   });
+
+  test('四位分P序号不进入网易云搜索词', () async {
+    final dio = Dio(BaseOptions(baseUrl: 'https://music.163.com'));
+    String? keyword;
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          keyword ??= options.queryParameters['s'] as String?;
+          handler.resolve(
+            Response(
+              requestOptions: options,
+              statusCode: 200,
+              data: <String, dynamic>{
+                'code': 200,
+                'result': <String, dynamic>{'songs': <Object?>[]},
+              },
+            ),
+          );
+        },
+      ),
+    );
+
+    await NeteaseLyricsProvider(dio: dio).search(
+      const LyricsQuery(
+        bvid: 'BV1',
+        cid: 1,
+        title: '0065. 洋葱 - 五月天',
+        artist: '五月天',
+        duration: Duration(seconds: 240),
+      ),
+    );
+
+    expect(keyword, '洋葱 五月天');
+  });
 }

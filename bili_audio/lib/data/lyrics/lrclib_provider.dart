@@ -32,15 +32,11 @@ class LrclibProvider implements LyricsProvider {
 
   @override
   Future<List<LyricsCandidate>> search(LyricsQuery query) async {
-    final loose = TitleCleaner.parseLoose(query.title);
-    final title = loose.name.trim().isEmpty ? query.title : loose.name.trim();
-    final givenArtist = query.artist?.trim();
-    final artist = (givenArtist != null && givenArtist.isNotEmpty)
-        ? givenArtist
-        : loose.artist;
+    final corpus = TitleCleaner.searchCorpus(query.title, artist: query.artist);
+    final title = corpus.title;
+    final artist = corpus.artist;
     try {
       final filtered = !query.omitArtistFilter;
-      var failed = false;
       var candidates = <LyricsCandidate>[];
       try {
         candidates = await _collect(
@@ -54,7 +50,7 @@ class LrclibProvider implements LyricsProvider {
           duration: query.duration.inSeconds,
         );
       } on LyricsSourceUnavailable {
-        failed = true;
+        candidates = <LyricsCandidate>[];
       }
       if (!_hasSong(candidates, title)) {
         final keyword = [
@@ -71,12 +67,13 @@ class LrclibProvider implements LyricsProvider {
               duration: query.duration.inSeconds,
             ),
           );
-          failed = false;
         } on LyricsSourceUnavailable {
-          if (candidates.isEmpty && failed) rethrow;
+          if (candidates.isEmpty) rethrow;
         }
       }
-      candidates.sort((a, b) => b.matchScore.compareTo(a.matchScore));
+      final ranked = [...candidates]
+        ..sort((a, b) => b.matchScore.compareTo(a.matchScore));
+      candidates = ranked;
       final best = candidates.isEmpty ? null : candidates.first;
       AppLogger.d(
         'lrclib "${query.title}" -> "$title" artist="${artist ?? ''}" '

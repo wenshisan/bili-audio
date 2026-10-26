@@ -78,7 +78,7 @@ if grep -qw "$FORBIDDEN" <<<"$BUILT"; then
 fi
 
 APP_BUNDLE="build/macos/Build/Products/Release/bili_audio.app"
-VOL_NAME="bili-audio"
+VOL_NAME="音赴光年"
 mkdir -p dist
 RW_DMG="dist/${DMG_NAME%.dmg}.rw.dmg"
 FINAL_DMG="dist/$DMG_NAME"

@@ -136,6 +136,24 @@ void main() {
       expectClean('011.周杰伦-以父之名', '以父之名', '周杰伦');
       expectClean('006.周杰伦-等你下课', '等你下课', '周杰伦');
       expectClean('007.周杰伦-稻香', '稻香', '周杰伦');
+      expectClean('0065. 洋葱 - 五月天', '洋葱', '五月天');
+      expectClean('0151. 怎么好意思 - Eric周兴哲', '怎么好意思', 'Eric周兴哲');
+    });
+
+    test('宽松解析同样去掉四位分P序号', () {
+      final onion = TitleCleaner.parseLoose('0065. 洋葱 - 五月天');
+      expect(onion.name, '洋葱');
+      expect(onion.artist, '五月天');
+      final promise = TitleCleaner.parseLoose('0151. 怎么好意思 - Eric周兴哲');
+      expect(promise.name, '怎么好意思');
+      expect(promise.artist, 'Eric周兴哲');
+    });
+
+    test('搜索语料先去掉序号', () {
+      final corpus = TitleCleaner.searchCorpus('0065. 洋葱 - 五月天', artist: '五月天');
+      expect(corpus.title, '洋葱');
+      expect(corpus.artist, '五月天');
+      expect(corpus.title.contains('0065'), isFalse);
     });
 
     test('书名号歌名并保留外侧歌手', () {

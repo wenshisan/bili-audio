@@ -131,7 +131,7 @@ class LyricsManager {
         : LyricsNone(candidates: all);
   }
 
-  /// 先用重新清洗的歌名搜索；艺人过滤落空时再去掉过滤重试。
+  /// 先抽出歌名和歌手再搜索。艺人过滤落空时再去掉过滤重试。
   /// 书名号已经写明歌名时不再把歌手当成歌名去搜。
   List<LyricsQuery> _attempts(
     LyricsQuery q,
@@ -140,10 +140,10 @@ class LyricsManager {
     final out = <LyricsQuery>[];
 
     void add(String title, String? artist, {required bool omitArtistFilter}) {
-      final name = title.trim();
+      final corpus = TitleCleaner.searchCorpus(title, artist: artist);
+      final name = corpus.title.trim();
       if (name.isEmpty) return;
-      final trimmed = artist?.trim();
-      final normArtist = (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+      final normArtist = corpus.artist;
       final omit = omitArtistFilter && normArtist != null;
       final key = _searchKey(name, normArtist, omit: omit);
       final exists = out.any(
@@ -239,10 +239,10 @@ class LyricsManager {
   ({String title, String? artist}) _primary(LyricsQuery q) {
     final raw = q.rawTitle?.trim();
     final source = (raw != null && raw.isNotEmpty) ? raw : q.title;
-    final loose = TitleCleaner.parseLoose(source);
+    final loose = TitleCleaner.searchCorpus(source);
     final fresh = cleaner?.clean(source);
     final freshName = fresh?.name.trim() ?? '';
-    final looseName = loose.name.trim();
+    final looseName = loose.title.trim();
     final useFresh =
         freshName.isNotEmpty &&
         (looseName.isEmpty || freshName.length < looseName.length);

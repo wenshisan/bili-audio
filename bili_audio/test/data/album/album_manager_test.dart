@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:bili_audio/data/album/album_http.dart';
 import 'package:bili_audio/data/album/album_manager.dart';
 import 'package:bili_audio/domain/album/album_provider.dart';
 import 'package:bili_audio/domain/title/title_cleaner.dart';
@@ -193,6 +194,31 @@ void main() {
     final m = manager([netease]);
     await Future.wait([m.find(q), m.find(q), m.find(q)]);
     expect(netease.calls, 1);
+  });
+
+  test('0065 是干扰，搜索语料只有洋葱和五月天', () async {
+    final provider = _Recording();
+    final m = AlbumManager(dir, providers: [provider]);
+
+    await m.find(
+      const AlbumQuery(
+        bvid: 'BV1',
+        cid: 1,
+        title: '0065. 洋葱 - 五月天',
+        artist: '五月天',
+        rawTitle: '0065. 洋葱 - 五月天',
+        duration: Duration(seconds: 240),
+      ),
+    );
+
+    expect(provider.queries, isNotEmpty);
+    expect(provider.queries.first.title, '洋葱');
+    expect(provider.queries.first.artist, '五月天');
+    for (final query in provider.queries) {
+      expect(query.title.contains('0065'), isFalse, reason: query.title);
+      expect(query.artist?.contains('0065'), isNot(true));
+    }
+    expect(albumTerms(provider.queries.first).keyword, '洋葱 五月天');
   });
 
   test('用原始标题重新清洗后再搜索', () async {

@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:window_manager/window_manager.dart';
 
-import '../../l10n/l10n.dart';
+import '../../domain/update/distribution.dart';
 import 'region_surface.dart';
 
 /// 自定义窗口标题栏。
@@ -79,7 +79,7 @@ class _WindowTitleBarState extends State<WindowTitleBar> with WindowListener {
       nativeWindowButtons: nativeButtons,
     );
     final title = Text(
-      context.l10n.appTitle,
+      productTitle(),
       style: theme.textTheme.titleSmall,
     );
     final brand = <Widget>[

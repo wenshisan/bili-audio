@@ -197,6 +197,36 @@ void main() {
     });
   });
 
+  group('LyricsScorer 模糊匹配', () {
+    test('带序号的分P标题对上干净歌名', () {
+      final match = scorer.score(
+        trackTitle: '0065. 洋葱 - 五月天',
+        trackArtist: '五月天',
+        trackDuration: 240,
+        lyricsTitle: '洋葱',
+        lyricsArtist: '五月天',
+        lyricsDuration: 240,
+      );
+
+      expect(match.titleSimilarity, 1);
+      expect(match.artistSimilarity, greaterThanOrEqualTo(0.9));
+      expect(match.decision, MatchDecision.auto);
+    });
+
+    test('英文前缀歌手对上中文名', () {
+      final score = scorer.pick(
+        trackTitle: '怎么好意思',
+        trackArtist: 'Eric周兴哲',
+        trackDuration: 250,
+        lyricsTitle: '怎么好意思',
+        lyricsArtist: '周兴哲',
+        lyricsDuration: 250,
+      );
+
+      expect(score, greaterThanOrEqualTo(0.8));
+    });
+  });
+
   group('LyricsScorer 版本后缀', () {
     test('Live 后缀不把同一首歌打成无关标题', () {
       final match = scorer.score(

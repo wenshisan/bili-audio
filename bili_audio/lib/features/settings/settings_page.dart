@@ -7,6 +7,7 @@ import '../../app/adaptive/max_width_box.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../domain/entities/audio_track.dart';
+import '../../domain/update/distribution.dart';
 import '../../l10n/l10n.dart';
 import '../common/cover_image.dart';
 import '../login/login_controller.dart';
@@ -96,7 +97,8 @@ class _SettingsList extends ConsumerWidget {
             const _SeedColorRow(),
           ],
         ),
-        const _SettingsGroup(children: [UpdateSettingsTile()]),
+        if (offersInAppUpdate())
+          const _SettingsGroup(children: [UpdateSettingsTile()]),
       ],
     );
   }

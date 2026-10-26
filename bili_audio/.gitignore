@@ -34,6 +34,10 @@ migrate_working_dir/
 /dist/
 /coverage/
 
+# package:msix 生成本地测试证书
+*.pfx
+*.cer
+
 # Symbolication related
 app.*.symbols
 

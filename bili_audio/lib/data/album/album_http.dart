@@ -5,17 +5,11 @@ import '../../domain/title/title_cleaner.dart';
 
 export '../lyrics/lyrics_http.dart' show lyricsClient, lyricsRequestOptions;
 
-/// 把搜索词收成歌名、歌手和实际发给远端的关键词。
+/// 先抽出歌名和歌手，再拼实际发给远端的关键词。
 ({String title, String artist, String keyword}) albumTerms(AlbumQuery query) {
-  final loose = TitleCleaner.parseLoose(query.title);
-  final title = loose.name.trim().isEmpty
-      ? query.title.trim()
-      : loose.name.trim();
-  final given = query.artist?.trim();
-  final parsed = loose.artist?.trim();
-  final artist = (given != null && given.isNotEmpty)
-      ? given
-      : (parsed != null && parsed.isNotEmpty ? parsed : '');
+  final corpus = TitleCleaner.searchCorpus(query.title, artist: query.artist);
+  final title = corpus.title;
+  final artist = corpus.artist ?? '';
   final filtered = !query.omitArtistFilter && artist.isNotEmpty;
   final keyword = [title, if (filtered) artist].join(' ');
   return (title: title, artist: artist, keyword: keyword);

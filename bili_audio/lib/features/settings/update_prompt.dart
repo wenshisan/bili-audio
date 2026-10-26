@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/adaptive/layout_settings.dart';
+import '../../domain/update/distribution.dart';
 import '../../l10n/l10n.dart';
 import 'update_controller.dart';
 
@@ -24,7 +25,7 @@ class _UpdatePromptState extends ConsumerState<UpdatePrompt> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted || !offersInAppUpdate()) return;
       ref.read(updateControllerProvider.notifier).check();
     });
   }

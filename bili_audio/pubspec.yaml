@@ -1,5 +1,5 @@
 name: bili_audio
-description: "哔哩哔哩第三方音频播放器 (个人学习用途, 与哔哩哔哩官方无关)"
+description: "音赴光年：个人音频播放器。搜索、歌词、本地歌单、随机播放和离线缓存。"
 publish_to: 'none'
 
 version: 0.1.0+1
@@ -60,6 +60,7 @@ dev_dependencies:
   drift_dev: 2.35.1
   http_mock_adapter: 0.6.1
   matcher: 0.12.20
+  msix: 3.18.0
 
 # smtc_windows 1.1.0 的 Dart/Rust 绑定由 flutter_rust_bridge 2.11.1 生成,
 # 其依赖声明为 ^2.11.1, 会被解析到 2.13.x 导致 RustLib.init 版本校验失败。
@@ -74,3 +75,18 @@ flutter:
     - assets/app_icon.ico
     - assets/app_icon.png
     - assets/config/
+
+# 本地 `dart run msix:create` 用测试证书签名，方便本机安装。
+# 商店包由 packaging/windows/build-msix.ps1 传入 Partner Center 的身份，并加上 --store。
+msix_config:
+  display_name: 音赴光年
+  publisher_display_name: 音赴光年
+  identity_name: YinFuGuangNian.YinFuGuangNian
+  logo_path: assets/app_icon.png
+  output_path: dist
+  output_name: bili_audio-windows-x64
+  architecture: x64
+  capabilities: internetClient
+  languages: zh-cn, en-us
+  os_min_version: 10.0.17763.0
+  install_certificate: false

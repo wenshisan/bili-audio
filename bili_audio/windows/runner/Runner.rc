@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.bilimusic" "\0"
-            VALUE "FileDescription", "bili-audio" "\0"
+            VALUE "CompanyName", "音赴光年" "\0"
+            VALUE "FileDescription", "音赴光年" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "bili_audio" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.bilimusic. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 音赴光年. All rights reserved." "\0"
             VALUE "OriginalFilename", "bili_audio.exe" "\0"
-            VALUE "ProductName", "bili-audio" "\0"
+            VALUE "ProductName", "音赴光年" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

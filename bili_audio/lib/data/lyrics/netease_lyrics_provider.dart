@@ -34,12 +34,9 @@ class NeteaseLyricsProvider implements LyricsProvider {
 
   @override
   Future<List<LyricsCandidate>> search(LyricsQuery query) async {
-    final loose = TitleCleaner.parseLoose(query.title);
-    final title = loose.name.trim().isEmpty ? query.title : loose.name.trim();
-    final givenArtist = query.artist?.trim();
-    final artist = (givenArtist != null && givenArtist.isNotEmpty)
-        ? givenArtist
-        : loose.artist;
+    final corpus = TitleCleaner.searchCorpus(query.title, artist: query.artist);
+    final title = corpus.title;
+    final artist = corpus.artist;
     final keyword = [
       title,
       if (artist != null && artist.isNotEmpty) artist,

@@ -28,8 +28,8 @@ chmod 755 "$STAGE/usr/bin/bili_audio"
 cat > "$STAGE/usr/share/applications/bili_audio.desktop" << 'EOF'
 [Desktop Entry]
 Type=Application
-Name=bili-audio
-Comment=第三方哔哩哔哩音乐播放器
+Name=音赴光年
+Comment=在电脑上听音频，支持歌词、歌单和离线缓存
 Exec=/opt/bili_audio/bili_audio
 Icon=bili_audio
 Categories=Audio;Player;
@@ -42,10 +42,10 @@ Version: ${VERSION}
 Section: sound
 Priority: optional
 Architecture: amd64
-Maintainer: bili-audio <noreply@users.noreply.github.com>
+Maintainer: 音赴光年 <noreply@users.noreply.github.com>
 Depends: libgtk-3-0 | libgtk-3-0t64, libblkid1, liblzma5, libsecret-1-0 | libsecret-1-0t64, libayatana-appindicator3-1 | libayatana-appindicator3-1t64
-Description: Third-party Bilibili audio player
- Personal learning project. Not affiliated with Bilibili.
+Description: 音赴光年
+ 在电脑上听音频，支持歌词、歌单和离线缓存。
 EOF
 
 dpkg-deb --build --root-owner-group "$STAGE" "$OUT/bili_audio-linux-amd64.deb"
