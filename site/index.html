@@ -62,12 +62,17 @@
       background: var(--accent);
       color: var(--on-accent);
     }
+    header + .reading { margin-top: 28px; }
     header img { width: 72px; height: 72px; border-radius: 16px; }
     h1 { font-size: 32px; line-height: 1.2; margin: 0 0 6px; font-weight: 650; }
     .mark { color: var(--muted); margin: 0; }
     .mark a { color: var(--accent); }
     .lede { font-size: 22px; line-height: 1.45; max-width: 18em; margin: 28px 0 8px; }
     .reading { color: var(--muted); max-width: 36em; margin: 0 0 8px; }
+    .reading.nowrap { max-width: none; white-space: nowrap; }
+    @media (max-width: 680px) {
+      .reading.nowrap { white-space: normal; }
+    }
     .reading + .points { margin-top: 16px; }
     h2 { font-size: 18px; margin: 36px 0 12px; }
     .points {
@@ -199,6 +204,7 @@
     html.phone header img { width: 56px; height: 56px; }
     html.phone h1 { font-size: 28px; }
     html.phone .lede { font-size: 18px; margin: 16px 0; }
+    html.phone header + .reading { margin-top: 16px; }
     html.phone .points h2 { font-size: 18px; }
     html.phone .caption { font-size: 20px; }
     html.phone #demo-text { min-height: 3.2em; }
@@ -244,16 +250,12 @@
       <div class="brand">
         <h1>音赴光年</h1>
         <p class="mark">Soundward Lightyear</p>
-        <p class="mark">个人学习项目</p>
-        <p class="mark">联系 <a href="mailto:wenshisan@live.cn">wenshisan@live.cn</a></p>
       </div>
       <div class="theme-switch" role="group" aria-label="外观">
         <button type="button" data-theme="light" aria-pressed="true">浅色</button>
         <button type="button" data-theme="dark" aria-pressed="false">深色</button>
       </div>
     </header>
-    <p class="lede">音赴光年，声遇星河</p>
-    <p class="reading">乐曲奔赴遥远光年，声音跨越星海。成年光赴音，岁月流光奔赴音声，时光归于旋律。</p>
     <p class="reading">免费听歌。只放音频，听过的歌没网也能随机接着播。</p>
     <div class="points">
       <article>
@@ -305,7 +307,7 @@
       </div>
       <div>
         <p class="caption" id="demo-title">搜索</p>
-        <p id="demo-text" aria-live="polite">热度、评价和中文推荐里，超过 15 分钟的会被滤掉。</p>
+        <p id="demo-text" aria-live="polite">热度、评价和中文推荐里，超过 15 分钟的不会混进来。</p>
         <p class="note" id="demo-count"></p>
         <div class="controls">
           <button class="replay" type="button" id="prev">上一段</button>
@@ -354,6 +356,8 @@
       <p><a href="privacy.html">隐私政策</a></p>
       <p>源码与全部发布：<a href="https://github.com/wenshisan/bili-audio">wenshisan/bili-audio</a></p>
     </footer>
+    <p class="lede">音赴光年，声遇星河</p>
+    <p class="reading nowrap">乐曲奔赴遥远光年，声音跨越星海。成年光赴音，岁月流光奔赴音声，时光归于旋律。</p>
   </main>
   <script>
     const themeButtons = document.querySelectorAll(".theme-switch button");
@@ -380,35 +384,37 @@
     const scenes = [
       {
         title: "搜索",
-        text: "热度、评价和中文推荐里，超过 15 分钟的会被滤掉。",
+        text: "热度、评价和中文推荐里，超过 15 分钟的不会混进来。",
         desk: "demo/desk-search.png",
         phone: "demo/phone-search.png",
-        deskAct: [{ at: [19.5, 7.5] }, { at: [16, 30] }],
-        phoneAct: [{ at: [50, 8] }, { at: [42, 32] }],
-      },
-      {
-        title: "正在播放",
-        text: "只放音频。封面和歌词在播放页，进度可以拖。",
-        desk: "demo/desk-player.png",
-        phone: "demo/phone-player.png",
-        deskAct: [{ at: [51.7, 95.2] }, { drag: [18, 85.2], to: [72, 85.2] }],
-        phoneAct: [{ at: [45.8, 93.1] }, { drag: [20, 85.6], to: [72, 85.6] }],
+        deskAct: [{ at: [13.3, 12] }, { at: [18.9, 33.5] }],
+        phoneAct: [{ at: [25.4, 11.9] }, { at: [62, 25.1] }],
       },
       {
         title: "歌单",
-        text: "歌单保存在本机，点开就能整张播放。",
+        text: "歌单在本机。可以整张播放，也可以随机打散。",
         desk: "demo/desk-library.png",
-        phone: "demo/phone-library.png",
-        deskAct: [{ at: [41.4, 13.6] }],
-        phoneAct: [{ at: [28, 19] }],
+        deskAct: [{ at: [49.6, 14] }],
+      },
+      {
+        title: "播放历史",
+        text: "听过的歌按今天、昨天、本周留下来。",
+        desk: "demo/desk-history.png",
+        deskAct: [{ at: [12, 21] }],
+      },
+      {
+        title: "队列",
+        text: "队列里能搜索、随机，也能整列存成歌单。",
+        phone: "demo/phone-queue.png",
+        phoneAct: [{ at: [28.3, 16.2] }, { at: [83.4, 96.8] }],
       },
       {
         title: "我的",
         text: "音质、缓存、主题色和检查更新都在这里。",
         desk: "demo/desk-settings.png",
         phone: "demo/phone-settings.png",
-        deskAct: [{ at: [18.5, 71.5] }],
-        phoneAct: [{ at: [11.3, 68.8] }],
+        deskAct: [{ at: [15.6, 82.2] }],
+        phoneAct: [{ at: [12.4, 66.5] }],
       },
     ];
     const phoneQuery = window.matchMedia("(max-width: 720px)");
@@ -426,8 +432,14 @@
     let gestureToken = 0;
     let gestureTimers = [];
 
+    function visibleScenes() {
+      const phone = document.documentElement.classList.contains("phone");
+      return scenes.filter((scene) => phone ? scene.phone : scene.desk);
+    }
+
     function sceneSrc(scene) {
-      return document.documentElement.classList.contains("phone") ? scene.phone : scene.desk;
+      const phone = document.documentElement.classList.contains("phone");
+      return phone ? scene.phone : scene.desk;
     }
 
     function sameSrc(src) {
@@ -486,6 +498,7 @@
       if (reduced) return;
       const token = gestureToken;
       const steps = document.documentElement.classList.contains("phone") ? scene.phoneAct : scene.deskAct;
+      if (!steps || !steps.length) return;
       const first = steps[0].at || steps[0].drag;
       hand.classList.remove("show", "move", "tap", "down");
       hand.style.left = Math.min(92, Math.max(6, first[0] - 9)) + "%";
@@ -520,9 +533,10 @@
       window.clearTimeout(timer);
       stopHand();
       document.documentElement.classList.toggle("phone", phoneQuery.matches);
-      const count = scenes.length;
+      const list = visibleScenes();
+      const count = list.length;
       index = ((next % count) + count) % count;
-      const scene = scenes[index];
+      const scene = list[index];
       const src = sceneSrc(scene);
       const token = ++switchToken;
       const crossfade = animate !== false && !reduced && !sameSrc(src);
@@ -531,7 +545,7 @@
       const finish = () => {
         if (!reduced) timer = window.setTimeout(() => show(index + 1), sceneMs);
         playGesture(scene, crossfade ? 720 : 280);
-        const upcoming = scenes[(index + 1) % count];
+        const upcoming = list[(index + 1) % count];
         const ahead = new Image();
         ahead.src = sceneSrc(upcoming);
       };
