@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/adaptive/max_width_box.dart';
@@ -31,6 +33,7 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _text = TextEditingController();
   final _scroll = ScrollController();
+  String? _autoLoadKey;
 
   @override
   void initState() {
@@ -41,13 +44,26 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       if (!mounted) return;
       unawaited(ref.read(searchControllerProvider.notifier).loadDaily());
     });
-    _scroll.addListener(() {
-      final current = ref.read(searchControllerProvider);
-      if (current.items.isEmpty) return;
-      if (_scroll.position.extentAfter < 300) {
-        ref.read(searchControllerProvider.notifier).loadMore();
-      }
-    });
+    _scroll.addListener(_maybeLoadMore);
+  }
+
+  /// 列表已经靠近底部时继续请求下一页。短列表铺不满一屏时也会补一页。
+  ///
+  /// 同一位置、同一批结果只请求一次，避免滤空的一页把接口打满。
+  void _maybeLoadMore() {
+    if (!mounted || !_scroll.hasClients) return;
+    final current = ref.read(searchControllerProvider);
+    if (current.loading || !current.hasMore || current.items.isEmpty) return;
+    final position = _scroll.position;
+    if (position.extentAfter >= 300) {
+      _autoLoadKey = null;
+      return;
+    }
+    final key =
+        '${current.keyword}|${current.chart.name}|${current.items.length}|${position.pixels.toStringAsFixed(0)}';
+    if (_autoLoadKey == key) return;
+    _autoLoadKey = key;
+    ref.read(searchControllerProvider.notifier).loadMore();
   }
 
   @override
@@ -96,6 +112,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
       for (final hit in state.items)
         if (hit.result.filtered != true && hit.result.duration <= 900) hit,
     ];
+    if (state.hasMore && !state.loading && state.items.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _maybeLoadMore();
+      });
+    }
 
     final metrics = WindowMetricsScope.maybeOf(context);
     final master = metrics?.usesMasterDetail ?? false;
@@ -623,6 +645,7 @@ class _ChartTabs extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
@@ -637,40 +660,398 @@ class _ChartTabs extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          Row(
+          _FoldableChips(
+            key: ValueKey(selected.group),
+            selectedIndex: tabs.indexOf(selected),
             children: [
-              Expanded(
-                child: SizedBox(
-                  height: 40,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: tabs.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final tab = tabs[index];
-                      return ChoiceChip(
-                        label: Text(_discoverTabLabel(l10n, tab)),
-                        selected: tab == selected,
-                        onSelected: (_) => onSelected(tab),
-                      );
-                    },
-                  ),
+              for (final tab in tabs)
+                ChoiceChip(
+                  label: Text(_discoverTabLabel(l10n, tab)),
+                  selected: tab == selected,
+                  onSelected: (_) => onSelected(tab),
                 ),
-              ),
-              if (showPlay) ...[
-                const SizedBox(width: 8),
+            ],
+          ),
+          // 播放全部独占一行，避免和分类抢同一行的宽度。
+          if (showPlay) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
                 FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
                   icon: const Icon(Icons.play_arrow),
                   label: Text(l10n.playlistPlayAll),
                   onPressed: onPlayAll,
                 ),
-                const SizedBox(width: 8),
+                const Spacer(),
                 Text(l10n.playlistTrackCount(count)),
               ],
-            ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// 分类芯片按可用宽度平铺。一行放得下就全部显示；放不下时先收成一行，
+/// 末尾给出展开，展开后再按行铺开。
+class _FoldableChips extends StatefulWidget {
+  const _FoldableChips({
+    super.key,
+    required this.selectedIndex,
+    required this.children,
+  });
+
+  final int selectedIndex;
+  final List<Widget> children;
+
+  @override
+  State<_FoldableChips> createState() => _FoldableChipsState();
+}
+
+class _FoldableChipsState extends State<_FoldableChips> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final material = MaterialLocalizations.of(context);
+    return AnimatedSize(
+      alignment: Alignment.topCenter,
+      duration: Motion.reduced(context) ? Duration.zero : Motion.swap,
+      curve: Curves.easeOutCubic,
+      child: _ChipFlow(
+        expanded: _expanded,
+        selectedIndex: widget.selectedIndex,
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          ...widget.children,
+          IconButton(
+            tooltip: _expanded
+                ? material.expandedIconTapHint
+                : material.collapsedIconTapHint,
+            style: IconButton.styleFrom(
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              minimumSize: const Size(36, 36),
+              fixedSize: const Size(36, 36),
+              padding: EdgeInsets.zero,
+              iconSize: 22,
+            ),
+            onPressed: () => setState(() => _expanded = !_expanded),
+            icon: Icon(_expanded ? Icons.expand_less : Icons.expand_more),
           ),
         ],
       ),
     );
+  }
+}
+
+class _ChipFlow extends MultiChildRenderObjectWidget {
+  const _ChipFlow({
+    required this.expanded,
+    required this.selectedIndex,
+    required this.spacing,
+    required this.runSpacing,
+    required super.children,
+  });
+
+  final bool expanded;
+  final int selectedIndex;
+  final double spacing;
+  final double runSpacing;
+
+  @override
+  MultiChildRenderObjectElement createElement() => _ChipFlowElement(this);
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderChipFlow(
+      expanded: expanded,
+      selectedIndex: selectedIndex,
+      spacing: spacing,
+      runSpacing: runSpacing,
+    );
+  }
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderChipFlow renderObject) {
+    renderObject
+      ..expanded = expanded
+      ..selectedIndex = selectedIndex
+      ..spacing = spacing
+      ..runSpacing = runSpacing;
+  }
+}
+
+class _ChipFlowElement extends MultiChildRenderObjectElement {
+  _ChipFlowElement(super.widget);
+
+  @override
+  void debugVisitOnstageChildren(ElementVisitor visitor) {
+    final flow = renderObject as _RenderChipFlow;
+    for (final child in children) {
+      final object = child.renderObject;
+      if (object is RenderBox && flow.hides(object)) continue;
+      visitor(child);
+    }
+  }
+}
+
+class _ChipFlowParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderChipFlow extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _ChipFlowParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _ChipFlowParentData> {
+  _RenderChipFlow({
+    required bool expanded,
+    required int selectedIndex,
+    required double spacing,
+    required double runSpacing,
+  }) : _expanded = expanded,
+       _selectedIndex = selectedIndex,
+       _spacing = spacing,
+       _runSpacing = runSpacing;
+
+  bool _expanded;
+  int _selectedIndex;
+  double _spacing;
+  double _runSpacing;
+  final Set<RenderBox> _hidden = <RenderBox>{};
+
+  bool hides(RenderBox child) => _hidden.contains(child);
+
+  set expanded(bool value) {
+    if (_expanded == value) return;
+    _expanded = value;
+    markNeedsLayout();
+  }
+
+  set selectedIndex(int value) {
+    if (_selectedIndex == value) return;
+    _selectedIndex = value;
+    markNeedsLayout();
+  }
+
+  set spacing(double value) {
+    if (_spacing == value) return;
+    _spacing = value;
+    markNeedsLayout();
+  }
+
+  set runSpacing(double value) {
+    if (_runSpacing == value) return;
+    _runSpacing = value;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _ChipFlowParentData) {
+      child.parentData = _ChipFlowParentData();
+    }
+  }
+
+  List<RenderBox> get _boxes {
+    final list = <RenderBox>[];
+    var child = firstChild;
+    while (child != null) {
+      list.add(child);
+      child = childAfter(child);
+    }
+    return list;
+  }
+
+  double _rowWidth(List<RenderBox> row) {
+    var width = 0.0;
+    for (var i = 0; i < row.length; i++) {
+      if (i > 0) width += _spacing;
+      width += row[i].size.width;
+    }
+    return width;
+  }
+
+  void _place(RenderBox child, Offset offset) {
+    final data = child.parentData! as _ChipFlowParentData;
+    data.offset = offset;
+  }
+
+  double _placeRow(List<RenderBox> row, double y) {
+    var rowHeight = 0.0;
+    for (final child in row) {
+      rowHeight = math.max(rowHeight, child.size.height);
+    }
+    var x = 0.0;
+    for (final child in row) {
+      _place(child, Offset(x, y + (rowHeight - child.size.height) / 2));
+      x += child.size.width + _spacing;
+    }
+    return rowHeight;
+  }
+
+  @override
+  void performLayout() {
+    final boxes = _boxes;
+    final maxWidth = constraints.maxWidth;
+    final childConstraints = maxWidth.isFinite
+        ? BoxConstraints(maxWidth: maxWidth)
+        : const BoxConstraints();
+    for (final child in boxes) {
+      child.layout(childConstraints, parentUsesSize: true);
+    }
+    _hidden.clear();
+    if (boxes.isEmpty) {
+      size = constraints.smallest;
+      return;
+    }
+
+    final toggle = boxes.last;
+    final chips = boxes.sublist(0, boxes.length - 1);
+    final widthLimit = maxWidth.isFinite ? maxWidth : double.infinity;
+
+    var oneLine = 0.0;
+    var fits = true;
+    for (var i = 0; i < chips.length; i++) {
+      final next = i == 0
+          ? chips[i].size.width
+          : oneLine + _spacing + chips[i].size.width;
+      if (next > widthLimit) {
+        fits = false;
+        break;
+      }
+      oneLine = next;
+    }
+
+    if (chips.isEmpty || fits) {
+      _hidden.add(toggle);
+      final height = chips.isEmpty ? 0.0 : _placeRow(chips, 0);
+      for (final child in _hidden) {
+        _place(child, Offset.zero);
+      }
+      final width = maxWidth.isFinite ? maxWidth : oneLine;
+      size = constraints.constrain(Size(width, height));
+      markNeedsSemanticsUpdate();
+      return;
+    }
+
+    if (!_expanded) {
+      final room = math.max(0.0, widthLimit - _spacing - toggle.size.width);
+      final visible = <RenderBox>[];
+      var used = 0.0;
+      for (final chip in chips) {
+        final next = visible.isEmpty
+            ? chip.size.width
+            : used + _spacing + chip.size.width;
+        if (visible.isNotEmpty && next > room) break;
+        visible.add(chip);
+        used = next;
+      }
+      final selected = _selectedIndex;
+      if (selected >= 0 && selected < chips.length) {
+        final chip = chips[selected];
+        if (!visible.contains(chip)) {
+          while (visible.isNotEmpty &&
+              _rowWidth(visible) + _spacing + chip.size.width > room) {
+            visible.removeLast();
+          }
+          visible.add(chip);
+        }
+      }
+      for (final chip in chips) {
+        if (!visible.contains(chip)) _hidden.add(chip);
+      }
+      final row = <RenderBox>[...visible, toggle];
+      final height = _placeRow(row, 0);
+      final toggleOffset = toggle.parentData! as _ChipFlowParentData;
+      final pinned = math.min(
+        toggleOffset.offset.dx,
+        math.max(0.0, widthLimit - toggle.size.width),
+      );
+      _place(toggle, Offset(pinned, toggleOffset.offset.dy));
+      for (final child in _hidden) {
+        _place(child, Offset.zero);
+      }
+      size = constraints.constrain(Size(widthLimit, height));
+      markNeedsSemanticsUpdate();
+      return;
+    }
+
+    final rows = <List<RenderBox>>[<RenderBox>[]];
+    var used = 0.0;
+    void add(RenderBox item) {
+      final itemWidth = item.size.width;
+      if (rows.last.isNotEmpty && used + _spacing + itemWidth > widthLimit) {
+        rows.add(<RenderBox>[]);
+        used = 0;
+      }
+      final row = rows.last;
+      used = row.isEmpty ? itemWidth : used + _spacing + itemWidth;
+      row.add(item);
+    }
+
+    for (final chip in chips) {
+      add(chip);
+    }
+    add(toggle);
+    var y = 0.0;
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].isEmpty) continue;
+      y += _placeRow(rows[i], y);
+      if (i != rows.length - 1) y += _runSpacing;
+    }
+    size = constraints.constrain(Size(widthLimit, y));
+    markNeedsSemanticsUpdate();
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    context.pushClipRect(needsCompositing, offset, Offset.zero & size, (
+      context,
+      offset,
+    ) {
+      var child = firstChild;
+      while (child != null) {
+        if (!_hidden.contains(child)) {
+          final data = child.parentData! as _ChipFlowParentData;
+          context.paintChild(child, offset + data.offset);
+        }
+        child = childAfter(child);
+      }
+    });
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    var child = lastChild;
+    while (child != null) {
+      final current = child;
+      if (!_hidden.contains(current)) {
+        final data = current.parentData! as _ChipFlowParentData;
+        final hit = result.addWithPaintOffset(
+          offset: data.offset,
+          position: position,
+          hitTest: (result, transformed) {
+            return current.hitTest(result, position: transformed);
+          },
+        );
+        if (hit) return true;
+      }
+      child = childBefore(current);
+    }
+    return false;
+  }
+
+  @override
+  void visitChildrenForSemantics(RenderObjectVisitor visitor) {
+    var child = firstChild;
+    while (child != null) {
+      if (!_hidden.contains(child)) visitor(child);
+      child = childAfter(child);
+    }
   }
 }

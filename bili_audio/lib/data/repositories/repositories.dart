@@ -29,8 +29,11 @@ abstract interface class SearchRepository {
   /// 热度、评价和排行榜分区来自同一次拉榜。年代要再调 [eraChart]。
   Future<Result<DiscoverCharts>> dailyPopular();
 
-  /// 音乐区里某一年代的短视频，按播放量从高到低。
-  Future<Result<List<SearchHit>>> eraChart(DiscoverTab tab);
+  /// 音乐区里某一年代的歌曲。
+  ///
+  /// 曲目来自年代歌单，播放地址在 B 站按歌名和歌手查找。
+  /// [page] 从 1 开始，[SearchHitPage.hasMore] 表示歌单还有下一页。
+  Future<Result<SearchHitPage>> eraChart(DiscoverTab tab, {int page = 1});
 }
 
 /// 发现页上的两档推荐。

@@ -60,6 +60,8 @@ class SearchController extends Notifier<SearchState> {
   bool _dailyInFlight = false;
   DiscoverCharts? _charts;
   final _eras = <DiscoverTab, List<SearchHit>>{};
+  final _eraPage = <DiscoverTab, int>{};
+  final _eraMore = <DiscoverTab, bool>{};
   DiscoverTab _rankingTab = DiscoverTab.heat;
   DiscoverTab _eraTab = DiscoverTab.y2020;
 
@@ -100,12 +102,26 @@ class SearchController extends Notifier<SearchState> {
   Future<void> loadMore() async {
     if (state.loading || !state.hasMore) return;
     _emptyFollows = 0;
+    if (state.keyword.isEmpty) {
+      if (state.chart.group != DiscoverGroup.era) return;
+      await _loadEra(state.chart, dailyGen: _generation, page: state.page + 1);
+      return;
+    }
     state = state.copyWith(loading: true, error: () => null);
     await _load(state.page + 1);
   }
 
   Future<void> retry() async {
     if (state.keyword.isEmpty) {
+      if (state.chart.group == DiscoverGroup.era && state.items.isNotEmpty) {
+        _emptyFollows = 0;
+        await _loadEra(
+          state.chart,
+          dailyGen: _generation,
+          page: state.page + 1,
+        );
+        return;
+      }
       _generation++;
       state = SearchState(chart: state.chart);
       await loadDaily(force: true);
@@ -136,7 +152,12 @@ class SearchController extends Notifier<SearchState> {
     }
     final cached = _eras[tab];
     if (cached != null) {
-      state = SearchState(chart: tab, items: cached);
+      state = SearchState(
+        chart: tab,
+        items: cached,
+        page: _eraPage[tab] ?? 1,
+        hasMore: _eraMore[tab] ?? false,
+      );
       return;
     }
     await _loadEra(tab, dailyGen: _generation);
@@ -164,7 +185,12 @@ class SearchController extends Notifier<SearchState> {
       if (tab.group == DiscoverGroup.era) {
         final era = _eras[tab];
         if (era != null) {
-          state = SearchState(chart: tab, items: era);
+          state = SearchState(
+            chart: tab,
+            items: era,
+            page: _eraPage[tab] ?? 1,
+            hasMore: _eraMore[tab] ?? false,
+          );
           return;
         }
         await _loadEra(tab, dailyGen: _generation);
@@ -175,7 +201,11 @@ class SearchController extends Notifier<SearchState> {
     }
     _dailyInFlight = true;
     _emptyFollows = 0;
-    if (force) _eras.clear();
+    if (force) {
+      _eras.clear();
+      _eraPage.clear();
+      _eraMore.clear();
+    }
     final gen = ++_generation;
     final chart = state.chart;
     state = SearchState(loading: true, chart: chart);
@@ -220,7 +250,12 @@ class SearchController extends Notifier<SearchState> {
     if (tab.group == DiscoverGroup.era) {
       final era = _eras[tab];
       if (era != null) {
-        state = SearchState(chart: tab, items: era);
+        state = SearchState(
+          chart: tab,
+          items: era,
+          page: _eraPage[tab] ?? 1,
+          hasMore: _eraMore[tab] ?? false,
+        );
         return;
       }
       await _loadEra(tab, dailyGen: gen);
@@ -229,32 +264,85 @@ class SearchController extends Notifier<SearchState> {
     state = SearchState(chart: tab, items: data.of(tab));
   }
 
-  Future<void> _loadEra(DiscoverTab tab, {required int dailyGen}) async {
+  Future<void> _loadEra(
+    DiscoverTab tab, {
+    required int dailyGen,
+    int page = 1,
+  }) async {
     final gen = ++_eraGeneration;
-    state = SearchState(loading: true, chart: tab);
-    final Result<List<SearchHit>> result;
+    final previous = page <= 1
+        ? const <SearchHit>[]
+        : List<SearchHit>.of(_eras[tab] ?? const []);
+    if (page <= 1) {
+      _emptyFollows = 0;
+      state = SearchState(loading: true, chart: tab);
+    } else {
+      state = state.copyWith(loading: true, error: () => null);
+    }
+    final Result<SearchHitPage> result;
     try {
-      result = await ref.read(searchRepositoryProvider).eraChart(tab);
+      result = await ref
+          .read(searchRepositoryProvider)
+          .eraChart(tab, page: page);
     } catch (e, st) {
       if (!_eraCurrent(tab, gen, dailyGen)) return;
       AppLogger.e('era failed', tag: 'search', error: e, stackTrace: st);
-      state = SearchState(loading: false, chart: tab, error: e);
+      state = page <= 1
+          ? SearchState(loading: false, chart: tab, error: e)
+          : state.copyWith(loading: false, error: () => e);
       return;
     }
     if (!_eraCurrent(tab, gen, dailyGen)) return;
-    final items = result.valueOrNull;
-    if (items == null) {
-      state = SearchState(
-        loading: false,
-        chart: tab,
-        error: result.errorOrNull,
-      );
+    final data = result.valueOrNull;
+    if (data == null) {
+      state = page <= 1
+          ? SearchState(
+              loading: false,
+              chart: tab,
+              error: result.errorOrNull,
+            )
+          : state.copyWith(loading: false, error: () => result.errorOrNull);
       return;
     }
-    _eras[tab] = items;
+    final merged = _mergeEra(previous, data.items);
+    final follow =
+        merged.length == previous.length &&
+        data.hasMore &&
+        _emptyFollows < _maxEmptyFollows;
+    _eras[tab] = merged;
+    _eraPage[tab] = data.page;
+    _eraMore[tab] = data.hasMore;
     if (state.keyword.isNotEmpty || state.chart != tab) return;
-    state = SearchState(chart: tab, items: items);
+    state = SearchState(
+      chart: tab,
+      items: merged,
+      page: data.page,
+      hasMore: data.hasMore,
+      loading: follow,
+    );
+    if (!follow) {
+      _emptyFollows = 0;
+      return;
+    }
+    _emptyFollows++;
+    AppLogger.d(
+      'empty era page, follow $_emptyFollows/$_maxEmptyFollows',
+      tag: 'search',
+    );
+    await _loadEra(tab, dailyGen: dailyGen, page: data.page + 1);
   }
+
+  List<SearchHit> _mergeEra(List<SearchHit> previous, List<SearchHit> incoming) {
+    final seen = <String>{for (final hit in previous) _eraKey(hit)};
+    return [
+      ...previous,
+      for (final hit in incoming)
+        if (seen.add(_eraKey(hit))) hit,
+    ];
+  }
+
+  String _eraKey(SearchHit hit) =>
+      '${hit.result.bvid}:${hit.result.cid ?? hit.result.pageIndex ?? 0}';
 
   bool _eraCurrent(DiscoverTab tab, int gen, int dailyGen) {
     if (!ref.mounted || gen != _eraGeneration || dailyGen != _generation) {

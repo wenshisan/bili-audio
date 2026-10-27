@@ -1,4 +1,4 @@
-import 'dart:math' show min;
+import 'dart:math' show max, min;
 
 import '../../core/logging/app_logger.dart';
 import '../../core/utils/result.dart';
@@ -10,6 +10,8 @@ import '../bili/bili_ranking_api.dart';
 import '../bili/bili_search_api.dart';
 import '../bili/bili_stream_api.dart';
 import '../bili/models/search_result.dart';
+import '../era/era_catalog.dart';
+import '../era/era_titles.dart';
 import 'repositories.dart';
 import 'stream_url_manager.dart';
 
@@ -17,10 +19,19 @@ export 'bili_video_repository.dart';
 
 /// 基于 B 站接口的搜索仓储 (M2.6)
 class BiliSearchRepository implements SearchRepository {
-  BiliSearchRepository(this._api, this._cleaner, {this.pageList, this.ranking});
+  BiliSearchRepository(
+    this._api,
+    this._cleaner, {
+    this.pageList,
+    this.ranking,
+    this.eraCatalog,
+  });
 
   final BiliSearchApi _api;
   final TitleCleaner _cleaner;
+
+  /// 年代曲目来源。有的话先拿歌名，再在 B 站找可播放的视频。
+  final EraCatalog? eraCatalog;
 
   /// 音乐区排行。未提供时 [dailyPopular] 失败。
   final MusicChartSource? ranking;
@@ -106,18 +117,29 @@ class BiliSearchRepository implements SearchRepository {
     return Result.success(charts);
   }
 
-  /// 年代搜索词。播放量排序，只要 10 分钟以内的音乐区视频。
+  /// 年代搜索词。播放量排序后，再按标题确认是不是这一年代。
   static const eraKeyword = <DiscoverTab, String>{
-    DiscoverTab.y2020: '2020年代 流行歌曲',
-    DiscoverTab.y2010: '2010年代 流行歌曲',
-    DiscoverTab.y2000: '2000年代 经典歌曲',
-    DiscoverTab.y1990: '90年代 经典歌曲',
-    DiscoverTab.y1980: '80年代 经典歌曲',
-    DiscoverTab.y1970: '70年代 经典歌曲',
+    DiscoverTab.y2020: '2020年代流行歌曲',
+    DiscoverTab.y2010: '2010年代流行歌曲',
+    DiscoverTab.y2000: '2000年代经典歌曲',
+    DiscoverTab.y1990: '90年代经典歌曲',
+    DiscoverTab.y1980: '80年代经典老歌',
+    DiscoverTab.y1970: '70年代经典老歌',
   };
 
-  static const eraDurationBand = 1;
   static const eraPageSize = 30;
+
+  /// 超长合集最多拆几部，避免一页结果都去拉分 P。
+  static const eraExpansions = 3;
+
+  static const minEraDuration = 60;
+
+  /// 给一首歌找 B 站视频时，最多看几条搜索结果。
+  static const eraLookupSize = 8;
+
+  /// 标题点名的年代。70、80、90 这种跨年代合集会返回多个。
+  static Set<DiscoverTab> erasMentioned(String title) =>
+      erasMentionedInTitle(title);
 
   static const _zoneTabs = <MusicZone, DiscoverTab>{
     MusicZone.original: DiscoverTab.original,
@@ -130,38 +152,209 @@ class BiliSearchRepository implements SearchRepository {
   };
 
   @override
-  Future<Result<List<SearchHit>>> eraChart(DiscoverTab tab) async {
+  Future<Result<SearchHitPage>> eraChart(
+    DiscoverTab tab, {
+    int page = 1,
+  }) async {
+    final catalog = eraCatalog;
+    if (catalog != null) {
+      final listed = await catalog.page(tab, page: page);
+      final data = listed.valueOrNull;
+      if (data != null && (data.tracks.isNotEmpty || page > 1)) {
+        final items = await _resolveEraTracks(data.tracks);
+        AppLogger.i(
+          'era catalog ${tab.name} page=${data.page} '
+          'songs=${data.tracks.length} shown=${items.length} '
+          'hasMore=${data.hasMore}',
+          tag: 'search',
+        );
+        return Result.success((
+          items: items,
+          page: data.page,
+          total: data.total,
+          hasMore: data.hasMore,
+        ));
+      }
+      if (page > 1) {
+        return Result.success((
+          items: const [],
+          page: page,
+          total: 0,
+          hasMore: false,
+        ));
+      }
+      AppLogger.w(
+        'era catalog miss ${tab.name}, use bili search: ${listed.errorOrNull}',
+        tag: 'search',
+      );
+    }
+    return _eraChartFromBili(tab, page: page);
+  }
+
+  Future<Result<SearchHitPage>> _eraChartFromBili(
+    DiscoverTab tab, {
+    required int page,
+  }) async {
     final keyword = eraKeyword[tab];
-    if (keyword == null) return const Result.success([]);
+    if (keyword == null) {
+      return Result.success((
+        items: const [],
+        page: page,
+        total: 0,
+        hasMore: false,
+      ));
+    }
     final result = await _api.searchVideo(
       keyword: keyword,
+      page: page,
       pageSize: eraPageSize,
       order: 'click',
-      duration: eraDurationBand,
     );
     if (result.isFailure) {
       AppLogger.e(
-        'era "$keyword" failed',
+        'era "$keyword" page=$page failed',
         tag: 'search',
         error: result.errorOrNull,
       );
       return Result.failure(result.errorOrNull!);
     }
-    final page = result.valueOrNull;
-    if (page == null) {
+    final fetched = result.valueOrNull;
+    if (fetched == null) {
       return const Result.failure(AppError.unknown(message: 'era chart empty'));
     }
     final seen = <String>{};
-    final items = <SearchHit>[
-      for (final item in page.items)
-        if (item.duration <= maxDuration && seen.add(item.bvid)) _hit(item),
-    ];
+    final items = <SearchHit>[];
+    var expansions = 0;
+    for (final item in fetched.items) {
+      if (!seen.add(item.bvid)) continue;
+      final mentioned = erasMentioned(item.cleanTitle);
+      if (mentioned.length != 1 || !mentioned.contains(tab)) continue;
+      if (item.duration <= maxDuration) {
+        if (item.duration >= minEraDuration) items.add(_hit(item));
+        continue;
+      }
+      if (expansions >= eraExpansions) continue;
+      expansions++;
+      final expanded = await _expand(item);
+      for (final hit in expanded) {
+        if (hit.result.duration < minEraDuration) continue;
+        items.add(hit);
+      }
+    }
     AppLogger.i(
-      'era "$keyword" raw=${page.items.length} shown=${items.length}',
+      'era "$keyword" page=${fetched.page} raw=${fetched.items.length} '
+      'shown=${items.length} expanded=$expansions hasMore=${fetched.hasMore}',
       tag: 'search',
     );
-    return Result.success(items);
+    return Result.success((
+      items: items,
+      page: fetched.page,
+      total: fetched.total,
+      hasMore: fetched.hasMore,
+    ));
   }
+
+  Future<List<SearchHit>> _resolveEraTracks(List<EraTrack> tracks) async {
+    if (tracks.isEmpty) return const [];
+    final out = List<SearchHit?>.filled(tracks.length, null);
+    var next = 0;
+    Future<void> worker() async {
+      while (true) {
+        final index = next;
+        if (index >= tracks.length) return;
+        next++;
+        out[index] = await _resolveEraTrack(tracks[index]);
+      }
+    }
+
+    final workers = min(_concurrency, tracks.length);
+    await Future.wait([for (var i = 0; i < workers; i++) worker()]);
+    final seen = <String>{};
+    return [
+      for (final hit in out)
+        if (hit != null &&
+            seen.add(
+              '${hit.result.bvid}:${hit.result.cid ?? hit.result.pageIndex ?? 0}',
+            ))
+          hit,
+    ];
+  }
+
+  Future<SearchHit?> _resolveEraTrack(EraTrack track) async {
+    final name = _songName(track.name);
+    if (name.length < 2) return null;
+    final keyword = [
+      track.artist,
+      name,
+    ].where((part) => part.isNotEmpty).join(' ');
+    final result = await _api.searchVideo(
+      keyword: keyword,
+      pageSize: eraLookupSize,
+    );
+    final fetched = result.valueOrNull;
+    if (fetched == null) {
+      AppLogger.d('era miss "$keyword"', tag: 'search');
+      return null;
+    }
+    final shorts = <SearchResult>[];
+    SearchResult? collection;
+    for (final item in fetched.items) {
+      if (!_mentionsSong(item.cleanTitle, name)) continue;
+      if (item.duration >= minEraDuration &&
+          item.duration <= maxDuration &&
+          _durationClose(item.duration, track.duration)) {
+        shorts.add(item);
+        continue;
+      }
+      collection ??= item.duration > maxDuration ? item : null;
+    }
+    if (shorts.isNotEmpty) {
+      shorts.sort(
+        (a, b) => _durationDelta(
+          a.duration,
+          track.duration,
+        ).compareTo(_durationDelta(b.duration, track.duration)),
+      );
+      return _hit(shorts.first);
+    }
+    if (collection == null || pageList == null) {
+      AppLogger.d('era miss "$keyword"', tag: 'search');
+      return null;
+    }
+    final parts = [
+      for (final hit in await _expand(collection))
+        if (_mentionsSong(hit.result.cleanTitle, name) &&
+            hit.result.duration >= minEraDuration &&
+            _durationClose(hit.result.duration, track.duration))
+          hit,
+    ];
+    if (parts.isEmpty) {
+      AppLogger.d('era miss "$keyword"', tag: 'search');
+      return null;
+    }
+    parts.sort(
+      (a, b) => _durationDelta(
+        a.result.duration,
+        track.duration,
+      ).compareTo(_durationDelta(b.result.duration, track.duration)),
+    );
+    return parts.first;
+  }
+
+  static String _songName(String name) =>
+      name.replaceAll(RegExp(r'\s*[（(][^）)]*[）)]\s*'), ' ').trim();
+
+  static bool _mentionsSong(String title, String name) =>
+      title.toLowerCase().contains(name.toLowerCase());
+
+  static bool _durationClose(int seconds, Duration expected) {
+    if (expected.inSeconds <= 0) return true;
+    final slack = max(20, (expected.inSeconds * 0.2).round());
+    return (seconds - expected.inSeconds).abs() <= slack;
+  }
+
+  static int _durationDelta(int seconds, Duration expected) =>
+      (seconds - expected.inSeconds).abs();
 
   Future<Map<String, List<SearchHit>>> _expandChart(
     List<SearchResult> items,

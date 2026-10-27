@@ -157,6 +157,71 @@ void main() {
     expect(find.text('七里香'), findsWidgets);
   });
 
+  testWidgets('推荐分类放不下时折叠，播放全部不挡住分类', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 800);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    final play = tester.getRect(find.text('播放全部'));
+    final heat = tester.getRect(find.text('热度'));
+    expect(play.overlaps(heat), isFalse);
+    expect(play.top, greaterThanOrEqualTo(heat.bottom));
+    expect(find.text('AI音乐'), findsNothing);
+    expect(find.byTooltip('展开'), findsOneWidget);
+
+    final expand = tester.getRect(find.byIcon(Icons.expand_more));
+    expect(expand.overlaps(heat), isFalse);
+
+    await tester.tap(find.byIcon(Icons.expand_more));
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI音乐'), findsOneWidget);
+    expect(find.byTooltip('收起'), findsOneWidget);
+    expect(
+      tester
+          .getRect(find.text('播放全部'))
+          .overlaps(tester.getRect(find.text('AI音乐'))),
+      isFalse,
+    );
+
+    await tester.tap(find.text('AI音乐'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.expand_less));
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI音乐'), findsOneWidget);
+    expect(find.byTooltip('展开'), findsOneWidget);
+
+    await tester.tap(find.text('播放全部'));
+    await tester.pumpAndSettle();
+    expect(engine.playing, isTrue);
+  });
+
+  testWidgets('推荐分类一行放得下时不显示展开', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1100, 900);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    expect(find.text('AI音乐'), findsOneWidget);
+    expect(find.text('VOCALOID'), findsOneWidget);
+    expect(find.byIcon(Icons.expand_more), findsNothing);
+    expect(find.byIcon(Icons.expand_less), findsNothing);
+    final play = tester.getRect(find.text('播放全部'));
+    expect(play.overlaps(tester.getRect(find.text('热度'))), isFalse);
+    expect(
+      play.top,
+      greaterThanOrEqualTo(tester.getRect(find.text('热度')).bottom),
+    );
+  });
+
   testWidgets('底部导航切换到歌单页', (tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();

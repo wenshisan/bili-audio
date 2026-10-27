@@ -77,10 +77,19 @@ class FakeSearchRepository implements SearchRepository {
   }
 
   @override
-  Future<Result<List<SearchHit>>> eraChart(DiscoverTab tab) async {
-    final page = await dailyPopular();
-    if (page.isFailure) return Result.failure(page.errorOrNull!);
-    return Result.success(page.valueOrNull?.heat ?? const []);
+  Future<Result<SearchHitPage>> eraChart(
+    DiscoverTab tab, {
+    int page = 1,
+  }) async {
+    final charts = await dailyPopular();
+    if (charts.isFailure) return Result.failure(charts.errorOrNull!);
+    final items = charts.valueOrNull?.heat ?? const <SearchHit>[];
+    return Result.success((
+      items: items,
+      page: page,
+      total: items.length,
+      hasMore: false,
+    ));
   }
 }
 

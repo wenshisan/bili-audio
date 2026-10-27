@@ -4,6 +4,7 @@ import 'package:bili_audio/core/utils/result.dart';
 import 'package:bili_audio/data/bili/bili_ranking_api.dart';
 import 'package:bili_audio/data/bili/bili_search_api.dart';
 import 'package:bili_audio/data/bili/models/search_result.dart';
+import 'package:bili_audio/data/era/era_catalog.dart';
 import 'package:bili_audio/data/repositories/bili_repositories.dart';
 import 'package:bili_audio/data/repositories/repositories.dart';
 import 'package:bili_audio/data/repositories/fake_repositories.dart';
@@ -62,11 +63,22 @@ class _Chart implements MusicChartSource {
 }
 
 class _EraSearchApi implements BiliSearchApi {
+  _EraSearchApi({List<SearchResult>? items}) : items = items ?? _defaults;
+
+  static final _defaults = [
+    _item('BVera', '90年代 晴天', 180),
+    _item('BVlong', '90年代 演唱会', 1200),
+    _item('BVera', '90年代 晴天 重复', 200),
+  ];
+
+  final List<SearchResult> items;
   String? keyword;
   String? order;
   int? duration;
   int? pageSize;
+  int? requestedPage;
   List<int>? tids;
+  bool hasMore = false;
 
   @override
   Future<Result<SearchPage>> searchVideo({
@@ -81,21 +93,78 @@ class _EraSearchApi implements BiliSearchApi {
     this.order = order;
     this.duration = duration;
     this.pageSize = pageSize;
+    requestedPage = page;
     this.tids = tids;
     return Result.success(
       SearchPage(
-        items: [
-          _item('BVera', '90年代 晴天', 180),
-          _item('BVlong', '90年代 演唱会', 1200),
-          _item('BVera', '90年代 晴天 重复', 200),
-        ],
+        items: items,
         page: page,
         pageSize: pageSize,
-        total: 3,
+        total: items.length,
+        hasMore: hasMore,
+      ),
+    );
+  }
+}
+
+class _SongLookupApi implements BiliSearchApi {
+  final keywords = <String>[];
+  String? order;
+
+  @override
+  Future<Result<SearchPage>> searchVideo({
+    required String keyword,
+    int page = 1,
+    int pageSize = 20,
+    List<int> tids = const [3],
+    String? order,
+    int? duration,
+  }) async {
+    keywords.add(keyword);
+    this.order = order;
+    final items = switch (keyword) {
+      '周杰伦 晴天' => [
+        _item('BVmix', '晴天 合集', 4000),
+        _item('BVsong', '周杰伦 - 晴天', 260),
+      ],
+      '周杰伦 稻香' => [_item('BVlive', '周杰伦 稻香 演唱会', 5000)],
+      _ => const <SearchResult>[],
+    };
+    return Result.success(
+      SearchPage(
+        items: items,
+        page: page,
+        pageSize: pageSize,
+        total: items.length,
         hasMore: false,
       ),
     );
   }
+}
+
+class _FixedEraCatalog implements EraCatalog {
+  @override
+  Future<Result<EraCatalogPage>> page(DiscoverTab tab, {int page = 1}) async =>
+      const Result.success((
+        tracks: [
+          EraTrack(name: '晴天', artist: '周杰伦', duration: Duration(seconds: 269)),
+          EraTrack(name: '稻香', artist: '周杰伦', duration: Duration(seconds: 210)),
+          EraTrack(
+            name: '没有这首',
+            artist: '未知',
+            duration: Duration(seconds: 200),
+          ),
+        ],
+        page: 1,
+        total: 3,
+        hasMore: false,
+      ));
+}
+
+class _DownEraCatalog implements EraCatalog {
+  @override
+  Future<Result<EraCatalogPage>> page(DiscoverTab tab, {int page = 1}) async =>
+      const Result.failure(AppError.network(message: 'down'));
 }
 
 class _StubSearchApi implements BiliSearchApi {
@@ -388,22 +457,148 @@ void main() {
     expect(charts.of(DiscoverTab.original).single.result.bvid, 'BVshort');
   });
 
-  test('年代推荐按播放量搜索短视频，并去掉超长和重复', () async {
-    final api = _EraSearchApi();
+  test('年代推荐按播放量搜索，丢掉跨年代、过短、超长和重复', () async {
+    final api = _EraSearchApi()..hasMore = true;
     final repo = BiliSearchRepository(
       api,
       TitleCleaner(const TitleRuleConfig(version: 1, rules: [])),
     );
 
-    final items = (await repo.eraChart(DiscoverTab.y1990)).valueOrNull!;
+    final page = (await repo.eraChart(DiscoverTab.y1990)).valueOrNull!;
+    final items = page.items;
 
     expect(api.keyword, BiliSearchRepository.eraKeyword[DiscoverTab.y1990]);
     expect(api.order, 'click');
-    expect(api.duration, BiliSearchRepository.eraDurationBand);
+    expect(api.duration, isNull);
     expect(api.pageSize, BiliSearchRepository.eraPageSize);
+    expect(api.requestedPage, 1);
     expect(api.tids, [3]);
+    expect(page.page, 1);
+    expect(page.hasMore, isTrue);
+    await repo.eraChart(DiscoverTab.y1990, page: 2);
+    expect(api.requestedPage, 2);
     expect(items.map((hit) => hit.result.bvid), ['BVera']);
     expect(items.single.result.duration, 180);
+  });
+
+  test('年代推荐只收这一年代，并把合集拆成单曲', () async {
+    expect(BiliSearchRepository.erasMentioned('70、80、90年代经典老歌'), {
+      DiscoverTab.y1970,
+      DiscoverTab.y1980,
+      DiscoverTab.y1990,
+    });
+    expect(BiliSearchRepository.erasMentioned('1990-1999年最强华语金曲'), {
+      DiscoverTab.y1990,
+    });
+    expect(BiliSearchRepository.erasMentioned('2020年代流行歌曲'), {
+      DiscoverTab.y2020,
+    });
+    expect(BiliSearchRepository.erasMentioned('2000-2009年最强华语金曲'), {
+      DiscoverTab.y2000,
+    });
+    expect(BiliSearchRepository.erasMentioned('8090歌曲合集'), isEmpty);
+
+    final calls = <String>[];
+    final api = _EraSearchApi(
+      items: [
+        _item('BVmix', '70、80、90年代经典老歌', 5000),
+        _item('BV80', '80年代经典老歌', 200),
+        _item('BV90', '90年代经典歌曲合集', 3600),
+        _item('BV90short', '九十年代 同桌的你', 200),
+        _item('BVclip', '90年代 片头', 30),
+      ],
+    );
+    final repo = BiliSearchRepository(
+      api,
+      TitleCleaner(const TitleRuleConfig(version: 1, rules: [])),
+      pageList: (bvid) async {
+        calls.add(bvid);
+        if (bvid != 'BV90') {
+          return const Result.failure(AppError.notFound());
+        }
+        return const Result.success([
+          VideoPage(
+            cid: 1,
+            title: '片头',
+            duration: Duration(seconds: 20),
+            pageIndex: 1,
+          ),
+          VideoPage(
+            cid: 2,
+            title: '周杰伦 - 晴天',
+            duration: Duration(seconds: 210),
+            pageIndex: 2,
+          ),
+          VideoPage(
+            cid: 3,
+            title: '演唱会串烧',
+            duration: Duration(seconds: 1000),
+            pageIndex: 3,
+          ),
+        ]);
+      },
+    );
+
+    final items = (await repo.eraChart(DiscoverTab.y1990)).valueOrNull!.items;
+
+    expect(calls, ['BV90']);
+    expect(items.map((hit) => hit.result.bvid), ['BV90', 'BV90short']);
+    expect(items.first.result.cid, 2);
+    expect(items.first.result.cleanTitle, '周杰伦 - 晴天');
+    expect(items.first.result.duration, 210);
+    expect(items.last.result.bvid, 'BV90short');
+  });
+
+  test('年代歌单用歌名到 B 站找单曲，对不上的丢掉', () async {
+    final calls = <String>[];
+    final api = _SongLookupApi();
+    final repo = BiliSearchRepository(
+      api,
+      TitleCleaner(const TitleRuleConfig(version: 1, rules: [])),
+      eraCatalog: _FixedEraCatalog(),
+      pageList: (bvid) async {
+        calls.add(bvid);
+        if (bvid != 'BVlive') return const Result.failure(AppError.notFound());
+        return const Result.success([
+          VideoPage(
+            cid: 1,
+            title: '片头',
+            duration: Duration(seconds: 20),
+            pageIndex: 1,
+          ),
+          VideoPage(
+            cid: 2,
+            title: '周杰伦 - 稻香',
+            duration: Duration(seconds: 210),
+            pageIndex: 2,
+          ),
+        ]);
+      },
+    );
+
+    final page = (await repo.eraChart(DiscoverTab.y2020)).valueOrNull!;
+
+    expect(api.keywords, ['周杰伦 晴天', '周杰伦 稻香', '未知 没有这首']);
+    expect(api.order, isNull);
+    expect(calls, ['BVlive']);
+    expect(page.items.map((hit) => hit.result.bvid), ['BVsong', 'BVlive']);
+    expect(page.items.first.result.duration, 260);
+    expect(page.items.last.result.cid, 2);
+    expect(page.hasMore, isFalse);
+  });
+
+  test('年代歌单拿不到时仍用 B 站搜索', () async {
+    final api = _EraSearchApi();
+    final repo = BiliSearchRepository(
+      api,
+      TitleCleaner(const TitleRuleConfig(version: 1, rules: [])),
+      eraCatalog: _DownEraCatalog(),
+    );
+
+    final items = (await repo.eraChart(DiscoverTab.y1990)).valueOrNull!.items;
+
+    expect(api.keyword, BiliSearchRepository.eraKeyword[DiscoverTab.y1990]);
+    expect(items.single.result.bvid, 'BVera');
   });
 
   group('Fake 仓储', () {

@@ -36,6 +36,7 @@ import '../data/player/audio_engine.dart';
 import '../data/player/media_library.dart';
 import '../data/player/bili_audio_handler.dart';
 import '../data/player/queue_snapshot_store.dart';
+import '../data/era/netease_era_catalog.dart';
 import '../data/repositories/bili_repositories.dart';
 import '../data/repositories/stream_url_manager.dart';
 import '../domain/entities/audio_track.dart';
@@ -207,6 +208,7 @@ Future<List<Override>> bootstrap() async {
         cleaner,
         pageList: videoApi.getPageList,
         ranking: BiliRankingApi(http),
+        eraCatalog: NeteaseEraCatalog(),
       ),
     ),
     videoRepositoryProvider.overrideWithValue(

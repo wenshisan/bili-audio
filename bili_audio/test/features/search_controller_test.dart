@@ -49,8 +49,15 @@ class _PartialSearch implements SearchRepository {
       const Result.success(DiscoverCharts());
 
   @override
-  Future<Result<List<SearchHit>>> eraChart(DiscoverTab tab) async =>
-      const Result.success([]);
+  Future<Result<SearchHitPage>> eraChart(
+    DiscoverTab tab, {
+    int page = 1,
+  }) async => const Result.success((
+    items: [],
+    page: 1,
+    total: 0,
+    hasMore: false,
+  ));
 }
 
 class _ChartSearch implements SearchRepository {
@@ -69,8 +76,15 @@ class _ChartSearch implements SearchRepository {
   }
 
   @override
-  Future<Result<List<SearchHit>>> eraChart(DiscoverTab tab) async =>
-      Result.success([_hit(tab.name)]);
+  Future<Result<SearchHitPage>> eraChart(
+    DiscoverTab tab, {
+    int page = 1,
+  }) async => Result.success((
+    items: [_hit(tab.name)],
+    page: page,
+    total: 1,
+    hasMore: false,
+  ));
 
   @override
   Future<Result<SearchHitPage>> search(
@@ -264,4 +278,126 @@ void main() {
     expect(end.items.single.result.bvid, 'y1990');
     expect(end.loading, isFalse);
   });
+
+  test('年代滑到底追加下一页，排行榜不再翻页', () async {
+    final db = AppDatabase.memory();
+    final repo = _PagingEra({
+      1: (items: [_hit('p1')], hasMore: true),
+      2: (items: [_hit('p1'), _hit('p2')], hasMore: false),
+    });
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        searchRepositoryProvider.overrideWithValue(repo),
+      ],
+    );
+    addTearDown(() async {
+      await container.read(searchHistoryProvider.future);
+      await Future<void>.delayed(Duration.zero);
+      container.dispose();
+      await db.close();
+    });
+
+    final notifier = container.read(searchControllerProvider.notifier);
+    await notifier.loadDaily();
+    await notifier.loadMore();
+    expect(repo.calls, isEmpty);
+    expect(
+      container.read(searchControllerProvider).items.single.result.bvid,
+      'hot',
+    );
+
+    await notifier.selectChart(DiscoverTab.y1990);
+    expect(repo.calls, [1]);
+    expect(
+      container.read(searchControllerProvider).items.map((h) => h.result.bvid),
+      ['p1'],
+    );
+    expect(container.read(searchControllerProvider).hasMore, isTrue);
+
+    await notifier.loadMore();
+    final loaded = container.read(searchControllerProvider);
+    expect(repo.calls, [1, 2]);
+    expect(loaded.items.map((h) => h.result.bvid), ['p1', 'p2']);
+    expect(loaded.page, 2);
+    expect(loaded.hasMore, isFalse);
+    expect(loaded.loading, isFalse);
+
+    await notifier.loadMore();
+    expect(repo.calls, [1, 2]);
+
+    await notifier.selectChart(DiscoverTab.heat);
+    await notifier.selectChart(DiscoverTab.y1990);
+    final restored = container.read(searchControllerProvider);
+    expect(restored.items.map((h) => h.result.bvid), ['p1', 'p2']);
+    expect(restored.hasMore, isFalse);
+    expect(repo.calls, [1, 2]);
+  });
+
+  test('年代这一页被滤空时自动请求下一页', () async {
+    final db = AppDatabase.memory();
+    final repo = _PagingEra({
+      1: (items: const [], hasMore: true),
+      2: (items: [_hit('p2')], hasMore: false),
+    });
+    final container = ProviderContainer(
+      overrides: [
+        databaseProvider.overrideWithValue(db),
+        searchRepositoryProvider.overrideWithValue(repo),
+      ],
+    );
+    addTearDown(() async {
+      await container.read(searchHistoryProvider.future);
+      await Future<void>.delayed(Duration.zero);
+      container.dispose();
+      await db.close();
+    });
+
+    final notifier = container.read(searchControllerProvider.notifier);
+    await notifier.loadDaily();
+    await notifier.selectChart(DiscoverTab.y1990);
+    final end = container.read(searchControllerProvider);
+    expect(repo.calls, [1, 2]);
+    expect(end.items.single.result.bvid, 'p2');
+    expect(end.hasMore, isFalse);
+    expect(end.loading, isFalse);
+  });
+}
+
+class _PagingEra implements SearchRepository {
+  _PagingEra(this._pages);
+
+  final Map<int, ({List<SearchHit> items, bool hasMore})> _pages;
+  final calls = <int>[];
+
+  @override
+  Future<Result<DiscoverCharts>> dailyPopular() async =>
+      Result.success(DiscoverCharts(heat: [_hit('hot')]));
+
+  @override
+  Future<Result<SearchHitPage>> eraChart(
+    DiscoverTab tab, {
+    int page = 1,
+  }) async {
+    calls.add(page);
+    final data = _pages[page]!;
+    return Result.success((
+      items: data.items,
+      page: page,
+      total: 2,
+      hasMore: data.hasMore,
+    ));
+  }
+
+  @override
+  Future<Result<SearchHitPage>> search(
+    String keyword, {
+    int page = 1,
+    void Function(List<SearchHit> items)? onItems,
+  }) async => const Result.success((
+    items: [],
+    page: 1,
+    total: 0,
+    hasMore: false,
+  ));
 }
