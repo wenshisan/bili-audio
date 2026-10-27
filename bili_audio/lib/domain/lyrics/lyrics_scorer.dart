@@ -69,6 +69,7 @@ class LyricsScorer {
   /// 歌名对不上就丢掉。歌名和歌手写反时换一个方向再认一次，
   /// 但结果歌名只是对上了歌手、歌手对不上歌名的，仍然丢掉。
   /// 这样「周杰伦 / 米兰的小铁匠」不会出现在《搁浅》的待选里。
+  /// 曲目一侧没有歌手时，不因为歌词带了歌手就丢掉。
   double? pick({
     required String trackTitle,
     required String trackArtist,
@@ -86,6 +87,7 @@ class LyricsScorer {
         lyricsArtist: lyricsArtist,
         lyricsDuration: lyricsDuration,
       ),
+      trackArtistKnown: _trackArtistKnown(trackTitle, trackArtist),
       lyricsArtist: lyricsArtist,
     );
     final artist = trackArtist.trim();
@@ -99,6 +101,7 @@ class LyricsScorer {
         lyricsArtist: lyricsArtist,
         lyricsDuration: lyricsDuration,
       ),
+      trackArtistKnown: _trackArtistKnown(artist, trackTitle),
       lyricsArtist: lyricsArtist,
     );
     if (direct == null) return flipped?.score;
@@ -106,12 +109,24 @@ class LyricsScorer {
     return max(direct.score, flipped.score);
   }
 
-  LyricsMatch? _accepted(LyricsMatch match, {required String lyricsArtist}) {
+  LyricsMatch? _accepted(
+    LyricsMatch match, {
+    required bool trackArtistKnown,
+    required String lyricsArtist,
+  }) {
     if (match.titleSimilarity < 0.5) return null;
-    if (lyricsArtist.trim().isNotEmpty && match.artistSimilarity < 0.4) {
+    if (trackArtistKnown &&
+        lyricsArtist.trim().isNotEmpty &&
+        match.artistSimilarity < 0.4) {
       return null;
     }
     return match;
+  }
+
+  bool _trackArtistKnown(String title, String artist) {
+    if (artist.trim().isNotEmpty) return true;
+    final parsed = TitleCleaner.parseLoose(title).artist?.trim() ?? '';
+    return parsed.isNotEmpty;
   }
 
   double _titleSimilarity(String a, String b) => _fuzzy.similarity(a, b);

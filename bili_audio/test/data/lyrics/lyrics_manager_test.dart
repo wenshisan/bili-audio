@@ -153,6 +153,26 @@ void main() {
   LyricsManager manager(List<LyricsProvider> providers) =>
       LyricsManager(db, dir, providers: providers);
 
+  test('includeMissing 补上没有的歌词源并按优先级排到前面', () async {
+    final early = _StubProvider('early', 5, [0.2]);
+    final late = _StubProvider('late', 0, [0.91]);
+    final m = manager([early]);
+
+    expect(
+      m.includeMissing({
+        'late': () => late,
+        'early': () => _StubProvider('early', 1, [0.1]),
+      }),
+      1,
+    );
+    expect(m.includeMissing({'late': () => late}), 0);
+
+    final found = await m.find(q);
+    expect(found, isA<LyricsFound>());
+    expect((found as LyricsFound).lyrics.lines.single.text, contains('late'));
+    expect(early.calls, 0);
+  });
+
   test('按优先级查询, 首个 ≥0.80 即停止并缓存', () async {
     final a = _StubProvider('a', 1, [0.9]);
     final b = _StubProvider('b', 2, [0.95]);

@@ -10,6 +10,9 @@ import '../../domain/lyrics/lyrics_provider.dart';
 import '../../domain/lyrics/lyrics_scorer.dart';
 import '../../domain/title/title_cleaner.dart';
 import '../db/app_database.dart';
+import 'kugou_lyrics_provider.dart';
+import 'kuwo_lyrics_provider.dart';
+import 'qq_lyrics_provider.dart';
 
 /// 歌词查询结果 (M5.4)
 sealed class LyricsResult {
@@ -68,7 +71,37 @@ class LyricsManager {
     });
   }
 
+  /// 补上启动之后才写进代码的歌词源。
+  ///
+  /// 热重载不会重建管理器，已经在列表里的源不会重复添加。
+  /// 返回这次新补上的个数。测试进程里不补，避免用例打到真实歌词接口。
+  int installBundledProviders() {
+    if (Platform.environment['FLUTTER_TEST'] == 'true') return 0;
+    return includeMissing({
+      'qq': QqLyricsProvider.new,
+      'kugou': KugouLyricsProvider.new,
+      'kuwo': KuwoLyricsProvider.new,
+    });
+  }
+
+  /// 按名字补上还没有的歌词源，并按优先级重新排序。
+  ///
+  /// 返回这次新补上的个数。
+  int includeMissing(Map<String, LyricsProvider Function()> factories) {
+    final added = <String>[];
+    for (final entry in factories.entries) {
+      if (providers.any((provider) => provider.name == entry.key)) continue;
+      providers.add(entry.value());
+      added.add(entry.key);
+    }
+    if (added.isEmpty) return 0;
+    providers.sort((a, b) => a.priority.compareTo(b.priority));
+    AppLogger.i('sources +${added.join(',')}', tag: 'lyrics');
+    return added.length;
+  }
+
   Future<LyricsResult> _find(LyricsQuery q) async {
+    installBundledProviders();
     final cached = await _fromCache(q.bvid, q.cid);
     if (cached != null) return cached;
 

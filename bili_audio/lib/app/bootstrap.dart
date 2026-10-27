@@ -29,9 +29,12 @@ import '../data/album/itunes_album_provider.dart';
 import '../data/album/netease_album_provider.dart';
 import '../data/album/qq_album_provider.dart';
 import '../data/lyrics/bili_subtitle_provider.dart';
+import '../data/lyrics/kugou_lyrics_provider.dart';
+import '../data/lyrics/kuwo_lyrics_provider.dart';
 import '../data/lyrics/lrclib_provider.dart';
 import '../data/lyrics/lyrics_manager.dart';
 import '../data/lyrics/netease_lyrics_provider.dart';
+import '../data/lyrics/qq_lyrics_provider.dart';
 import '../data/player/audio_engine.dart';
 import '../data/player/media_library.dart';
 import '../data/player/bili_audio_handler.dart';
@@ -175,6 +178,9 @@ Future<List<Override>> bootstrap() async {
     providers: [
       BiliSubtitleProvider(api: http.dio),
       NeteaseLyricsProvider(),
+      QqLyricsProvider(),
+      KugouLyricsProvider(),
+      KuwoLyricsProvider(),
       LrclibProvider(),
     ],
     cleaner: cleaner,

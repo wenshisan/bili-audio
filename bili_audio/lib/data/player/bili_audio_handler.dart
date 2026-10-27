@@ -123,17 +123,42 @@ class BiliAudioHandler extends BaseAudioHandler with SeekHandler {
   ///
   /// 随机模式下以 [startIndex] 为当前曲, 列表保持原顺序。
   /// 点下一首时再从本轮其余未播曲目中随机选取。
+  ///
+  /// [keepCurrent] 时，正在听的歌如果还在新列表里，只换队列，不重新加载。
   Future<void> setTracks(
     List<Track> tracks, {
     int startIndex = 0,
     bool autoplay = true,
     PlayMode? mode,
+    bool keepCurrent = false,
   }) async {
+    final previous = _q.current;
+    var index = startIndex;
+    if (keepCurrent && previous != null) {
+      final found = tracks.indexWhere(
+        (track) => track.bvid == previous.bvid && track.cid == previous.cid,
+      );
+      if (found >= 0) index = found;
+    }
     _q = PlaybackQueue(
       tracks: tracks,
       mode: mode ?? _q.mode,
-      startIndex: startIndex,
+      startIndex: index,
     );
+    final next = _q.current;
+    final reuse =
+        keepCurrent &&
+        previous != null &&
+        next != null &&
+        previous.bvid == next.bvid &&
+        previous.cid == next.cid;
+    if (reuse) {
+      _publishQueue();
+      _broadcast();
+      _save();
+      unawaited(_preloadNext());
+      return;
+    }
     await _loadCurrent(autoplay: autoplay);
     _broadcast();
   }

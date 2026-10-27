@@ -90,6 +90,16 @@ class _PopWhenMasterDetailState extends State<_PopWhenMasterDetail> {
   var _leaving = false;
 
   @override
+  void reassemble() {
+    super.reassemble();
+    final container = ProviderScope.containerOf(context);
+    final added = container
+        .read(lyricsManagerProvider)
+        .installBundledProviders();
+    if (added > 0) container.invalidate(lyricsControllerProvider);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {

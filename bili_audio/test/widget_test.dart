@@ -203,6 +203,8 @@ void main() {
     await tester.tap(find.text('播放全部'));
     await tester.pumpAndSettle();
     expect(engine.playing, isTrue);
+    expect(handler.playbackQueue.length, 4);
+    expect(handler.currentTrack?.bvid, 'BV1fake00001');
   });
 
   testWidgets('推荐分类一行放得下时不显示展开', (tester) async {

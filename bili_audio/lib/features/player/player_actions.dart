@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../l10n/l10n.dart';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,6 +21,13 @@ class PlayerActions {
   PlayerActions(this._ref);
 
   final Ref _ref;
+  var _queueFillGeneration = 0;
+
+  /// 补齐缺 cid 的结果时同时请求的视频数。
+  static const _lookupConcurrency = 4;
+
+  /// 和发现、搜索列表一样，超过 15 分钟的分 P 不进队列。
+  static const _maxQueuedSeconds = 15 * 60;
 
   /// 解析视频分P; 搜索结果点击 / 长按菜单共用
   ///
@@ -53,10 +62,10 @@ class PlayerActions {
     return const Result.success(null);
   }
 
-  /// 用搜索结果里已有的分P信息直接开播。
+  /// 用已加载的搜索/推荐结果当队列，从 [index] 开始。
   ///
-  /// 当前已加载的结果作为队列，从 [index] 开始。没有 cid 的条目跳过；
-  /// 点中的那条本身无法直接播放时，才回退到拉取整部视频。
+  /// 有 cid 的行直接入队。没有 cid 的行去拉视频分 P，超过 15 分钟的分 P 不放进去。
+  /// 先开播点中的那一首，再把其余缺 cid 的补进同一条队列，不把当前这首重新加载。
   Future<Result<void>> playSearchResults(
     List<SearchHit> hits,
     int index,
@@ -64,27 +73,202 @@ class PlayerActions {
     if (index < 0 || index >= hits.length) {
       return const Result.failure(AppError.notFound());
     }
-    final tracks = <Track>[];
-    var start = -1;
+    final generation = ++_queueFillGeneration;
+    final groups = List<List<Track>?>.filled(hits.length, null);
+    final missing = <int>[];
     for (var i = 0; i < hits.length; i++) {
-      final track = trackFromSearchHit(hits[i]);
-      if (track == null) continue;
-      if (i == index) start = tracks.length;
-      tracks.add(track);
+      final local = trackFromSearchHit(hits[i]);
+      if (local != null) {
+        groups[i] = [local];
+      } else if (hits[i].result.duration > 0) {
+        missing.add(i);
+      }
     }
-    if (start < 0) {
-      final hit = hits[index];
-      return playVideo(hit.result.bvid, cid: hit.result.cid);
+
+    final startHit = await _prepareStart(
+      hits,
+      groups,
+      missing,
+      index,
+      generation,
+    );
+    if (generation != _queueFillGeneration) return const Result.success(null);
+    if (startHit == null) return const Result.failure(AppError.notFound());
+
+    await _applyStartEdits(groups, startHit, hits[startHit]);
+    if (generation != _queueFillGeneration) return const Result.success(null);
+
+    final initial = _assembleQueue(groups, startHit);
+    if (initial.tracks.isEmpty) {
+      return const Result.failure(AppError.notFound());
     }
-    tracks[start] = await _withSavedEdits(tracks[start]);
-    final track = tracks[start];
+    final track = initial.tracks[initial.start];
     AppLogger.i(
       'play search ${track.bvid} cid=${track.cid} '
-      'at=$start/${tracks.length} "${track.title}"',
+      'at=${initial.start}/${initial.tracks.length} "${track.title}"',
       tag: 'player',
     );
-    await ref(audioHandlerProvider).setTracks(tracks, startIndex: start);
+    final handler = ref(audioHandlerProvider);
+    await handler.setTracks(initial.tracks, startIndex: initial.start);
+    if (missing.isEmpty || generation != _queueFillGeneration) {
+      return const Result.success(null);
+    }
+    await _lookupMissing(hits, groups, missing, startHit, generation);
     return const Result.success(null);
+  }
+
+  /// 点中的那一行还不能播时，先解析它；解析失败再按列表顺序找下一行能播的。
+  Future<int?> _prepareStart(
+    List<SearchHit> hits,
+    List<List<Track>?> groups,
+    List<int> missing,
+    int index,
+    int generation,
+  ) async {
+    if (_hasTracks(groups[index])) return index;
+    if (missing.contains(index)) {
+      groups[index] = await _lookupHit(hits[index]);
+      if (generation != _queueFillGeneration) return null;
+      missing.remove(index);
+      if (_hasTracks(groups[index])) return index;
+    }
+    final ready = _firstFilled(groups, index);
+    if (ready != null || missing.isEmpty) return ready;
+
+    final order = [...missing]
+      ..sort((a, b) {
+        final length = hits.length;
+        final da = (a - index + length) % length;
+        final db = (b - index + length) % length;
+        return da.compareTo(db);
+      });
+    for (final i in order) {
+      if (generation != _queueFillGeneration) return null;
+      groups[i] = await _lookupHit(hits[i]);
+      missing.remove(i);
+      if (_hasTracks(groups[i])) return i;
+    }
+    return _firstFilled(groups, index);
+  }
+
+  Future<void> _lookupMissing(
+    List<SearchHit> hits,
+    List<List<Track>?> groups,
+    List<int> missing,
+    int startHit,
+    int generation,
+  ) async {
+    var cursor = 0;
+    Future<void> worker() async {
+      while (true) {
+        if (generation != _queueFillGeneration) return;
+        final n = cursor++;
+        if (n >= missing.length) return;
+        final hitIndex = missing[n];
+        groups[hitIndex] = await _lookupHit(hits[hitIndex]);
+        if (generation != _queueFillGeneration) return;
+        await _publishGrownQueue(groups, startHit);
+      }
+    }
+
+    final width = missing.length < _lookupConcurrency
+        ? missing.length
+        : _lookupConcurrency;
+    await Future.wait([for (var i = 0; i < width; i++) worker()]);
+    if (generation != _queueFillGeneration) return;
+    final filled = _assembleQueue(groups, startHit);
+    AppLogger.i('play search filled ${filled.tracks.length}', tag: 'player');
+    await _publishGrownQueue(groups, startHit);
+  }
+
+  Future<void> _publishGrownQueue(
+    List<List<Track>?> groups,
+    int startHit,
+  ) async {
+    final next = _assembleQueue(groups, startHit);
+    final handler = ref(audioHandlerProvider);
+    if (next.tracks.length <= handler.playbackQueue.length) return;
+    await handler.setTracks(
+      next.tracks,
+      startIndex: next.start,
+      keepCurrent: true,
+    );
+  }
+
+  Future<void> _applyStartEdits(
+    List<List<Track>?> groups,
+    int startHit,
+    SearchHit hit,
+  ) async {
+    final group = groups[startHit];
+    if (group == null || group.isEmpty || trackFromSearchHit(hit) == null) {
+      return;
+    }
+    final edited = [...group];
+    edited[0] = await _withSavedEdits(edited[0]);
+    groups[startHit] = edited;
+  }
+
+  /// 没有 cid 时拉分 P。列表上能看到的短视频，每个不超过 15 分钟的分 P 都入队。
+  Future<List<Track>> _lookupHit(SearchHit hit) async {
+    final local = trackFromSearchHit(hit);
+    if (local != null) return [local];
+    if (hit.result.duration <= 0) return const [];
+    try {
+      final result = await tracksOf(hit.result.bvid, cid: hit.result.cid);
+      final tracks = result.valueOrNull;
+      if (tracks == null) {
+        AppLogger.w(
+          'play search lookup ${hit.result.bvid} failed: ${result.errorOrNull}',
+          tag: 'player',
+        );
+        return const [];
+      }
+      final playable = [
+        for (final track in tracks)
+          if (track.duration.inSeconds > 0 &&
+              track.duration.inSeconds <= _maxQueuedSeconds)
+            track,
+      ];
+      if (playable.isNotEmpty) return playable;
+      return [
+        for (final track in tracks)
+          if (track.duration.inSeconds > 0) track,
+      ];
+    } catch (e, st) {
+      AppLogger.e(
+        'play search lookup ${hit.result.bvid} threw',
+        tag: 'player',
+        error: e,
+        stackTrace: st,
+      );
+      return const [];
+    }
+  }
+
+  bool _hasTracks(List<Track>? group) => group != null && group.isNotEmpty;
+
+  int? _firstFilled(List<List<Track>?> groups, int index) {
+    for (var n = 0; n < groups.length; n++) {
+      final i = (index + n) % groups.length;
+      if (_hasTracks(groups[i])) return i;
+    }
+    return null;
+  }
+
+  ({List<Track> tracks, int start}) _assembleQueue(
+    List<List<Track>?> groups,
+    int startHit,
+  ) {
+    final tracks = <Track>[];
+    var start = 0;
+    for (var i = 0; i < groups.length; i++) {
+      final group = groups[i];
+      if (group == null || group.isEmpty) continue;
+      if (i == startHit) start = tracks.length;
+      tracks.addAll(group);
+    }
+    return (tracks: tracks, start: start);
   }
 
   /// 下一首播放 / 追加到队列。有 cid 时不再请求视频详情。
@@ -119,9 +303,8 @@ class PlayerActions {
 
   /// 用户改过歌名/歌手时，播放和入队沿用改过的版本。
   Future<Track> _withSavedEdits(Track track) async {
-    final row = await ref(
-      databaseProvider,
-    ).tracksDao.getTrack(track.bvid, track.cid);
+    final row = await ref(databaseProvider).tracksDao
+        .getTrack(track.bvid, track.cid);
     if (row == null || !row.userEdited) return track;
     return track.copyWith(cleanedName: row.cleanedName, artist: row.artist);
   }

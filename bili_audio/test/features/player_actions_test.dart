@@ -70,7 +70,7 @@ void main() {
     final result = await actions().playSearchResults(hits, 1);
 
     expect(result.isSuccess, true);
-    expect(videos.calls, 0);
+    expect(videos.requested, ['BVa']);
     expect(handler.currentTrack?.bvid, 'BVb');
     expect(handler.currentTrack?.cid, 11);
     expect(handler.currentTrack?.cleanedName, '七里香');
@@ -79,6 +79,42 @@ void main() {
     expect(handler.playbackQueue.cursor, 0);
     expect(handler.playbackQueue.tracks.map((t) => t.bvid), ['BVb', 'BVd']);
     expect(handler.playbackQueue.tracks.last.pageIndex, 3);
+    expect(engine.playing, true);
+  });
+
+  test('没有 cid 的结果整表进队列，补齐时不重头播放', () async {
+    videos.delay = const Duration(milliseconds: 20);
+    for (final (bvid, cid, name) in [
+      ('BVa', 1, '一'),
+      ('BVb', 2, '二'),
+      ('BVc', 3, '三'),
+    ]) {
+      videos.tracks[bvid] = [
+        Track(
+          bvid: bvid,
+          cid: cid,
+          title: name,
+          duration: const Duration(seconds: 180),
+        ),
+      ];
+    }
+
+    final result = await actions().playSearchResults([
+      _hit(bvid: 'BVa', cid: null, name: '一'),
+      _hit(bvid: 'BVb', cid: null, name: '二'),
+      _hit(bvid: 'BVc', cid: null, name: '三'),
+    ], 1);
+
+    expect(result.isSuccess, true);
+    expect(videos.calls, 3);
+    expect(handler.playbackQueue.tracks.map((t) => t.bvid), [
+      'BVa',
+      'BVb',
+      'BVc',
+    ]);
+    expect(handler.currentTrack?.bvid, 'BVb');
+    expect(handler.playbackQueue.cursor, 1);
+    expect(engine.sources.length, 1);
     expect(engine.playing, true);
   });
 
@@ -177,11 +213,15 @@ SearchHit _hit({
 
 class _VideoRepo implements VideoRepository {
   final tracks = <String, List<Track>>{};
+  final requested = <String>[];
   var calls = 0;
+  Duration delay = Duration.zero;
 
   @override
   Future<Result<List<Track>>> getTracks(String bvid) async {
     calls++;
+    requested.add(bvid);
+    if (delay > Duration.zero) await Future<void>.delayed(delay);
     final list = tracks[bvid];
     if (list == null) return const Result.failure(AppError.notFound());
     return Result.success(list);

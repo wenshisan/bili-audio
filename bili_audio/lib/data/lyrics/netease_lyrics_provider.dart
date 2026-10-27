@@ -54,7 +54,16 @@ class NeteaseLyricsProvider implements LyricsProvider {
         duration: query.duration.inSeconds,
       );
       if (songs.isEmpty) {
-        AppLogger.d('netease "$keyword" hits=0', tag: 'lyrics');
+        final code = found.data?['code'];
+        final message = found.data?['message'] ?? found.data?['msg'];
+        if (code != null && code != 200) {
+          AppLogger.w(
+            'netease "$keyword" hits=0 code=$code message=$message',
+            tag: 'lyrics',
+          );
+        } else {
+          AppLogger.d('netease "$keyword" hits=0', tag: 'lyrics');
+        }
         return const [];
       }
       final candidates = <LyricsCandidate>[];

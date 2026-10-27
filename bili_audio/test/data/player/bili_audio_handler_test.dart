@@ -61,6 +61,19 @@ void main() {
     expect(handler.queue.value.length, 5);
   });
 
+  test('补全队列时正在听的歌不重新加载', () async {
+    await handler.setTracks(makeTracks(1));
+    engine.position = const Duration(seconds: 12);
+
+    await handler.setTracks(makeTracks(3), keepCurrent: true);
+
+    expect(engine.sources.length, 1);
+    expect(engine.position, const Duration(seconds: 12));
+    expect(handler.playbackQueue.length, 3);
+    expect(handler.currentTrack?.bvid, 'BV0');
+    expect(handler.queue.value.length, 3);
+  });
+
   test('只加载当前曲, 并预解析下一首流地址', () async {
     await handler.setTracks(makeTracks(3));
     await Future<void>.delayed(Duration.zero);

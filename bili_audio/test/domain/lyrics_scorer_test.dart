@@ -170,6 +170,32 @@ void main() {
   });
 
   group('LyricsScorer 待选资格', () {
+    test('没有歌手时按歌名收下带歌手的歌词', () {
+      final score = scorer.pick(
+        trackTitle: '感情勒索',
+        trackArtist: '',
+        trackDuration: 238,
+        lyricsTitle: '感情勒索',
+        lyricsArtist: '张震岳',
+        lyricsDuration: 238,
+      );
+
+      expect(score, greaterThanOrEqualTo(0.8));
+    });
+
+    test('标题里拆出的歌手仍然要核对', () {
+      final score = scorer.pick(
+        trackTitle: '007.周杰伦-稻香',
+        trackArtist: '',
+        trackDuration: 224,
+        lyricsTitle: '稻香',
+        lyricsArtist: '别人',
+        lyricsDuration: 223,
+      );
+
+      expect(score, isNull);
+    });
+
     test('歌名对上歌手、歌手对不上歌名时不进待选', () {
       final score = scorer.pick(
         trackTitle: '搁浅',
