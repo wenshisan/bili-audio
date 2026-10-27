@@ -29,11 +29,12 @@ class HomeShell extends ConsumerWidget {
           final metrics = WindowMetrics.fromSize(constraints.biggest);
           return WindowMetricsScope(
             metrics: metrics,
-            child: SafeArea(
-              child: settings.carLayout
-                  ? const CarPlayer()
-                  : _AdaptiveBody(path: path, metrics: metrics, child: child),
-            ),
+            child: settings.carLayout
+                ? ColoredBox(
+                    color: Theme.of(context).colorScheme.surface,
+                    child: const SafeArea(child: CarPlayer()),
+                  )
+                : _AdaptiveBody(path: path, metrics: metrics, child: child),
           );
         },
       ),
@@ -84,7 +85,9 @@ class _AdaptiveBody extends ConsumerWidget {
       );
     }
     return Scaffold(
-      body: body,
+      // 表面铺到系统栏下面。可点内容仍让出状态栏、刘海和手势区。
+      // 有底栏时，底栏自己垫起系统导航栏，这里不再让出底部。
+      body: _InsetContent(includeBottom: !metrics.usesBottomNav, child: body),
       bottomNavigationBar: metrics.usesBottomNav ? BottomNav(path: path) : null,
     );
   }
@@ -109,6 +112,28 @@ class _AdaptiveBody extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 只把内容推进安全区，父级表面仍盖住状态栏和系统导航栏。
+class _InsetContent extends StatelessWidget {
+  const _InsetContent({required this.includeBottom, required this.child});
+
+  final bool includeBottom;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: includeBottom,
+      child: includeBottom
+          ? child
+          : MediaQuery.removePadding(
+              context: context,
+              removeBottom: true,
+              child: child,
+            ),
     );
   }
 }

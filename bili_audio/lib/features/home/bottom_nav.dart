@@ -29,6 +29,9 @@ class BottomNav extends StatelessWidget {
     final l10n = context.l10n;
     final scheme = Theme.of(context).colorScheme;
     final index = navIndexForPath(path);
+    final media = MediaQuery.of(context);
+    // 键盘弹起时系统导航栏被盖住，不再重复留白。
+    final bottom = media.viewInsets.bottom > 0 ? 0.0 : media.viewPadding.bottom;
     final items = [
       (Icons.search_outlined, Icons.search, l10n.navDiscover),
       (Icons.library_music_outlined, Icons.library_music, l10n.navLibrary),
@@ -42,23 +45,31 @@ class BottomNav extends StatelessWidget {
         elevation: 0,
         shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        child: SizedBox(
-          height: 80,
-          child: Row(
-            children: [
-              for (var i = 0; i < items.length; i++)
-                Expanded(
-                  child: Center(
-                    child: NavTarget(
-                      icon: items[i].$1,
-                      selectedIcon: items[i].$2,
-                      label: items[i].$3,
-                      selected: index == i,
-                      onTap: () => goNavDestination(context, i),
+        child: Padding(
+          key: const Key('bottom-nav-inset'),
+          padding: EdgeInsets.only(
+            left: media.padding.left,
+            right: media.padding.right,
+            bottom: bottom,
+          ),
+          child: SizedBox(
+            height: 80,
+            child: Row(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  Expanded(
+                    child: Center(
+                      child: NavTarget(
+                        icon: items[i].$1,
+                        selectedIcon: items[i].$2,
+                        label: items[i].$3,
+                        selected: index == i,
+                        onTap: () => goNavDestination(context, i),
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

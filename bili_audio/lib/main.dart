@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +11,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'app/app.dart';
 import 'app/bootstrap.dart';
 import 'app/platform/app_quit.dart';
+import 'app/system_bars.dart';
 import 'core/logging/app_logger.dart';
 import 'core/storage/path_manager.dart';
 import 'domain/update/distribution.dart';
@@ -154,6 +156,7 @@ void _showBootError(Object error, StackTrace? stack) {
 
 Future<void> _runApp(Zone rootZone) async {
   AppLogger.i('main entered, kIsWeb=$kIsWeb', tag: 'boot');
+  await enableImmersiveSystemBars();
 
   // 注册单实例通道
   await _initSingleInstanceChannel();
@@ -209,54 +212,37 @@ class _BootErrorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: const Color(0xFF1A1A1A),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: Color(0xFFFF6B6B),
-                      size: 28,
-                    ),
-                    SizedBox(width: 12),
-                    Text(
-                      '启动失败 / Startup Failed',
-                      style: TextStyle(
+      home: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: immersiveOverlayStyle(Brightness.dark),
+        child: Scaffold(
+          backgroundColor: const Color(0xFF1A1A1A),
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
                         color: Color(0xFFFF6B6B),
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
+                        size: 28,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '错误信息:',
-                  style: TextStyle(
-                    color: Color(0xFFB0B0B0),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                      SizedBox(width: 12),
+                      Text(
+                        '启动失败 / Startup Failed',
+                        style: TextStyle(
+                          color: Color(0xFFFF6B6B),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                SelectableText(
-                  error.toString(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                if (stack != null) ...[
                   const SizedBox(height: 16),
                   const Text(
-                    '堆栈:',
+                    '错误信息:',
                     style: TextStyle(
                       color: Color(0xFFB0B0B0),
                       fontSize: 12,
@@ -264,20 +250,40 @@ class _BootErrorScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: SelectableText(
-                        stack.toString(),
-                        style: const TextStyle(
-                          color: Color(0xFFB0B0B0),
-                          fontSize: 11,
-                          fontFamily: 'monospace',
+                  SelectableText(
+                    error.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                  if (stack != null) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      '堆栈:',
+                      style: TextStyle(
+                        color: Color(0xFFB0B0B0),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: SelectableText(
+                          stack.toString(),
+                          style: const TextStyle(
+                            color: Color(0xFFB0B0B0),
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

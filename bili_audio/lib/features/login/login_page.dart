@@ -40,12 +40,15 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(context.l10n.loginTitle)),
-      body: LoginMethodBody(
-        mobile: _mobile,
-        method: _method,
-        onMethodChanged: (method) => setState(() => _method = method),
-        web: WebLoginPanel(onSignedIn: _signedIn),
-        qr: QrLoginPanel(onSignedIn: _signedIn),
+      body: SafeArea(
+        top: false,
+        child: LoginMethodBody(
+          mobile: _mobile,
+          method: _method,
+          onMethodChanged: (method) => setState(() => _method = method),
+          web: WebLoginPanel(onSignedIn: _signedIn),
+          qr: QrLoginPanel(onSignedIn: _signedIn),
+        ),
       ),
     );
   }

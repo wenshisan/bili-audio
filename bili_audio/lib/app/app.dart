@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,6 +12,7 @@ import 'adaptive/player_shortcuts.dart';
 import 'platform/window_frame.dart';
 import 'providers.dart';
 import 'router.dart';
+import 'system_bars.dart';
 import 'theme.dart';
 import 'widgets/window_title_bar.dart';
 
@@ -41,6 +43,12 @@ class BiliAudioApp extends ConsumerWidget {
         if (isDesktop) content = _DesktopWindowShell(child: content);
         if (!kIsWeb && Platform.isMacOS) {
           content = _MacPlaybackMenu(child: content);
+        }
+        if (platformDrawsBehindSystemBars) {
+          content = AnnotatedRegion<SystemUiOverlayStyle>(
+            value: immersiveOverlayStyle(Theme.of(context).brightness),
+            child: content,
+          );
         }
         return content;
       },

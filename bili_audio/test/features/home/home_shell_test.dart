@@ -190,8 +190,47 @@ void main() {
     expect(find.byKey(const Key('bottom-nav')), findsOneWidget);
     expect(find.byKey(const Key('car-layout')), findsNothing);
     final nav = tester.getRect(find.byKey(const Key('bottom-nav')));
-    expect(nav.bottom, lessThanOrEqualTo(390 - 21));
-    expect(nav.left, greaterThanOrEqualTo(47));
+    expect(nav.left, 0);
+    expect(nav.right, 844);
+    expect(nav.bottom, 390);
+    final barInset = tester.widget<Padding>(
+      find.byKey(const Key('bottom-nav-inset')),
+    );
+    expect(
+      barInset.padding,
+      const EdgeInsets.only(left: 47, right: 47, bottom: 21),
+    );
+    expect(
+      tester.getRect(find.text('search-body')).left,
+      greaterThanOrEqualTo(47),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('竖屏表面铺进状态栏和系统导航栏，内容留在安全区', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    const inset = FakeViewPadding(top: 59, bottom: 34);
+    tester.view.padding = inset;
+    tester.view.viewPadding = inset;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+    await tester.pumpWidget(_harness(db, handler));
+    await tester.pumpAndSettle();
+
+    final nav = tester.getRect(find.byKey(const Key('bottom-nav')));
+    expect(nav.left, 0);
+    expect(nav.right, 390);
+    expect(nav.bottom, 844);
+    expect(nav.height, 80 + 34);
+    final barInset = tester.widget<Padding>(
+      find.byKey(const Key('bottom-nav-inset')),
+    );
+    expect(barInset.padding, const EdgeInsets.only(bottom: 34));
+    expect(tester.getRect(find.text('发现')).bottom, lessThanOrEqualTo(844 - 34));
+    expect(tester.getRect(find.text('search-body')).top, 59);
     expect(tester.takeException(), isNull);
   });
 

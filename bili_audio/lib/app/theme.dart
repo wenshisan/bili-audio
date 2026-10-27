@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'system_bars.dart';
+
 /// 预设主题种子色 (dev-tasks M0.4)。首项为 B 站粉。
 const List<Color> presetSeeds = [
   Color(0xFFFB7299),
@@ -16,10 +18,11 @@ ThemeData buildTheme(Color seed, Brightness brightness) {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       elevation: 0,
       scrolledUnderElevation: 0,
       surfaceTintColor: Colors.transparent,
+      systemOverlayStyle: immersiveOverlayStyle(brightness),
     ),
     cardTheme: CardThemeData(
       elevation: 0,
