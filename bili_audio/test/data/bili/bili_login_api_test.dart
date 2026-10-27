@@ -19,15 +19,19 @@ void main() {
   setUp(() {
     store = MemorySecureStore();
     passport = Dio(BaseOptions(baseUrl: 'https://passport.bilibili.com'));
-    passportAdapter =
-        DioAdapter(dio: passport, matcher: const UrlRequestMatcher());
+    passportAdapter = DioAdapter(
+      dio: passport,
+      matcher: const UrlRequestMatcher(),
+    );
     api = Dio(BaseOptions(baseUrl: 'https://api.bilibili.com'));
     apiAdapter = DioAdapter(dio: api, matcher: const UrlRequestMatcher());
     final http = BiliHttp(
       dio: api,
       store: store,
       buvidManager: BuvidManager(store, () async => ('B3', 'B4')),
-      wbiKeyManager: WbiKeyManager(() async => ('https://x/a.png', 'https://x/b.png')),
+      wbiKeyManager: WbiKeyManager(
+        () async => ('https://x/a.png', 'https://x/b.png'),
+      ),
     );
     login = BiliLoginApi(http, store, passport: passport);
   });
@@ -37,7 +41,10 @@ void main() {
         '/x/passport-login/web/qrcode/poll',
         (s) => s.reply(
           200,
-          {'code': 0, 'data': {'code': code, 'message': ''}},
+          {
+            'code': 0,
+            'data': {'code': code, 'message': ''},
+          },
           headers: {
             'set-cookie': cookies,
             Headers.contentTypeHeader: [Headers.jsonContentType],
@@ -68,12 +75,15 @@ void main() {
   });
 
   test('成功时只保存需要的 Cookie', () async {
-    pollReturns(0, cookies: [
-      'SESSDATA=sess%2C123; Path=/; Domain=bilibili.com; HttpOnly',
-      'bili_jct=jct456; Path=/',
-      'DedeUserID=789; Path=/',
-      'unrelated=x; Path=/',
-    ]);
+    pollReturns(
+      0,
+      cookies: [
+        'SESSDATA=sess%2C123; Path=/; Domain=bilibili.com; HttpOnly',
+        'bili_jct=jct456; Path=/',
+        'DedeUserID=789; Path=/',
+        'unrelated=x; Path=/',
+      ],
+    );
     expect((await login.poll('k')).valueOrNull, isA<QrConfirmed>());
     final saved = await store.readCookies();
     expect(saved, contains('SESSDATA=sess%2C123'));
@@ -108,8 +118,52 @@ void main() {
     expect(user.vip, true);
 
     apiAdapter.onGet(
-        '/x/web-interface/nav', (s) => s.reply(200, {'code': -101}));
+      '/x/web-interface/nav',
+      (s) => s.reply(200, {'code': -101}),
+    );
     expect((await login.currentUser()).errorOrNull, isA<NeedLoginError>());
+  });
+
+  test('parseCookieHeader 保留值中的等号', () {
+    final parsed = BiliLoginApi.parseCookieHeader(
+      'SESSDATA=abc=def; bili_jct=jct; unrelated=x',
+    );
+    expect(parsed['SESSDATA'], 'abc=def');
+    expect(parsed['bili_jct'], 'jct');
+    expect(parsed['unrelated'], 'x');
+  });
+
+  test('parseLoginInput 接受单独凭证和 Cookie 头', () {
+    expect(BiliLoginApi.parseLoginInput('  token value  '), {
+      'SESSDATA': 'token value',
+    });
+    expect(BiliLoginApi.parseLoginInput('"sess=data"'), {
+      'SESSDATA': 'sess=data',
+    });
+    expect(
+      BiliLoginApi.parseLoginInput(
+        'Cookie: SESSDATA=sess; bili_jct=jct; foo=bar\nDedeUserID=7',
+      ),
+      {'SESSDATA': 'sess', 'bili_jct': 'jct', 'DedeUserID': '7'},
+    );
+    expect(BiliLoginApi.parseLoginInput('bili_jct=only'), isNull);
+    expect(BiliLoginApi.parseLoginInput(''), isNull);
+    expect(BiliLoginApi.parseLoginInput('a=b; c=d'), isNull);
+  });
+
+  test('applyCookies 只保存登录 Cookie', () async {
+    final saved = await login.applyCookies({
+      'SESSDATA': 'sess%2C123',
+      'bili_jct': 'jct',
+      'unrelated': 'x',
+    });
+    expect(saved.isSuccess, isTrue);
+    final cookies = await store.readCookies();
+    expect(cookies, contains('SESSDATA=sess%2C123'));
+    expect(cookies, contains('bili_jct=jct'));
+    expect(cookies, isNot(contains('unrelated')));
+    expect((await login.applyCookies({'bili_jct': 'x'})).isFailure, isTrue);
+    expect(await store.readCookies(), contains('SESSDATA=sess%2C123'));
   });
 
   test('logout 清除 Cookie, 保留 buvid', () async {

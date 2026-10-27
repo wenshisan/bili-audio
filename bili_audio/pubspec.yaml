@@ -48,6 +48,8 @@ dependencies:
   intl: 0.20.3
   qr_flutter: 4.1.0
   package_info_plus: 10.2.2
+  webview_flutter: 4.13.1
+  webview_flutter_android: 4.14.1
 
 dev_dependencies:
   flutter_test:

@@ -1,183 +1,100 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
-import '../../app/adaptive/window_metrics.dart';
-import '../../app/motion/motion.dart';
-import '../../data/bili/bili_login_api.dart';
 import '../../l10n/l10n.dart';
 import 'login_controller.dart';
+import 'login_method.dart';
+import 'qr_login_panel.dart';
+import 'web_login_panel.dart';
 
-/// 扫码登录页 (M7.2)
+/// 登录页。手机默认网页登录，桌面默认扫码。
 class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key});
+  const LoginPage({super.key, this.mobile});
+
+  /// 为空时按 Android / iOS 判断。
+  final bool? mobile;
 
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
 class _LoginPageState extends ConsumerState<LoginPage> {
-  String? _url;
-  QrStatus? _status;
-  Object? _error;
-  Timer? _pollTimer;
+  late LoginMethod _method;
 
   @override
   void initState() {
     super.initState();
-    _generate();
+    _method = defaultLoginMethod(
+      mobile: widget.mobile ?? loginPlatformIsMobile(),
+    );
   }
 
-  @override
-  void dispose() {
-    _pollTimer?.cancel();
-    super.dispose();
-  }
+  bool get _mobile => widget.mobile ?? loginPlatformIsMobile();
 
-  Future<void> _generate() async {
-    setState(() {
-      _url = null;
-      _status = null;
-      _error = null;
-    });
-    _pollTimer?.cancel();
-    final result = await ref.read(loginApiProvider).generate();
-    if (!mounted) return;
-    if (result.isFailure) {
-      setState(() => _error = result.errorOrNull);
-      return;
-    }
-    final (url, key) = result.valueOrNull!;
-    setState(() {
-      _url = url;
-      _status = const QrWaiting();
-    });
-    _startPolling(key);
-  }
-
-  void _startPolling(String key) {
-    final deadline = DateTime.now().add(const Duration(seconds: 180));
-    var busy = false;
-    _pollTimer = Timer.periodic(const Duration(milliseconds: 500), (_) async {
-      if (busy) return;
-      if (DateTime.now().isAfter(deadline)) {
-        _pollTimer?.cancel();
-        setState(() => _status = const QrExpired());
-        return;
-      }
-      busy = true;
-      final result = await ref.read(loginApiProvider).poll(key);
-      busy = false;
-      if (!mounted || _pollTimer?.isActive != true) return;
-      final status = result.valueOrNull;
-      if (status == null) {
-        setState(() => _error = result.errorOrNull);
-        _pollTimer?.cancel();
-        return;
-      }
-      setState(() {
-        _status = status;
-        _error = null;
-      });
-      if (status is QrConfirmed) {
-        _pollTimer?.cancel();
-        await ref.read(loginControllerProvider.notifier).refresh();
-        if (mounted) Navigator.pop(context);
-      } else if (status is QrExpired) {
-        _pollTimer?.cancel();
-      }
-    });
+  Future<void> _signedIn() async {
+    await ref.read(loginControllerProvider.notifier).refresh();
+    if (mounted) Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
-    final scheme = Theme.of(context).colorScheme;
-    final err = _error;
-
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.loginTitle)),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide =
-              WindowMetrics.fromSize(constraints.biggest).width !=
-              WindowWidth.compact;
-          final placeholder = Shimmer(
-            child: ColoredBox(
-              color: scheme.surfaceContainerHighest,
-              child: const SizedBox(width: 240, height: 240),
-            ),
-          );
-          final qr = MotionSwap(
-            swapKey: _url == null ? 'wait' : 'qr',
-            child: _url == null
-                ? placeholder
-                : Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: QrImageView(data: _url!, size: 240),
-                  ),
-          );
-          final text = Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (err != null) ...[
-                Text(
-                  errorText(l10n, err),
-                  style: TextStyle(color: scheme.error),
-                ),
-                const SizedBox(height: 12),
-                FilledButton.tonal(
-                  onPressed: _generate,
-                  child: Text(l10n.loginRetry),
-                ),
-              ] else ...[
-                Text(_statusText(l10n, _status)),
-                if (_status is QrExpired)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: FilledButton.tonal(
-                      onPressed: _generate,
-                      child: Text(l10n.loginRetry),
-                    ),
-                  ),
-              ],
-            ],
-          );
-          return Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: wide ? 720 : 400),
-              child: wide
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        qr,
-                        const SizedBox(width: 32),
-                        Flexible(child: text),
-                      ],
-                    )
-                  : Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [qr, const SizedBox(height: 24), text],
-                    ),
-            ),
-          );
-        },
+      appBar: AppBar(title: Text(context.l10n.loginTitle)),
+      body: LoginMethodBody(
+        mobile: _mobile,
+        method: _method,
+        onMethodChanged: (method) => setState(() => _method = method),
+        web: WebLoginPanel(onSignedIn: _signedIn),
+        qr: QrLoginPanel(onSignedIn: _signedIn),
       ),
     );
   }
+}
 
-  String _statusText(AppLocalizations l10n, QrStatus? status) =>
-      switch (status) {
-        QrWaiting() => l10n.loginWaiting,
-        QrScanned() => l10n.loginScanned,
-        QrExpired() => l10n.loginExpired,
-        QrConfirmed() => l10n.loginSuccess,
-        _ => l10n.loginScan,
-      };
+class LoginMethodBody extends StatelessWidget {
+  const LoginMethodBody({
+    super.key,
+    required this.mobile,
+    required this.method,
+    required this.onMethodChanged,
+    required this.web,
+    required this.qr,
+  });
+
+  final bool mobile;
+  final LoginMethod method;
+  final ValueChanged<LoginMethod> onMethodChanged;
+  final Widget web;
+  final Widget qr;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final child = method == LoginMethod.web ? web : qr;
+    if (!mobile) return child;
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: SegmentedButton<LoginMethod>(
+            expandedInsets: EdgeInsets.zero,
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(
+                value: LoginMethod.web,
+                label: Text(l10n.loginMethodWeb),
+              ),
+              ButtonSegment(
+                value: LoginMethod.qr,
+                label: Text(l10n.loginMethodQr),
+              ),
+            ],
+            selected: {method},
+            onSelectionChanged: (next) => onMethodChanged(next.first),
+          ),
+        ),
+        Expanded(child: child),
+      ],
+    );
+  }
 }

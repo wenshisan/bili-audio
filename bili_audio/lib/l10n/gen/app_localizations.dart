@@ -868,6 +868,60 @@ abstract class AppLocalizations {
   /// **'登录'**
   String get loginTitle;
 
+  /// No description provided for @loginMethodWeb.
+  ///
+  /// In zh, this message translates to:
+  /// **'网页登录'**
+  String get loginMethodWeb;
+
+  /// No description provided for @loginMethodQr.
+  ///
+  /// In zh, this message translates to:
+  /// **'扫码登录'**
+  String get loginMethodQr;
+
+  /// No description provided for @loginWebHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'在页面中用短信或密码登录。完成后会自动读取登录凭证，只保存在本机。'**
+  String get loginWebHint;
+
+  /// No description provided for @loginWebPaste.
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴凭证'**
+  String get loginWebPaste;
+
+  /// No description provided for @loginWebPasteTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'粘贴登录凭证'**
+  String get loginWebPasteTitle;
+
+  /// No description provided for @loginWebPasteHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'从已登录的网页复制 SESSDATA，或包含 SESSDATA 的 Cookie'**
+  String get loginWebPasteHint;
+
+  /// No description provided for @loginWebPasteInvalid.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有找到 SESSDATA'**
+  String get loginWebPasteInvalid;
+
+  /// No description provided for @loginWebFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录页打开失败'**
+  String get loginWebFailed;
+
+  /// No description provided for @loginWebRejected.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录凭证无效，请重新登录'**
+  String get loginWebRejected;
+
   /// No description provided for @loginScan.
   ///
   /// In zh, this message translates to:

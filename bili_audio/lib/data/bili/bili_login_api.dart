@@ -49,20 +49,23 @@ class BiliUser {
   final bool vip;
 }
 
-/// Web 扫码登录 (M7.1, D1)
+/// Web 登录 (M7.1, D1)
 ///
-/// 只持久化 `SESSDATA` / `bili_jct` / `DedeUserID` / `DedeUserID__ckMd5` / `sid`。
+/// 扫码和网页登录都只持久化
+/// `SESSDATA` / `bili_jct` / `DedeUserID` / `DedeUserID__ckMd5` / `sid`。
 class BiliLoginApi {
   BiliLoginApi(this._http, this._store, {Dio? passport})
-      : _passport = passport ??
-            Dio(BaseOptions(
+    : _passport =
+          passport ??
+          Dio(
+            BaseOptions(
               baseUrl: 'https://passport.bilibili.com',
               headers: {
                 'Referer': 'https://www.bilibili.com',
-                'User-Agent':
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
               },
-            ));
+            ),
+          );
 
   final BiliHttp _http;
   final SecureStore _store;
@@ -80,14 +83,18 @@ class BiliLoginApi {
   Future<Result<(String url, String key)>> generate() async {
     try {
       final res = await _passport.get<Map<String, dynamic>>(
-          '/x/passport-login/web/qrcode/generate');
+        '/x/passport-login/web/qrcode/generate',
+      );
       final data = res.data?['data'] as Map<String, dynamic>?;
       if (res.data?['code'] != 0 || data == null) {
-        return Result.failure(AppError.unknown(
-            message: 'qrcode/generate: ${res.data?['message']}'));
+        return Result.failure(
+          AppError.unknown(message: 'qrcode/generate: ${res.data?['message']}'),
+        );
       }
-      return Result.success(
-          (data['url'] as String, data['qrcode_key'] as String));
+      return Result.success((
+        data['url'] as String,
+        data['qrcode_key'] as String,
+      ));
     } on DioException catch (e) {
       return Result.failure(AppError.network(message: '生成二维码失败', cause: e));
     }
@@ -110,17 +117,18 @@ class BiliLoginApi {
         case 86038:
           return const Result.success(QrExpired());
         case 0:
-          final cookies = extractCookies(res.headers[HttpHeaders.setCookie] ?? []);
-          if (!cookies.containsKey('SESSDATA')) {
-            return const Result.failure(
-                AppError.unknown(message: '登录响应缺少 SESSDATA'));
-          }
-          await _store.writeCookies(
-              cookies.entries.map((e) => '${e.key}=${e.value}').join('; '));
+          final cookies = extractCookies(
+            res.headers[HttpHeaders.setCookie] ?? [],
+          );
+          final saved = await applyCookies(cookies);
+          if (saved.isFailure) return Result.failure(saved.errorOrNull!);
           return const Result.success(QrConfirmed());
         default:
-          return Result.failure(AppError.unknown(
-              message: 'qrcode/poll code=$code ${data?['message'] ?? ''}'));
+          return Result.failure(
+            AppError.unknown(
+              message: 'qrcode/poll code=$code ${data?['message'] ?? ''}',
+            ),
+          );
       }
     } on DioException catch (e) {
       return Result.failure(AppError.network(message: '轮询失败', cause: e));
@@ -130,26 +138,103 @@ class BiliLoginApi {
   /// 已登录用户信息; 未登录返回 [NeedLoginError]
   Future<Result<BiliUser>> currentUser() async {
     try {
-      final res =
-          await _http.dio.get<Map<String, dynamic>>('/x/web-interface/nav');
+      final res = await _http.dio.get<Map<String, dynamic>>(
+        '/x/web-interface/nav',
+      );
       final d = res.data!['data'] as Map<String, dynamic>;
-      return Result.success(BiliUser(
-        mid: d['mid'] as int? ?? 0,
-        name: d['uname'] as String? ?? '',
-        face: d['face'] as String? ?? '',
-        level: (d['level_info'] as Map<String, dynamic>?)?['current_level']
-                as int? ??
-            0,
-        vip: (d['vipStatus'] as int? ?? 0) == 1,
-      ));
+      return Result.success(
+        BiliUser(
+          mid: d['mid'] as int? ?? 0,
+          name: d['uname'] as String? ?? '',
+          face: d['face'] as String? ?? '',
+          level:
+              (d['level_info'] as Map<String, dynamic>?)?['current_level']
+                  as int? ??
+              0,
+          vip: (d['vipStatus'] as int? ?? 0) == 1,
+        ),
+      );
     } on DioException catch (e) {
       final err = e.error;
       return Result.failure(
-          err is AppError ? err : AppError.network(message: 'nav', cause: e));
+        err is AppError ? err : AppError.network(message: 'nav', cause: e),
+      );
     }
   }
 
   Future<void> logout() => _store.clear();
+
+  /// 写入登录 Cookie。没有 `SESSDATA` 时不落盘。
+  Future<Result<void>> applyCookies(Map<String, String> raw) async {
+    final cookies = parseLoginCookies(raw);
+    if (cookies == null) {
+      return const Result.failure(AppError.unknown(message: '登录响应缺少 SESSDATA'));
+    }
+    await _store.writeCookies(
+      cookies.entries.map((e) => '${e.key}=${e.value}').join('; '),
+    );
+    return const Result.success(null);
+  }
+
+  /// 从 Cookie 请求头里拆出全部名称和值。值里的 `=` 会保留。
+  static Map<String, String> parseCookieHeader(String header) {
+    final out = <String, String>{};
+    for (final part in header.split(RegExp(r'[;\n]'))) {
+      final pair = part.trim();
+      if (pair.isEmpty) continue;
+      final i = pair.indexOf('=');
+      if (i <= 0) continue;
+      final name = pair.substring(0, i).trim();
+      final value = pair.substring(i + 1).trim();
+      if (name.isEmpty || value.isEmpty) continue;
+      out[name] = value;
+    }
+    return out;
+  }
+
+  /// 只留下登录需要的 Cookie。没有 `SESSDATA` 时返回 null。
+  static Map<String, String>? parseLoginCookies(Map<String, String> raw) {
+    final out = <String, String>{};
+    for (final name in keptCookies) {
+      final value = raw[name]?.trim();
+      if (value != null && value.isNotEmpty) out[name] = value;
+    }
+    if ((out['SESSDATA'] ?? '').isEmpty) return null;
+    return out;
+  }
+
+  /// 解析粘贴的登录凭证。
+  ///
+  /// 可以是单独的 `SESSDATA`，也可以是包含它的 Cookie 头。
+  static Map<String, String>? parseLoginInput(String raw) {
+    final text = _unwrapLoginInput(raw);
+    if (text == null) return null;
+    final pairs = parseCookieHeader(text);
+    final login = parseLoginCookies(pairs);
+    if (login != null) return login;
+    final lookedLikeHeader =
+        pairs.keys.any(keptCookies.contains) ||
+        text.contains(';') ||
+        text.contains('\n') ||
+        keptCookies.any((name) => text.contains('$name='));
+    if (lookedLikeHeader) return null;
+    return {'SESSDATA': text};
+  }
+
+  static String? _unwrapLoginInput(String raw) {
+    var text = raw.trim();
+    if (text.length >= 7 && text.toLowerCase().startsWith('cookie:')) {
+      text = text.substring(text.indexOf(':') + 1).trim();
+    }
+    if (text.length >= 2) {
+      final quote = text[0];
+      if ((quote == '"' || quote == "'") && text.endsWith(quote)) {
+        text = text.substring(1, text.length - 1).trim();
+      }
+    }
+    if (text.isEmpty) return null;
+    return text;
+  }
 
   /// 从 Set-Cookie 头中提取需要保留的 Cookie
   static Map<String, String> extractCookies(List<String> setCookies) {

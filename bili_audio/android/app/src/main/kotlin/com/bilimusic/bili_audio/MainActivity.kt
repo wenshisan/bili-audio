@@ -5,6 +5,7 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import android.webkit.CookieManager
 import androidx.core.content.FileProvider
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -62,5 +63,28 @@ class MainActivity : AudioServiceActivity() {
                 )
                 result.success(null)
             }
+        MethodChannel(messenger, "bili_audio/login_cookies")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "read" -> result.success(readLoginCookies())
+                    "clear" -> CookieManager.getInstance().removeAllCookies {
+                        runOnUiThread { result.success(null) }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    /// 返回 WebView 里哔哩哔哩的 Cookie 头。Dart 侧按第一个 `=` 拆开。
+    private fun readLoginCookies(): String {
+        val manager = CookieManager.getInstance()
+        manager.setAcceptCookie(true)
+        val urls = listOf(
+            "https://www.bilibili.com",
+            "https://passport.bilibili.com",
+        )
+        return urls.mapNotNull { manager.getCookie(it) }
+            .filter { it.isNotEmpty() }
+            .joinToString("; ")
     }
 }

@@ -425,6 +425,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginTitle => '登录';
 
   @override
+  String get loginMethodWeb => '网页登录';
+
+  @override
+  String get loginMethodQr => '扫码登录';
+
+  @override
+  String get loginWebHint => '在页面中用短信或密码登录。完成后会自动读取登录凭证，只保存在本机。';
+
+  @override
+  String get loginWebPaste => '粘贴凭证';
+
+  @override
+  String get loginWebPasteTitle => '粘贴登录凭证';
+
+  @override
+  String get loginWebPasteHint => '从已登录的网页复制 SESSDATA，或包含 SESSDATA 的 Cookie';
+
+  @override
+  String get loginWebPasteInvalid => '没有找到 SESSDATA';
+
+  @override
+  String get loginWebFailed => '登录页打开失败';
+
+  @override
+  String get loginWebRejected => '登录凭证无效，请重新登录';
+
+  @override
   String get loginScan => '使用手机 App 扫描二维码';
 
   @override
