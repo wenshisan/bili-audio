@@ -56,34 +56,38 @@ class FakeSearchRepository implements SearchRepository {
   }
 
   @override
-  Future<Result<DiscoverCharts>> dailyPopular() async {
+  Future<Result<DiscoverCharts>> dailyPopular({
+    void Function(DiscoverCharts charts)? onCharts,
+  }) async {
     final page = await search('');
     if (page.isFailure) return Result.failure(page.errorOrNull!);
     final playable = [
       for (final hit in page.valueOrNull!.items)
         if (hit.result.filtered != true && hit.result.duration <= 900) hit,
     ];
-    return Result.success(
-      DiscoverCharts(
-        heat: playable,
-        rating: playable.reversed.toList(),
-        zones: {
-          for (final tab in DiscoverTab.ranking)
-            if (tab != DiscoverTab.heat && tab != DiscoverTab.rating)
-              tab: playable,
-        },
-      ),
+    final charts = DiscoverCharts(
+      heat: playable,
+      rating: playable.reversed.toList(),
+      zones: {
+        for (final tab in DiscoverTab.ranking)
+          if (tab != DiscoverTab.heat && tab != DiscoverTab.rating)
+            tab: playable,
+      },
     );
+    onCharts?.call(charts);
+    return Result.success(charts);
   }
 
   @override
   Future<Result<SearchHitPage>> eraChart(
     DiscoverTab tab, {
     int page = 1,
+    void Function(List<SearchHit> items)? onItems,
   }) async {
     final charts = await dailyPopular();
     if (charts.isFailure) return Result.failure(charts.errorOrNull!);
     final items = charts.valueOrNull?.heat ?? const <SearchHit>[];
+    if (items.isNotEmpty) onItems?.call(items);
     return Result.success((
       items: items,
       page: page,

@@ -44,7 +44,7 @@ class MusicChartBundle {
     this.zones = const {},
   });
 
-  /// 音乐区榜单原顺序。父分区不是音乐的条目已去掉。
+  /// 榜单原顺序。父分区不是音乐时，仍按子分区归入分类。
   final List<SearchResult> heat;
 
   /// 播放量达到门槛后，按投币、收藏、点赞相对播放量从高到低。
@@ -110,24 +110,20 @@ class BiliRankingApi implements MusicChartSource {
   }
 
   MusicChartBundle _bundle(List<_Ranked> entries) {
-    final music = [
-      for (final entry in entries)
-        if (entry.zonePid == null || entry.zonePid == musicRid) entry,
-    ];
     final rated = [
-      for (final entry in music)
+      for (final entry in entries)
         if (entry.rating >= 0) entry,
     ]..sort((a, b) => b.rating.compareTo(a.rating));
     final zones = <MusicZone, List<SearchResult>>{
       for (final zone in MusicZone.values) zone: [],
     };
-    for (final entry in music) {
+    for (final entry in entries) {
       final zone = MusicZone.fromTid(entry.zoneTid);
       if (zone == null) continue;
       zones[zone]?.add(entry.result);
     }
     return MusicChartBundle(
-      heat: [for (final entry in music) entry.result],
+      heat: [for (final entry in entries) entry.result],
       rating: [for (final entry in rated) entry.result],
       zones: zones,
     );
@@ -152,7 +148,6 @@ class BiliRankingApi implements MusicChartSource {
     final pages = _positive(item['videos']) ?? 1;
 
     return _Ranked(
-      zonePid: _positive(item['pid_v2']),
       zoneTid: _positive(item['tidv2']),
       result: SearchResult(
         bvid: bvid,
@@ -203,12 +198,10 @@ class _Ranked {
     required this.like,
     required this.coin,
     required this.favorite,
-    this.zonePid,
     this.zoneTid,
   });
 
   final SearchResult result;
-  final int? zonePid;
   final int? zoneTid;
   final int view;
   final int like;

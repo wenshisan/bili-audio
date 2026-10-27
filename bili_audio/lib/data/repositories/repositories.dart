@@ -26,23 +26,31 @@ abstract interface class SearchRepository {
 
   /// 音乐区推荐。发现页在用户还没发起搜索时按 tab 展示。
   ///
+  /// [onCharts] 在补搜结束前就会收到已经能展示的榜单。
   /// 热度、评价和排行榜分区来自同一次拉榜。年代要再调 [eraChart]。
-  Future<Result<DiscoverCharts>> dailyPopular();
+  Future<Result<DiscoverCharts>> dailyPopular({
+    void Function(DiscoverCharts charts)? onCharts,
+  });
 
   /// 音乐区里某一年代的歌曲。
   ///
   /// 曲目来自年代歌单，播放地址在 B 站按歌名和歌手查找。
+  /// [onItems] 在这一页还没全部对上时就会收到当前可展示的结果，按歌单顺序。
   /// [page] 从 1 开始，[SearchHitPage.hasMore] 表示歌单还有下一页。
-  Future<Result<SearchHitPage>> eraChart(DiscoverTab tab, {int page = 1});
+  Future<Result<SearchHitPage>> eraChart(
+    DiscoverTab tab, {
+    int page = 1,
+    void Function(List<SearchHit> items)? onItems,
+  });
 }
 
-/// 发现页上的两档推荐。
+/// 发现页上的两档推荐。声明顺序就是芯片从左到右的顺序。
 enum DiscoverGroup {
-  /// 音乐区排行，以及排行里的子分区。
-  ranking,
-
   /// 按歌曲年代搜索。
   era,
+
+  /// 音乐区排行，以及排行里的子分区。
+  ranking,
 }
 
 /// 发现页推荐分类。

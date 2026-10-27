@@ -13,7 +13,7 @@ import 'era_titles.dart';
 
 /// 用网易云歌单提供某一年代的歌曲名和歌手。
 ///
-/// 只收歌单标题能确定属于这一年代的歌单，官方歌单优先。
+/// 只收歌单标题能确定属于这一年代的歌单。有曲目数时选更长的，否则官方歌单优先。
 class NeteaseEraCatalog implements EraCatalog {
   NeteaseEraCatalog({Dio? dio})
     : _dio =
@@ -33,7 +33,7 @@ class NeteaseEraCatalog implements EraCatalog {
   final Dio _dio;
   final _cache = <DiscoverTab, List<EraTrack>>{};
 
-  static const pageSize = 12;
+  static const pageSize = 30;
 
   /// 未登录时歌单详情只内嵌前 10 首，其余用曲目 id 再取，这里是上限。
   static const playlistLimit = 200;
@@ -84,15 +84,18 @@ class NeteaseEraCatalog implements EraCatalog {
     if (cached != null) return cached;
     final keyword = BiliSearchRepository.eraKeyword[tab];
     if (keyword == null) return null;
-    final found = await _get('/api/search/get/web', {
+    final found = await _post('/api/cloudsearch/pc', {
       's': keyword,
       'type': 1000,
       'offset': 0,
-      'limit': 20,
+      'limit': 30,
     });
     final picked = _pickPlaylist(found, tab);
     if (picked == null) {
-      AppLogger.w('era catalog no playlist for $tab "$keyword"', tag: 'search');
+      AppLogger.w(
+        'era catalog no playlist for $tab "$keyword" code=${found?['code']}',
+        tag: 'search',
+      );
       return null;
     }
     final detail = await _get('/api/v6/playlist/detail', {
@@ -112,6 +115,21 @@ class NeteaseEraCatalog implements EraCatalog {
   }
 
   /// 网易云经常用 text/plain 返回 JSON，按 Map 接收会直接抛类型错误。
+  Future<Map<String, dynamic>?> _post(
+    String path,
+    Map<String, dynamic> body,
+  ) async {
+    final response = await _dio.post<dynamic>(
+      path,
+      data: body,
+      options: Options(
+        responseType: ResponseType.plain,
+        contentType: Headers.formUrlEncodedContentType,
+      ),
+    );
+    return _asJsonMap(response.data);
+  }
+
   Future<Map<String, dynamic>?> _get(
     String path,
     Map<String, dynamic> query,
@@ -200,8 +218,12 @@ _PlaylistPick? _pickPlaylist(Map<String, dynamic>? body, DiscoverTab tab) {
     if (mentioned.length != 1 || !mentioned.contains(tab)) continue;
     final plays = raw['playCount'];
     final playCount = plays is num ? plays.toInt() : 0;
+    final counted = raw['trackCount'];
+    final trackCount = counted is num ? counted.toInt() : 0;
     final official = raw['playlistType'] == 'PGC';
-    final score = (official ? 1000000000000 : 0) + playCount;
+    final score = trackCount > 0
+        ? trackCount * 1000000000 + (official ? 1 : 0)
+        : (official ? 1000000000000 : 0) + playCount;
     if (score <= bestScore) continue;
     bestScore = score;
     best = _PlaylistPick(id.toInt(), name);

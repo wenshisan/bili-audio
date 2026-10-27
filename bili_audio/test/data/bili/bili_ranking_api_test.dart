@@ -86,7 +86,7 @@ void main() {
     expect(items[1].cover, 'https://i0.hdslb.com/bfs/archive/long.jpg');
   });
 
-  test('排行拆成热度、评价和音乐分区，并去掉音乐区以外的稿件', () async {
+  test('排行拆成热度、评价和音乐分区，父分区不是音乐也按子分区归类', () async {
     adapter.onGet(
       '/x/web-interface/ranking/v2',
       (server) => server.reply(200, {
@@ -129,6 +129,16 @@ void main() {
               pid: 4,
               tidv2: 999,
             ),
+            _video(
+              bvid: 'BVoutside',
+              title: '舞蹈区里的翻唱',
+              view: 30000,
+              like: 300,
+              coin: 100,
+              favorite: 50,
+              pid: 1004,
+              tidv2: 2020,
+            ),
           ],
         },
       }),
@@ -136,15 +146,27 @@ void main() {
 
     final bundle = (await api.dailyMusic()).valueOrNull!;
 
-    expect(bundle.heat.map((item) => item.bvid), ['BVorig', 'BVcover', 'BVmv']);
+    expect(bundle.heat.map((item) => item.bvid), [
+      'BVorig',
+      'BVcover',
+      'BVmv',
+      'BVgame',
+      'BVoutside',
+    ]);
     expect(bundle.zones[MusicZone.original]!.map((item) => item.bvid), [
       'BVorig',
     ]);
     expect(bundle.zones[MusicZone.cover]!.map((item) => item.bvid), [
       'BVcover',
+      'BVoutside',
     ]);
     expect(bundle.zones[MusicZone.mv]!.map((item) => item.bvid), ['BVmv']);
-    expect(bundle.rating.map((item) => item.bvid), ['BVcover', 'BVorig']);
+    expect(bundle.rating.map((item) => item.bvid), [
+      'BVcover',
+      'BVoutside',
+      'BVorig',
+      'BVgame',
+    ]);
   });
 
   test('排行请求失败时返回网络错误', () async {

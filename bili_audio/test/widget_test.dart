@@ -85,6 +85,10 @@ void main() {
     expect(find.byType(SearchBar), findsOneWidget);
     expect(find.text('排行榜'), findsOneWidget);
     expect(find.text('年代'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('年代')).dx,
+      lessThan(tester.getTopLeft(find.text('排行榜')).dx),
+    );
     expect(find.text('热度'), findsOneWidget);
     expect(find.text('评价最高'), findsOneWidget);
     expect(find.text('中文'), findsNothing);

@@ -212,7 +212,23 @@ class SearchController extends Notifier<SearchState> {
     AppLogger.d('load daily gen=$gen chart=$chart', tag: 'search');
     final Result<DiscoverCharts> result;
     try {
-      result = await ref.read(searchRepositoryProvider).dailyPopular();
+      result = await ref
+          .read(searchRepositoryProvider)
+          .dailyPopular(
+            onCharts: (charts) {
+              if (!ref.mounted ||
+                  gen != _generation ||
+                  state.keyword.isNotEmpty) {
+                return;
+              }
+              _charts = charts;
+              final tab = state.chart;
+              if (tab.group == DiscoverGroup.era) return;
+              final items = charts.of(tab);
+              if (items.isEmpty) return;
+              state = SearchState(chart: tab, items: items, loading: true);
+            },
+          );
     } catch (e, st) {
       if (gen == _generation) _dailyInFlight = false;
       if (!ref.mounted || gen != _generation) return;
@@ -283,7 +299,25 @@ class SearchController extends Notifier<SearchState> {
     try {
       result = await ref
           .read(searchRepositoryProvider)
-          .eraChart(tab, page: page);
+          .eraChart(
+            tab,
+            page: page,
+            onItems: (items) {
+              if (!_eraCurrent(tab, gen, dailyGen)) return;
+              final merged = _mergeEra(previous, items);
+              if (merged.isEmpty) return;
+              _eras[tab] = merged;
+              _eraPage[tab] = page;
+              if (state.keyword.isNotEmpty || state.chart != tab) return;
+              state = SearchState(
+                chart: tab,
+                items: merged,
+                page: page,
+                hasMore: true,
+                loading: true,
+              );
+            },
+          );
     } catch (e, st) {
       if (!_eraCurrent(tab, gen, dailyGen)) return;
       AppLogger.e('era failed', tag: 'search', error: e, stackTrace: st);
@@ -296,11 +330,7 @@ class SearchController extends Notifier<SearchState> {
     final data = result.valueOrNull;
     if (data == null) {
       state = page <= 1
-          ? SearchState(
-              loading: false,
-              chart: tab,
-              error: result.errorOrNull,
-            )
+          ? SearchState(loading: false, chart: tab, error: result.errorOrNull)
           : state.copyWith(loading: false, error: () => result.errorOrNull);
       return;
     }
@@ -332,7 +362,10 @@ class SearchController extends Notifier<SearchState> {
     await _loadEra(tab, dailyGen: dailyGen, page: data.page + 1);
   }
 
-  List<SearchHit> _mergeEra(List<SearchHit> previous, List<SearchHit> incoming) {
+  List<SearchHit> _mergeEra(
+    List<SearchHit> previous,
+    List<SearchHit> incoming,
+  ) {
     final seen = <String>{for (final hit in previous) _eraKey(hit)};
     return [
       ...previous,

@@ -51,7 +51,11 @@ class BiliSearchRepository implements SearchRepository {
     int page = 1,
     void Function(List<SearchHit> items)? onItems,
   }) async {
-    final result = await _api.searchVideo(keyword: keyword, page: page);
+    final result = await _api.searchVideo(
+      keyword: keyword,
+      page: page,
+      tids: const [],
+    );
     if (result.isFailure) {
       AppLogger.e(
         'search "$keyword" page=$page failed',
@@ -74,7 +78,9 @@ class BiliSearchRepository implements SearchRepository {
 
   /// 音乐区排行拆成热度、评价和子分区。多 P 只展开一次，各列表共用结果。
   @override
-  Future<Result<DiscoverCharts>> dailyPopular() async {
+  Future<Result<DiscoverCharts>> dailyPopular({
+    void Function(DiscoverCharts charts)? onCharts,
+  }) async {
     final chart = ranking;
     if (chart == null) {
       return const Result.failure(
@@ -96,16 +102,41 @@ class BiliSearchRepository implements SearchRepository {
         AppError.unknown(message: 'music chart empty'),
       );
     }
-    final expanded = await _expandChart(bundle.heat);
+    final zoneLists = <MusicZone, List<SearchResult>>{
+      for (final zone in MusicZone.values) zone: [...?bundle.zones[zone]],
+    };
+    _fillZonesByTitle(zoneLists, bundle.heat);
+    final preview = _previewCharts(bundle.heat, bundle.rating, zoneLists);
+    if (preview.heat.isNotEmpty ||
+        preview.rating.isNotEmpty ||
+        preview.zones.values.any((list) => list.isNotEmpty)) {
+      onCharts?.call(preview);
+    }
+    final found = await Future.wait([
+      _searchSongs(heatKeyword),
+      for (final zone in MusicZone.values) _searchSongs(zoneKeyword[zone]!),
+    ]);
+    final extraHeat = found.first;
+    for (var i = 0; i < MusicZone.values.length; i++) {
+      final zone = MusicZone.values[i];
+      zoneLists[zone] = _appendNew(zoneLists[zone] ?? const [], found[i + 1]);
+    }
+    final heat = _appendNew(bundle.heat, extraHeat);
+    final rating = _appendNew(bundle.rating, extraHeat);
+    final expanded = await _expandChart([
+      ...heat,
+      ...rating,
+      for (final list in zoneLists.values) ...list,
+    ]);
     List<SearchHit> take(List<SearchResult> source) => [
       for (final item in source) ...?expanded[item.bvid],
     ];
     final charts = DiscoverCharts(
-      heat: take(bundle.heat),
-      rating: take(bundle.rating),
+      heat: take(heat),
+      rating: take(rating),
       zones: {
         for (final entry in _zoneTabs.entries)
-          entry.value: take(bundle.zones[entry.key] ?? const []),
+          entry.value: take(zoneLists[entry.key] ?? const []),
       },
     );
     AppLogger.i(
@@ -151,17 +182,143 @@ class BiliSearchRepository implements SearchRepository {
     MusicZone.ai: DiscoverTab.ai,
   };
 
+  /// 热度榜后面再按播放量补歌曲。不限分区。
+  static const heatKeyword = '歌曲';
+
+  /// 排行榜每个子分区再按播放量补歌曲。不限分区。
+  static const zoneKeyword = <MusicZone, String>{
+    MusicZone.original: '原创音乐',
+    MusicZone.cover: '翻唱',
+    MusicZone.mv: '音乐MV',
+    MusicZone.live: '音乐现场',
+    MusicZone.perform: '演奏',
+    MusicZone.vocaloid: 'VOCALOID',
+    MusicZone.ai: 'AI音乐',
+  };
+
+  /// 榜单标题里出现这些词时归入分类，不要求稿件在音乐区。靠前的规则优先。
+  static const zoneTitleHint = <(MusicZone, String)>[
+    (MusicZone.ai, 'AI音乐'),
+    (MusicZone.ai, 'AIMV'),
+    (MusicZone.ai, 'AI MV'),
+    (MusicZone.ai, 'AI歌曲'),
+    (MusicZone.vocaloid, 'VOCALOID'),
+    (MusicZone.vocaloid, '初音'),
+    (MusicZone.vocaloid, '洛天依'),
+    (MusicZone.live, '音乐现场'),
+    (MusicZone.perform, '演奏'),
+    (MusicZone.original, '原创音乐'),
+    (MusicZone.cover, '翻唱'),
+    (MusicZone.mv, 'MV'),
+  ];
+
+  void _fillZonesByTitle(
+    Map<MusicZone, List<SearchResult>> zoneLists,
+    List<SearchResult> heat,
+  ) {
+    final placed = <String>{
+      for (final list in zoneLists.values) ...list.map((item) => item.bvid),
+    };
+    for (final item in heat) {
+      if (!placed.add(item.bvid)) continue;
+      final zone = _zoneFromTitle(item.cleanTitle);
+      if (zone == null) continue;
+      zoneLists[zone] = [...?zoneLists[zone], item];
+    }
+  }
+
+  List<SearchHit> _playable(List<SearchResult> source) => [
+    for (final item in source)
+      if (item.duration >= minEraDuration &&
+          item.duration <= maxDuration &&
+          item.filtered != true)
+        _hit(item),
+  ];
+
+  DiscoverCharts _previewCharts(
+    List<SearchResult> heat,
+    List<SearchResult> rating,
+    Map<MusicZone, List<SearchResult>> zoneLists,
+  ) => DiscoverCharts(
+    heat: _playable(heat),
+    rating: _playable(rating),
+    zones: {
+      for (final entry in _zoneTabs.entries)
+        entry.value: _playable(zoneLists[entry.key] ?? const []),
+    },
+  );
+
+  MusicZone? _zoneFromTitle(String title) {
+    final lower = title.toLowerCase();
+    for (final (zone, hint) in zoneTitleHint) {
+      if (lower.contains(hint.toLowerCase())) return zone;
+    }
+    return null;
+  }
+
+  static const zoneSearchSize = 50;
+
+  /// 每个关键词连续翻这么多页，避免榜单只有几十条。
+  static const zoneSearchPages = 6;
+
+  List<SearchResult> _appendNew(
+    List<SearchResult> base,
+    List<SearchResult> extra,
+  ) {
+    final seen = <String>{for (final item in base) item.bvid};
+    return [
+      ...base,
+      for (final item in extra)
+        if (seen.add(item.bvid)) item,
+    ];
+  }
+
+  Future<List<SearchResult>> _searchSongs(String keyword) async {
+    final out = <SearchResult>[];
+    final seen = <String>{};
+    try {
+      for (var page = 1; page <= zoneSearchPages; page++) {
+        final result = await _api.searchVideo(
+          keyword: keyword,
+          page: page,
+          pageSize: zoneSearchSize,
+          tids: const [],
+          order: 'click',
+        );
+        final fetched = result.valueOrNull;
+        if (fetched == null) break;
+        for (final item in fetched.items) {
+          if (item.duration < minEraDuration || item.duration > maxDuration) {
+            continue;
+          }
+          if (seen.add(item.bvid)) out.add(item);
+        }
+        if (!fetched.hasMore) break;
+      }
+    } catch (e, st) {
+      AppLogger.e(
+        'chart search "$keyword" failed',
+        tag: 'search',
+        error: e,
+        stackTrace: st,
+      );
+    }
+    AppLogger.i('chart search "$keyword" songs=${out.length}', tag: 'search');
+    return out;
+  }
+
   @override
   Future<Result<SearchHitPage>> eraChart(
     DiscoverTab tab, {
     int page = 1,
+    void Function(List<SearchHit> items)? onItems,
   }) async {
     final catalog = eraCatalog;
     if (catalog != null) {
       final listed = await catalog.page(tab, page: page);
       final data = listed.valueOrNull;
       if (data != null && (data.tracks.isNotEmpty || page > 1)) {
-        final items = await _resolveEraTracks(data.tracks);
+        final items = await _resolveEraTracks(data.tracks, onItems: onItems);
         AppLogger.i(
           'era catalog ${tab.name} page=${data.page} '
           'songs=${data.tracks.length} shown=${items.length} '
@@ -188,12 +345,13 @@ class BiliSearchRepository implements SearchRepository {
         tag: 'search',
       );
     }
-    return _eraChartFromBili(tab, page: page);
+    return _eraChartFromBili(tab, page: page, onItems: onItems);
   }
 
   Future<Result<SearchHitPage>> _eraChartFromBili(
     DiscoverTab tab, {
     required int page,
+    void Function(List<SearchHit> items)? onItems,
   }) async {
     final keyword = eraKeyword[tab];
     if (keyword == null) {
@@ -209,6 +367,7 @@ class BiliSearchRepository implements SearchRepository {
       page: page,
       pageSize: eraPageSize,
       order: 'click',
+      tids: const [],
     );
     if (result.isFailure) {
       AppLogger.e(
@@ -225,12 +384,20 @@ class BiliSearchRepository implements SearchRepository {
     final seen = <String>{};
     final items = <SearchHit>[];
     var expansions = 0;
+    void publish() {
+      if (items.isEmpty) return;
+      onItems?.call(List<SearchHit>.of(items));
+    }
+
     for (final item in fetched.items) {
       if (!seen.add(item.bvid)) continue;
       final mentioned = erasMentioned(item.cleanTitle);
       if (mentioned.length != 1 || !mentioned.contains(tab)) continue;
       if (item.duration <= maxDuration) {
-        if (item.duration >= minEraDuration) items.add(_hit(item));
+        if (item.duration >= minEraDuration) {
+          items.add(_hit(item));
+          publish();
+        }
         continue;
       }
       if (expansions >= eraExpansions) continue;
@@ -239,6 +406,7 @@ class BiliSearchRepository implements SearchRepository {
       for (final hit in expanded) {
         if (hit.result.duration < minEraDuration) continue;
         items.add(hit);
+        publish();
       }
     }
     AppLogger.i(
@@ -254,16 +422,37 @@ class BiliSearchRepository implements SearchRepository {
     ));
   }
 
-  Future<List<SearchHit>> _resolveEraTracks(List<EraTrack> tracks) async {
+  Future<List<SearchHit>> _resolveEraTracks(
+    List<EraTrack> tracks, {
+    void Function(List<SearchHit> items)? onItems,
+  }) async {
     if (tracks.isEmpty) return const [];
     final out = List<SearchHit?>.filled(tracks.length, null);
     var next = 0;
+
+    void publish() {
+      final ready = onItems;
+      if (ready == null) return;
+      final seen = <String>{};
+      final visible = <SearchHit>[
+        for (final hit in out)
+          if (hit != null &&
+              seen.add(
+                '${hit.result.bvid}:${hit.result.cid ?? hit.result.pageIndex ?? 0}',
+              ))
+            hit,
+      ];
+      if (visible.isEmpty) return;
+      ready(visible);
+    }
+
     Future<void> worker() async {
       while (true) {
         final index = next;
         if (index >= tracks.length) return;
         next++;
         out[index] = await _resolveEraTrack(tracks[index]);
+        publish();
       }
     }
 
@@ -290,6 +479,7 @@ class BiliSearchRepository implements SearchRepository {
     final result = await _api.searchVideo(
       keyword: keyword,
       pageSize: eraLookupSize,
+      tids: const [],
     );
     final fetched = result.valueOrNull;
     if (fetched == null) {
@@ -361,6 +551,7 @@ class BiliSearchRepository implements SearchRepository {
   ) async {
     final out = <String, List<SearchHit>>{};
     for (final item in items) {
+      if (out.containsKey(item.bvid)) continue;
       if ((item.totalPages ?? 1) > 1 && pageList != null) {
         out[item.bvid] = await _expand(item);
         continue;

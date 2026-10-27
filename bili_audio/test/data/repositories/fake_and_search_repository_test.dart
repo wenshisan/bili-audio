@@ -167,7 +167,15 @@ class _DownEraCatalog implements EraCatalog {
       const Result.failure(AppError.network(message: 'down'));
 }
 
-class _StubSearchApi implements BiliSearchApi {
+class _ZoneSearchApi implements BiliSearchApi {
+  final keywords = <String>[];
+  final pages = <int>[];
+  List<int>? tids;
+  int? pageSize;
+
+  /// 翻唱和歌曲翻到这一页为止，其余关键词只有一页。
+  var followPages = 1;
+
   @override
   Future<Result<SearchPage>> searchVideo({
     required String keyword,
@@ -176,25 +184,72 @@ class _StubSearchApi implements BiliSearchApi {
     List<int> tids = const [3],
     String? order,
     int? duration,
-  }) async => const Result.success(
-    SearchPage(
-      items: [
-        SearchResult(
-          bvid: 'BV1',
-          title: 't',
-          cleanTitle: '周杰伦 - 稻香',
-          duration: 200,
-          cover: '',
-          author: 'UP',
-          play: 1,
-        ),
-      ],
-      page: 1,
-      pageSize: 20,
-      total: 1,
-      hasMore: false,
-    ),
-  );
+  }) async {
+    keywords.add(keyword);
+    pages.add(page);
+    this.tids = tids;
+    this.pageSize = pageSize;
+    final followed = (keyword == '翻唱' || keyword == '歌曲') && followPages > 1;
+    final items = keyword == '翻唱' && page == 1
+        ? [
+            _item('BVrank', '榜上翻唱 重复', 180),
+            _item('BVlong', '翻唱合集', 1200),
+            _item('BVshort', '过短', 20),
+            _item('BVfound', '别的分区里的翻唱', 200),
+          ]
+        : followed
+        ? [_item('BV${keyword.hashCode}_$page', '$keyword 第$page页', 180)]
+        : const <SearchResult>[];
+    return Result.success(
+      SearchPage(
+        items: items,
+        page: page,
+        pageSize: pageSize,
+        total: items.length,
+        hasMore: followed && page < followPages,
+      ),
+    );
+  }
+}
+
+class _StubSearchApi implements BiliSearchApi {
+  List<int>? tids;
+
+  @override
+  Future<Result<SearchPage>> searchVideo({
+    required String keyword,
+    int page = 1,
+    int pageSize = 20,
+    List<int> tids = const [3],
+    String? order,
+    int? duration,
+  }) async {
+    this.tids = tids;
+    if (order == 'click') {
+      return const Result.success(
+        SearchPage(items: [], page: 1, pageSize: 20, total: 0, hasMore: false),
+      );
+    }
+    return const Result.success(
+      SearchPage(
+        items: [
+          SearchResult(
+            bvid: 'BV1',
+            title: 't',
+            cleanTitle: '周杰伦 - 稻香',
+            duration: 200,
+            cover: '',
+            author: 'UP',
+            play: 1,
+          ),
+        ],
+        page: 1,
+        pageSize: 20,
+        total: 1,
+        hasMore: false,
+      ),
+    );
+  }
 }
 
 void main() {
@@ -213,10 +268,12 @@ void main() {
         ],
       ),
     );
-    final repo = BiliSearchRepository(_StubSearchApi(), cleaner);
+    final api = _StubSearchApi();
+    final repo = BiliSearchRepository(api, cleaner);
 
     final page = (await repo.search('x')).valueOrNull!;
 
+    expect(api.tids, isEmpty);
     expect(page.items.single.cleaned.name, '稻香');
     expect(page.items.single.cleaned.artist, '周杰伦');
   });
@@ -457,6 +514,80 @@ void main() {
     expect(charts.of(DiscoverTab.original).single.result.bvid, 'BVshort');
   });
 
+  test('排行榜分区补上全站搜索结果', () async {
+    final api = _ZoneSearchApi();
+    final repo = BiliSearchRepository(
+      api,
+      TitleCleaner(const TitleRuleConfig(version: 1, rules: [])),
+      ranking: _Chart(
+        [_item('BVheat', '热门', 180)],
+        zones: {
+          MusicZone.cover: [_item('BVrank', '榜上翻唱', 200)],
+        },
+      ),
+    );
+
+    final charts = (await repo.dailyPopular()).valueOrNull!;
+    final cover = charts.of(DiscoverTab.cover);
+
+    expect(api.keywords, contains('翻唱'));
+    expect(api.tids, isEmpty);
+    expect(api.pageSize, BiliSearchRepository.zoneSearchSize);
+    expect(cover.map((hit) => hit.result.bvid), ['BVrank', 'BVfound']);
+    expect(charts.heat.single.result.bvid, 'BVheat');
+  });
+
+  test('榜上其他分区的稿件按标题进入分类', () async {
+    final repo = BiliSearchRepository(
+      _StubSearchApi(),
+      TitleCleaner(const TitleRuleConfig(version: 1, rules: [])),
+      ranking: _Chart([
+        _item('BVai', '影视区 AIMV 大赛', 180),
+        _item('BVcover', '舞蹈区翻唱', 200),
+        _item('BVother', '游戏实况', 180),
+      ]),
+    );
+
+    final charts = (await repo.dailyPopular()).valueOrNull!;
+
+    expect(charts.of(DiscoverTab.ai).map((hit) => hit.result.bvid), ['BVai']);
+    expect(charts.of(DiscoverTab.cover).map((hit) => hit.result.bvid), [
+      'BVcover',
+    ]);
+    expect(charts.heat.map((hit) => hit.result.bvid), [
+      'BVai',
+      'BVcover',
+      'BVother',
+    ]);
+  });
+
+  test('排行榜按播放量连续翻页，热度榜后面接上更多歌曲', () async {
+    final api = _ZoneSearchApi()
+      ..followPages = BiliSearchRepository.zoneSearchPages;
+    final repo = BiliSearchRepository(
+      api,
+      TitleCleaner(const TitleRuleConfig(version: 1, rules: [])),
+      ranking: _Chart([_item('BVheat', '热门', 180)]),
+    );
+
+    final charts = (await repo.dailyPopular()).valueOrNull!;
+    final coverPages = [
+      for (var i = 0; i < api.keywords.length; i++)
+        if (api.keywords[i] == '翻唱') api.pages[i],
+    ];
+
+    expect(coverPages, [
+      for (var page = 1; page <= BiliSearchRepository.zoneSearchPages; page++)
+        page,
+    ]);
+    expect(charts.heat.length, BiliSearchRepository.zoneSearchPages + 1);
+    expect(charts.heat.first.result.bvid, 'BVheat');
+    expect(
+      charts.of(DiscoverTab.cover).length,
+      1 + BiliSearchRepository.zoneSearchPages,
+    );
+  });
+
   test('年代推荐按播放量搜索，丢掉跨年代、过短、超长和重复', () async {
     final api = _EraSearchApi()..hasMore = true;
     final repo = BiliSearchRepository(
@@ -472,7 +603,7 @@ void main() {
     expect(api.duration, isNull);
     expect(api.pageSize, BiliSearchRepository.eraPageSize);
     expect(api.requestedPage, 1);
-    expect(api.tids, [3]);
+    expect(api.tids, isEmpty);
     expect(page.page, 1);
     expect(page.hasMore, isTrue);
     await repo.eraChart(DiscoverTab.y1990, page: 2);

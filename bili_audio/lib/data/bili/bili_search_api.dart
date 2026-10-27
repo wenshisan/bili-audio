@@ -16,14 +16,14 @@ class BiliSearchApi {
   /// [keyword] 关键词
   /// [page] 页码 (从 1 开始)
   /// [pageSize] 每页数量
-  /// [tids] 分区 ID (默认 3=音乐主分区)
+  /// [tids] 分区 ID。空列表表示全站，不限音乐区。
   ///
   /// [order] 为 `click` 时按播放量。 [duration] 为 1 时只要 10 分钟以内。
   Future<Result<SearchPage>> searchVideo({
     required String keyword,
     int page = 1,
     int pageSize = 20,
-    List<int> tids = const [3],
+    List<int> tids = const [],
     String? order,
     int? duration,
   }) async {
