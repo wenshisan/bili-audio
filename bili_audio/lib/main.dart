@@ -6,11 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:window_manager/window_manager.dart';
-import 'package:tray_manager/tray_manager.dart';
 
 import 'app/app.dart';
 import 'app/bootstrap.dart';
-import 'app/platform/app_quit.dart';
+import 'app/platform/desktop_shell.dart';
 import 'app/system_bars.dart';
 import 'core/logging/app_logger.dart';
 import 'core/storage/path_manager.dart';
@@ -29,74 +28,6 @@ Future<void> _initSingleInstanceChannel() async {
       await windowManager.focus();
     }
   });
-}
-
-Future<void> _updateTrayMenu() async {
-  final Menu menu = Menu(
-    items: [
-      MenuItem(
-        key: 'show',
-        label: '显示主窗口',
-        onClick: (menuItem) async {
-          await windowManager.show();
-          await windowManager.focus();
-        },
-      ),
-      MenuItem(
-        key: 'hide',
-        label: '隐藏到托盘',
-        onClick: (menuItem) async {
-          await windowManager.hide();
-        },
-      ),
-      MenuItem.separator(),
-      MenuItem(
-        key: 'exit',
-        label: '退出',
-        onClick: (menuItem) => quitDesktopApp(),
-      ),
-    ],
-  );
-  await trayManager.setContextMenu(menu);
-}
-
-class _TrayHandler with TrayListener {
-  DateTime _lastClickTime = DateTime.fromMillisecondsSinceEpoch(0);
-
-  @override
-  void onTrayIconMouseDown() {
-    final now = DateTime.now();
-    final diff = now.difference(_lastClickTime).inMilliseconds;
-    _lastClickTime = now;
-    if (diff < 300) {
-      windowManager.show();
-      windowManager.focus();
-    }
-  }
-
-  @override
-  void onTrayIconRightMouseDown() {
-    trayManager.popUpContextMenu();
-  }
-}
-
-Future<void> initSystemTray() async {
-  try {
-    // TODO: 当前沿用 talix 图标, 待替换为本应用图标
-    await trayManager.setIcon(
-      Platform.isWindows ? 'assets/app_icon.ico' : 'assets/app_icon.png',
-    );
-    await trayManager.setToolTip(productTitle());
-    await _updateTrayMenu();
-    trayManager.addListener(_TrayHandler());
-  } catch (e, st) {
-    AppLogger.e(
-      'system tray init failed',
-      tag: 'boot',
-      error: e,
-      stackTrace: st,
-    );
-  }
 }
 
 void main() {
@@ -186,8 +117,7 @@ Future<void> _runApp(Zone rootZone) async {
     });
     AppLogger.i('window shown', tag: 'boot');
 
-    // 初始化系统托盘
-    await initSystemTray();
+    await initDesktopShell();
     AppLogger.i('tray initialized', tag: 'boot');
   }
 

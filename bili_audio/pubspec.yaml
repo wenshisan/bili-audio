@@ -45,6 +45,7 @@ dependencies:
   media_kit_libs_windows_audio: 1.0.9
   media_kit_libs_linux: 1.2.1
   smtc_windows: 1.1.0
+  windows_taskbar: 1.1.2
   intl: 0.20.3
   qr_flutter: 4.1.0
   package_info_plus: 10.2.2
@@ -77,6 +78,7 @@ flutter:
     - assets/app_icon.ico
     - assets/app_icon.png
     - assets/config/
+    - assets/taskbar/
 
 # 本地 `dart run msix:create` 用测试证书签名，方便本机安装。
 # 商店包由 packaging/windows/build-msix.ps1 传入 Partner Center 的身份，并加上 --store。

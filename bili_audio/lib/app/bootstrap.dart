@@ -46,6 +46,7 @@ import '../domain/entities/audio_track.dart';
 import '../domain/title/title_cleaner.dart';
 import 'platform/app_quit.dart';
 import 'platform/desktop_platform.dart';
+import 'platform/desktop_shell.dart';
 import 'platform/window_frame.dart';
 import 'theme.dart';
 import '../data/update/app_version_source.dart';
@@ -163,9 +164,10 @@ Future<List<Override>> bootstrap() async {
   if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
     await restoreWindowFrame(db.settingsDao);
     WindowFrameStore.attach(db.settingsDao);
+    await attachDesktopPlayback(handler);
   }
-  // macOS 的播放/暂停/上下首/进度由 audio_service 写到 MPNowPlayingInfoCenter。
-  // 上面非 Windows/Linux 分支已经 AudioService.init，不另建桥。
+  // macOS 控制中心的播放/暂停/上下首/进度由 audio_service 写到
+  // MPNowPlayingInfoCenter。托盘、Windows 任务栏按钮和程序坞菜单在上面接上。
 
   final initialTheme = ThemeState.decode(
     await db.settingsDao.getThemeMode(),
