@@ -83,7 +83,7 @@ class AppDelegate: FlutterAppDelegate {
     return true
   }
 
-  @objc func applicationShouldHandleReopen(
+  override func applicationShouldHandleReopen(
     _ sender: NSApplication,
     hasVisibleWindows flag: Bool
   ) -> Bool {
@@ -93,7 +93,7 @@ class AppDelegate: FlutterAppDelegate {
     return true
   }
 
-  @objc func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+  override func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
     DesktopShellPlugin.shared.menu()
   }
 }
