@@ -42,6 +42,8 @@ keyAlias=...
 storeFile=ci-release.keystore
 ```
 
+`storePassword` 和 `keyPassword` 要写成同一个值。这把证书是 PKCS12，两个口令不同时，构建读不出私钥，APK 会打包失败。
+
 iOS 描述文件安装用三个 Actions secrets：`IOS_CERTIFICATE_P12_BASE64`（分发证书 p12 的 base64）、`IOS_CERTIFICATE_PASSWORD`、`IOS_PROVISIONING_PROFILE_BASE64`（`.mobileprovision` 的 base64）。可选 `IOS_EXPORT_METHOD`，默认 `ad-hoc`。描述文件里要包含要安装的设备。企业签名则把导出方式设为 `enterprise`。
 
 介绍页上的 iOS 按钮打开 `https://wenshisan.github.io/bili-audio/manifest.plist`。装完后到「设置 → 通用 → VPN 与设备管理」信任该描述文件。应用内升级在 iPhone 上打开同一条安装地址，不在应用里下载 IPA。
