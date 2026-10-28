@@ -90,6 +90,33 @@
     .points h2 { margin: 0 0 8px; color: var(--accent); font-size: 20px; }
     .points p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .primary { margin: 4px 0 8px; }
+    .primary.multi {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 320px));
+      gap: 12px;
+    }
+    .primary a.card {
+      max-width: 420px;
+      min-height: 88px;
+      padding: 20px 22px;
+      border-color: var(--accent);
+      background: var(--accent);
+      color: var(--on-accent);
+    }
+    .primary.multi a.card { max-width: none; }
+    .primary a.card strong { font-size: 20px; }
+    .primary a.card span { color: inherit; opacity: 0.82; }
+    .primary a.card:hover { border-color: var(--accent); filter: brightness(1.06); }
+    .primary a.card.disabled {
+      background: var(--card);
+      color: inherit;
+      border-color: var(--line);
+      filter: none;
+    }
+    .primary a.card.disabled span { color: var(--muted); opacity: 1; }
+    .more-label { margin: 22px 0 0; color: var(--muted); font-size: 14px; }
+    html.phone .primary a.card { max-width: none; min-height: 72px; }
     a.card {
       display: block;
       padding: 16px;
@@ -317,11 +344,17 @@
       </div>
     </div>
     <h2>下载</h2>
+    <div class="primary" id="primary" hidden></div>
     <p id="status" class="note">正在读取最新安装包…</p>
-    <div class="grid">
+    <p class="more-label" id="more-label" hidden>其他下载</p>
+    <div class="grid" id="downloads">
       <a class="card" id="win" href="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-windows-x64-setup.exe">
         <strong>Windows</strong>
         <span>64 位安装程序</span>
+      </a>
+      <a class="card" id="winStore" href="https://apps.microsoft.com/store/detail/9N6CLML6X27P?cid=DevShareMCLPCS">
+        <strong>Windows 商店</strong>
+        <span>从 Microsoft Store 安装</span>
       </a>
       <a class="card" id="mac" href="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-macos-arm64.dmg">
         <strong>macOS</strong>
@@ -372,6 +405,63 @@
       btn.addEventListener("click", () => applyTheme(btn.dataset.theme));
     });
     applyTheme(document.documentElement.classList.contains("dark") ? "dark" : "light");
+
+    function detectOs() {
+      const ua = navigator.userAgent || "";
+      const hinted = (navigator.userAgentData && navigator.userAgentData.platform) || "";
+      const platform = navigator.platform || "";
+      const touchMac = /Mac/.test(platform) && navigator.maxTouchPoints > 1;
+      if (hinted === "iOS" || /iPhone|iPad|iPod/.test(ua) || touchMac) return "ios";
+      if (hinted === "Android" || /Android/.test(ua)) return "android";
+      if (hinted === "Windows" || /Windows/.test(ua)) return "windows";
+      if (hinted === "macOS" || /Mac/.test(platform) || /Macintosh/.test(ua)) return "mac";
+      if (hinted === "Linux" || /Linux/.test(platform) || (/Linux/.test(ua) && !/Android/.test(ua))) return "linux";
+      return "other";
+    }
+
+    async function macChip() {
+      const hints = navigator.userAgentData;
+      if (!hints || !hints.getHighEntropyValues) return "";
+      try {
+        const info = await hints.getHighEntropyValues(["architecture"]);
+        const arch = String(info.architecture || "").toLowerCase();
+        if (arch.includes("arm")) return "arm";
+        if (arch.includes("x86") || arch === "x64") return "intel";
+      } catch (_) {}
+      return "";
+    }
+
+    const downloadOrder = [...document.querySelectorAll("#downloads a.card")];
+    function arrangeDownloads(ids) {
+      const primary = document.getElementById("primary");
+      const label = document.getElementById("more-label");
+      const grid = document.getElementById("downloads");
+      const wanted = new Set(ids);
+      primary.replaceChildren();
+      grid.replaceChildren();
+      for (const card of downloadOrder) {
+        (wanted.has(card.id) ? primary : grid).appendChild(card);
+      }
+      const showPrimary = ids.length > 0;
+      primary.hidden = !showPrimary;
+      primary.classList.toggle("multi", ids.length > 1);
+      label.hidden = !showPrimary || grid.childElementCount === 0;
+    }
+
+    const os = detectOs();
+    const primaryByOs = {
+      windows: ["winStore"],
+      linux: ["linux"],
+      android: ["android"],
+      ios: ["ios"],
+    };
+    arrangeDownloads(os === "mac" ? ["mac", "macIntel"] : (primaryByOs[os] || []));
+    if (os === "mac") {
+      macChip().then((chip) => {
+        if (chip === "arm") arrangeDownloads(["mac"]);
+        else if (chip === "intel") arrangeDownloads(["macIntel"]);
+      });
+    }
 
     const repo = "wenshisan/bili-audio";
     const files = {
