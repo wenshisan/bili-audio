@@ -156,16 +156,17 @@
       display: grid;
       grid-template-columns: minmax(0, 760px) minmax(220px, 1fr);
       gap: 28px;
-      align-items: center;
+      align-items: start;
       margin: 8px 0 12px;
     }
-    .demo:has(#primary:not([hidden])) { align-items: start; }
     .demo-side {
       display: flex;
       flex-direction: column;
+      align-self: stretch;
       gap: 28px;
       min-width: 0;
     }
+    .demo-copy { margin-top: auto; }
     .demo .primary { margin: 0; }
     .demo .primary a.card { max-width: none; }
     .frame {
@@ -252,6 +253,7 @@
     @media (max-width: 900px) {
       .demo { grid-template-columns: 1fr; }
       .demo-side { display: contents; }
+      .demo-copy { margin-top: 0; }
       .demo .primary { order: -1; }
       .demo .frame { order: 0; }
       .demo .demo-copy { order: 1; }
@@ -376,9 +378,8 @@
         </div>
       </div>
     </div>
-    <h2>下载</h2>
     <p id="status" class="note">正在读取最新安装包…</p>
-    <p class="more-label" id="more-label" hidden>其他下载</p>
+    <p class="more-label" id="more-label" hidden>其他平台下载</p>
     <div class="grid" id="downloads">
       <a class="card" id="win" href="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-windows-x64-setup.exe">
         <strong>Windows</strong>
