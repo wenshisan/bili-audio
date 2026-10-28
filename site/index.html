@@ -106,6 +106,23 @@
     }
     .primary.multi a.card { max-width: none; }
     .primary a.card strong { font-size: 20px; }
+    a.card strong.store-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .store-mark {
+      width: 1.2em;
+      height: 1.2em;
+      flex: none;
+    }
+    .store-mark .bag-on-dark { display: none; }
+    html.dark .store-mark .bag-on-light { display: none; }
+    html.dark .store-mark .bag-on-dark { display: block; }
+    html:not(.dark) #primary .store-mark .bag-on-light { display: none; }
+    html:not(.dark) #primary .store-mark .bag-on-dark { display: block; }
+    html.dark #primary .store-mark .bag-on-dark { display: none; }
+    html.dark #primary .store-mark .bag-on-light { display: block; }
     .primary a.card span { color: inherit; opacity: 0.82; }
     .primary a.card:hover { border-color: var(--accent); filter: brightness(1.06); }
     .primary a.card.disabled {
@@ -352,8 +369,115 @@
         <strong>Windows</strong>
         <span>64 位安装程序</span>
       </a>
-      <a class="card" id="winStore" href="https://apps.microsoft.com/store/detail/9N6CLML6X27P?cid=DevShareMCLPCS">
-        <strong>Windows 商店</strong>
+      <a class="card" id="winStore" href="ms-windows-store://pdp/?productid=9N6CLML6X27P">
+        <strong class="store-name">
+          <svg class="store-mark" viewBox="10 11 22 22" aria-hidden="true" focusable="false">
+            <path class="bag-on-light" d="M10.3438 14.6667C10.3438 14.1604 10.7542 13.75 11.2604 13.75H30.7396C31.2458 13.75 31.6562 14.1604 31.6562 14.6667V28.5313C31.6562 30.6196 29.9633 32.3125 27.875 32.3125H14.125C12.0367 32.3125 10.3438 30.6196 10.3438 28.5313V14.6667Z" fill="url(#ms-bag-blue)"/>
+            <path class="bag-on-dark" d="M10.3438 14.6667C10.3438 14.1604 10.7542 13.75 11.2604 13.75H30.7396C31.2458 13.75 31.6562 14.1604 31.6562 14.6667V28.5313C31.6562 30.6196 29.9633 32.3125 27.875 32.3125H14.125C12.0367 32.3125 10.3438 30.6196 10.3438 28.5313V14.6667Z" fill="url(#ms-bag-white)"/>
+            <g clip-path="url(#ms-clip)">
+              <mask id="ms-m0" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="10" y="13" width="22" height="20">
+                <path d="M10.3438 14.6667C10.3438 14.1604 10.7542 13.75 11.2604 13.75H30.7396C31.2458 13.75 31.6562 14.1604 31.6562 14.6667V28.5313C31.6562 30.6196 29.9633 32.3125 27.875 32.3125H14.125C12.0367 32.3125 10.3438 30.6196 10.3438 28.5313V14.6667Z" fill="url(#ms-mask)"/>
+              </mask>
+              <g mask="url(#ms-m0)">
+                <g filter="url(#ms-f0)">
+                  <path d="M15.8438 14.4375V11.6875H26.1562V14.4375" stroke="url(#ms-handle-shadow)" stroke-width="1.375" stroke-linecap="round"/>
+                </g>
+              </g>
+              <g filter="url(#ms-f1)">
+                <path d="M20.6565 18.5625H16.5315V22.6875H20.6565V18.5625Z" fill="#F25022"/>
+                <path d="M25.4688 18.5625H21.3438V22.6875H25.4688V18.5625Z" fill="#7FBA00"/>
+                <path d="M25.4688 23.375H21.3438V27.5H25.4688V23.375Z" fill="#FFB900"/>
+                <path d="M20.6562 23.375H16.5312V27.5H20.6562V23.375Z" fill="#00A4EF"/>
+              </g>
+              <path d="M15.8438 14.4375V12.375C15.8438 11.9953 16.1516 11.6875 16.5313 11.6875H25.4688C25.8484 11.6875 26.1562 11.9953 26.1562 12.375V14.4375" stroke="url(#ms-handle)" stroke-width="1.375" stroke-linecap="round"/>
+              <rect x="16.5312" y="11" width="8.9375" height="1.375" fill="url(#ms-bar)"/>
+              <mask id="ms-m1" style="mask-type:alpha" maskUnits="userSpaceOnUse" x="16" y="11" width="10" height="2">
+                <rect x="16.5312" y="11" width="8.9375" height="1.375" fill="url(#ms-bar-mask)"/>
+              </mask>
+              <g mask="url(#ms-m1)">
+                <g filter="url(#ms-f2)">
+                  <rect x="14.5454" y="11.6877" width="1.98611" height="3.4375" fill="#C4C4C4"/>
+                </g>
+              </g>
+            </g>
+            <defs>
+              <filter id="ms-f0" x="13.7812" y="10.0833" width="14.4375" height="6.875" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feOffset dy="0.229167"/>
+                <feGaussianBlur stdDeviation="0.229167"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.1 0"/>
+                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feOffset dy="0.458333"/>
+                <feGaussianBlur stdDeviation="0.6875"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0"/>
+                <feBlend mode="normal" in2="effect1" result="effect2"/>
+                <feBlend mode="normal" in="SourceGraphic" in2="effect2" result="shape"/>
+              </filter>
+              <filter id="ms-f1" x="15.1562" y="17.6458" width="11.6875" height="11.6875" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feOffset dy="0.229167"/>
+                <feGaussianBlur stdDeviation="0.229167"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0"/>
+                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feOffset dy="0.458333"/>
+                <feGaussianBlur stdDeviation="0.6875"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.6 0"/>
+                <feBlend mode="normal" in2="effect1" result="effect2"/>
+                <feBlend mode="normal" in="SourceGraphic" in2="effect2" result="shape"/>
+              </filter>
+              <filter id="ms-f2" x="13.1704" y="9.39583" width="15.6594" height="6.18774" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+                <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feOffset dy="-0.916667"/>
+                <feGaussianBlur stdDeviation="0.229167"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.1 0"/>
+                <feBlend mode="normal" in2="BackgroundImageFix" result="effect1"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feOffset dy="-0.916667"/>
+                <feGaussianBlur stdDeviation="0.6875"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.2 0"/>
+                <feBlend mode="normal" in2="effect1" result="effect2"/>
+                <feBlend mode="normal" in="SourceGraphic" in2="effect2" result="shape"/>
+              </filter>
+              <linearGradient id="ms-bag-white" x1="15.1875" y1="11.0078" x2="19.6603" y2="31.5495" gradientUnits="userSpaceOnUse">
+                <stop offset="0.270833" stop-color="white"/>
+                <stop offset="1" stop-color="#DFDFDF"/>
+              </linearGradient>
+              <linearGradient id="ms-bag-blue" x1="21" y1="13.75" x2="25.0962" y2="32.9541" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#0669BC"/>
+                <stop offset="1" stop-color="#243A5F"/>
+              </linearGradient>
+              <linearGradient id="ms-mask" x1="21" y1="13.75" x2="25.0962" y2="32.9541" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#0078D4"/>
+                <stop offset="1" stop-color="#114A8B"/>
+              </linearGradient>
+              <linearGradient id="ms-handle-shadow" x1="21" y1="11.6875" x2="21.1934" y2="14.6494" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#28AFEA"/>
+                <stop offset="1" stop-color="#0078D4"/>
+              </linearGradient>
+              <linearGradient id="ms-handle" x1="21" y1="11.6875" x2="21.1934" y2="14.6494" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#30DAFF"/>
+                <stop offset="1" stop-color="#0094D4"/>
+              </linearGradient>
+              <linearGradient id="ms-bar" x1="20.5035" y1="11" x2="20.5035" y2="12.375" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#22BCFF"/>
+                <stop offset="1" stop-color="#0088F0"/>
+              </linearGradient>
+              <linearGradient id="ms-bar-mask" x1="20.5035" y1="11" x2="20.5035" y2="12.375" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#28AFEA"/>
+                <stop offset="1" stop-color="#3CCBF4"/>
+              </linearGradient>
+              <clipPath id="ms-clip">
+                <rect width="22" height="22" fill="white" transform="translate(10 11)"/>
+              </clipPath>
+            </defs>
+          </svg>
+          Windows 商店
+        </strong>
         <span>从 Microsoft Store 安装</span>
       </a>
       <a class="card" id="mac" href="https://github.com/wenshisan/bili-audio/releases/download/continuous/bili_audio-macos-arm64.dmg">

@@ -60,7 +60,7 @@ iOS 描述文件安装用三个 Actions secrets：`IOS_CERTIFICATE_P12_BASE64`�
 
 `https://wenshisan.github.io/bili-audio/`
 
-页面先请求 Latest 正式版；没有正式版，或正式版里没有安装包时，改用 `continuous`。这些按钮在第一次构建完成前会 404。下载区按当前系统把对应按钮放到主要位置，其余放在「其他下载」。Windows 上主要按钮是 [Microsoft Store](https://apps.microsoft.com/store/detail/9N6CLML6X27P?cid=DevShareMCLPCS)，地址固定，不随 GitHub Release 改写；直接安装程序留在其他下载里。macOS 能分辨芯片时只突出对应的磁盘映像，分辨不了时两枚都放在主要位置。认不出系统时所有按钮同一排。页首有一段循环播放的功能演示。下载区有二维码，内容是 `https://wenshisan.github.io/bili-audio/get.html`：Android 打开后下载 APK，iPhone 在 Safari 里走描述文件安装。窄屏不显示这个二维码，直接用下面的按钮。
+页面先请求 Latest 正式版；没有正式版，或正式版里没有安装包时，改用 `continuous`。这些按钮在第一次构建完成前会 404。下载区按当前系统把对应按钮放到主要位置，其余放在「其他下载」。Windows 上主要按钮是 [Microsoft Store](ms-windows-store://pdp/?productid=9N6CLML6X27P)，地址固定，不随 GitHub Release 改写；直接安装程序留在其他下载里。macOS 能分辨芯片时只突出对应的磁盘映像，分辨不了时两枚都放在主要位置。认不出系统时所有按钮同一排。页首有一段循环播放的功能演示。下载区有二维码，内容是 `https://wenshisan.github.io/bili-audio/get.html`：Android 打开后下载 APK，iPhone 在 Safari 里走描述文件安装。窄屏不显示这个二维码，直接用下面的按钮。
 
 iOS 按钮只在 Release 里已经有 `bili_audio-ios.ipa` 时可以点，并且只在 iPhone 的 Safari 里开始安装。安装清单 `manifest.plist` 在每次部署介绍页时重写：优先用正式版里的 IPA 地址，否则用 `continuous`。安装包构建成功后会再部署一次介绍页，让清单跟上新文件。
 
