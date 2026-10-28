@@ -33,7 +33,7 @@ Windows 若被 SmartScreen 拦住，选择仍要运行。macOS 在“系统设�
 
 本地在 `bili_audio` 目录执行 `powershell -File packaging/windows/build-msix.ps1`。
 
-Android 发布包必须用保存下来的同一把证书签名。四个 Actions secrets 缺任何一个，构建会停下来，不再退回 debug 签名：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_PASSWORD`、`ANDROID_KEY_ALIAS`。GitHub 不能把 secret 的内容再显示出来，所以密钥库和 `key.properties` 要在仓库外留一份备份。这份备份丢了，已经装上的应用就不能覆盖升级。本地打同一把签名时，把 keystore 放到 `bili_audio/android/app/ci-release.keystore`（已被 gitignore），并写 `bili_audio/android/key.properties`：
+Android 发布包必须用保存下来的同一把证书签名。证书主题是 `CN=追光狗, OU=追光狗, O=追光狗, C=CN`。四个 Actions secrets 缺任何一个，构建会停下来，不再退回 debug 签名：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_PASSWORD`、`ANDROID_KEY_ALIAS`。GitHub 不能把 secret 的内容再显示出来，所以密钥库和 `key.properties` 要在仓库外留一份备份。这份备份丢了，已经装上的应用就不能覆盖升级。本地打同一把签名时，把 keystore 放到 `bili_audio/android/app/ci-release.keystore`（已被 gitignore），并写 `bili_audio/android/key.properties`：
 
 ```properties
 storePassword=...
