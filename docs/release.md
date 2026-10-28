@@ -8,7 +8,7 @@
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
-| Android | `bili_audio-android.apk` | 通用 APK。签名密钥放在 Actions secrets，不进仓库，这样每次构建都能覆盖安装 |
+| Android | `bili_audio-android.apk` | 通用 APK。每次都用同一把已保存的签名证书，才能覆盖安装。证书不进仓库 |
 | Windows x64 | `bili_audio-windows-x64-setup.exe` | Inno Setup 安装程序，装到当前用户目录。未做代码签名 |
 | Windows 商店 | `bili_audio-windows-x64-store.msix` | 只在 Partner Center 身份齐全时产出。上传到 Microsoft Store，不能双击安装。这个包由商店更新，里面没有“检查更新” |
 | Linux x64 | `bili_audio-linux-amd64.deb` | 安装到 `/opt/bili_audio` |
@@ -33,7 +33,7 @@ Windows 若被 SmartScreen 拦住，选择仍要运行。macOS 在“系统设�
 
 本地在 `bili_audio` 目录执行 `powershell -File packaging/windows/build-msix.ps1`。
 
-Android 签名用四个 Actions secrets：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_PASSWORD`、`ANDROID_KEY_ALIAS`。没配时 APK 用 debug 签名，换一台构建机后就不能覆盖安装。本地要打同一把签名时，把 keystore 放到 `bili_audio/android/app/ci-release.keystore`（已被 gitignore），并写 `bili_audio/android/key.properties`：
+Android 发布包必须用保存下来的同一把证书签名。四个 Actions secrets 缺任何一个，构建会停下来，不再退回 debug 签名：`ANDROID_KEYSTORE_BASE64`、`ANDROID_KEYSTORE_PASSWORD`、`ANDROID_KEY_PASSWORD`、`ANDROID_KEY_ALIAS`。GitHub 不能把 secret 的内容再显示出来，所以密钥库和 `key.properties` 要在仓库外留一份备份。这份备份丢了，已经装上的应用就不能覆盖升级。本地打同一把签名时，把 keystore 放到 `bili_audio/android/app/ci-release.keystore`（已被 gitignore），并写 `bili_audio/android/key.properties`：
 
 ```properties
 storePassword=...
