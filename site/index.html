@@ -159,6 +159,15 @@
       align-items: center;
       margin: 8px 0 12px;
     }
+    .demo:has(#primary:not([hidden])) { align-items: start; }
+    .demo-side {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      min-width: 0;
+    }
+    .demo .primary { margin: 0; }
+    .demo .primary a.card { max-width: none; }
     .frame {
       border: 1px solid var(--line);
       border-radius: 16px;
@@ -242,6 +251,10 @@
     button.replay { background: transparent; color: var(--accent); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font: inherit; cursor: pointer; }
     @media (max-width: 900px) {
       .demo { grid-template-columns: 1fr; }
+      .demo-side { display: contents; }
+      .demo .primary { order: -1; }
+      .demo .frame { order: 0; }
+      .demo .demo-copy { order: 1; }
     }
     html.phone .frame { width: min(100%, 420px); margin-inline: auto; border-radius: 28px; }
     html.phone main { padding: 20px 16px calc(40px + env(safe-area-inset-bottom)); }
@@ -349,19 +362,21 @@
           </svg>
         </div>
       </div>
-      <div>
-        <p class="caption" id="demo-title">搜索</p>
-        <p id="demo-text" aria-live="polite">排行榜和年代推荐里，超过 15 分钟的不会混进来。</p>
-        <p class="note" id="demo-count"></p>
-        <div class="controls">
-          <button class="replay" type="button" id="prev">上一段</button>
-          <button class="replay" type="button" id="next">下一段</button>
-          <button class="replay" type="button" id="replay">再看一遍</button>
+      <div class="demo-side">
+        <div class="primary" id="primary" hidden></div>
+        <div class="demo-copy">
+          <p class="caption" id="demo-title">搜索</p>
+          <p id="demo-text" aria-live="polite">排行榜和年代推荐里，超过 15 分钟的不会混进来。</p>
+          <p class="note" id="demo-count"></p>
+          <div class="controls">
+            <button class="replay" type="button" id="prev">上一段</button>
+            <button class="replay" type="button" id="next">下一段</button>
+            <button class="replay" type="button" id="replay">再看一遍</button>
+          </div>
         </div>
       </div>
     </div>
     <h2>下载</h2>
-    <div class="primary" id="primary" hidden></div>
     <p id="status" class="note">正在读取最新安装包…</p>
     <p class="more-label" id="more-label" hidden>其他下载</p>
     <div class="grid" id="downloads">
