@@ -35,7 +35,7 @@ class _UpdatePromptState extends ConsumerState<UpdatePrompt> {
   }
 
   void _maybePrompt() {
-    if (_shown || !mounted) return;
+    if (!offersInAppUpdate() || _shown || !mounted) return;
     if (ref.read(layoutSettingsProvider).carLayout) return;
     final phase = ref.read(updateControllerProvider).phase;
     if (phase != UpdatePhase.available && phase != UpdatePhase.unsupported) {
@@ -58,6 +58,7 @@ class _UpdatePromptState extends ConsumerState<UpdatePrompt> {
 
 /// 打开升级对话框。
 Future<void> showUpdateDialog(BuildContext context) {
+  if (!offersInAppUpdate()) return Future<void>.value();
   return showDialog<void>(
     context: context,
     builder: (context) => const _UpdateDialog(),

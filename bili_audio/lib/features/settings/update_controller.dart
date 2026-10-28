@@ -7,6 +7,7 @@ import '../../data/update/host_platform.dart';
 import '../../data/update/local_update_installer.dart';
 import '../../data/update/release_source.dart';
 import '../../domain/update/app_version.dart';
+import '../../domain/update/distribution.dart';
 import '../../domain/update/installer_asset.dart';
 
 /// 一次升级检查或安装所处的阶段。
@@ -128,6 +129,7 @@ class UpdateController extends Notifier<UpdateState> {
 
   /// 向升级源查询是否有比本机新的正式版。
   Future<void> check() async {
+    if (!offersInAppUpdate()) return;
     if (state.phase == UpdatePhase.downloading) return;
     state = UpdateState(phase: UpdatePhase.checking, current: state.current);
     try {
@@ -166,6 +168,7 @@ class UpdateController extends Notifier<UpdateState> {
 
   /// 下载当前选中的安装包并打开，然后退出桌面端进程。
   Future<void> downloadAndInstall() async {
+    if (!offersInAppUpdate()) return;
     final asset = state.asset;
     if (asset == null || state.phase == UpdatePhase.downloading) return;
     final current = state.current;

@@ -6,6 +6,7 @@ import '../../app/adaptive/layout_settings.dart';
 import '../../app/adaptive/split_view.dart';
 import '../../app/adaptive/window_metrics.dart';
 import '../../app/widgets/region_surface.dart';
+import '../../domain/update/distribution.dart';
 import '../../l10n/l10n.dart';
 import '../player/widgets/car_player.dart';
 import '../player/widgets/mini_player.dart';
@@ -23,22 +24,22 @@ class HomeShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final path = GoRouterState.of(context).matchedLocation;
     final settings = ref.watch(layoutSettingsProvider);
-    return UpdatePrompt(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final metrics = WindowMetrics.fromSize(constraints.biggest);
-          return WindowMetricsScope(
-            metrics: metrics,
-            child: settings.carLayout
-                ? ColoredBox(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: const SafeArea(child: CarPlayer()),
-                  )
-                : _AdaptiveBody(path: path, metrics: metrics, child: child),
-          );
-        },
-      ),
+    final shell = LayoutBuilder(
+      builder: (context, constraints) {
+        final metrics = WindowMetrics.fromSize(constraints.biggest);
+        return WindowMetricsScope(
+          metrics: metrics,
+          child: settings.carLayout
+              ? ColoredBox(
+                  color: Theme.of(context).colorScheme.surface,
+                  child: const SafeArea(child: CarPlayer()),
+                )
+              : _AdaptiveBody(path: path, metrics: metrics, child: child),
+        );
+      },
     );
+    if (!offersInAppUpdate()) return shell;
+    return UpdatePrompt(child: shell);
   }
 }
 

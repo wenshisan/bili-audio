@@ -43,6 +43,7 @@ import '../data/era/netease_era_catalog.dart';
 import '../data/repositories/bili_repositories.dart';
 import '../data/repositories/stream_url_manager.dart';
 import '../domain/entities/audio_track.dart';
+import '../domain/update/distribution.dart';
 import '../domain/title/title_cleaner.dart';
 import 'platform/app_quit.dart';
 import 'platform/desktop_platform.dart';
@@ -224,8 +225,10 @@ Future<List<Override>> bootstrap() async {
     ),
     audioHandlerProvider.overrideWithValue(handler),
     appVersionSourceProvider.overrideWithValue(const PackageAppVersionSource()),
-    releaseSourceProvider.overrideWithValue(GithubReleaseSource()),
-    updateInstallerProvider.overrideWithValue(LocalUpdateInstaller()),
+    if (offersInAppUpdate()) ...[
+      releaseSourceProvider.overrideWithValue(GithubReleaseSource()),
+      updateInstallerProvider.overrideWithValue(LocalUpdateInstaller()),
+    ],
     appQuitProvider.overrideWithValue(quitDesktopApp),
   ];
 }
