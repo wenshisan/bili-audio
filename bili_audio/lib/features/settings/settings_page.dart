@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/adaptive/layout_settings.dart';
 import '../../app/adaptive/max_width_box.dart';
+import '../../app/platform/open_url.dart';
 import '../../app/providers.dart';
 import '../../app/theme.dart';
 import '../../domain/entities/audio_track.dart';
@@ -99,6 +100,21 @@ class _SettingsList extends ConsumerWidget {
         ),
         if (offersInAppUpdate())
           const _SettingsGroup(children: [UpdateSettingsTile()]),
+        _SettingsGroup(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.privacy_tip_outlined),
+              title: Text(l10n.settingsPrivacy),
+              onTap: () => openPrivacyDocument(context, privacyPolicyUrl),
+            ),
+            ListTile(
+              leading: const Icon(Icons.child_care_outlined),
+              title: Text(l10n.settingsChildrenPrivacy),
+              onTap: () =>
+                  openPrivacyDocument(context, childrenPrivacyPolicyUrl),
+            ),
+          ],
+        ),
       ],
     );
   }

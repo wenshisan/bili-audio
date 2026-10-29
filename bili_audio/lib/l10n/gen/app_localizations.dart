@@ -976,6 +976,42 @@ abstract class AppLocalizations {
   /// **'当前音质受限，登录后可使用更高音质'**
   String get loginPrompt;
 
+  /// No description provided for @loginPrivacyLead.
+  ///
+  /// In zh, this message translates to:
+  /// **'我已阅读并同意'**
+  String get loginPrivacyLead;
+
+  /// No description provided for @loginPrivacyLink.
+  ///
+  /// In zh, this message translates to:
+  /// **'《隐私政策》'**
+  String get loginPrivacyLink;
+
+  /// No description provided for @loginPrivacyHold.
+  ///
+  /// In zh, this message translates to:
+  /// **'勾选下方后才能登录。不登录也可以搜索、播放和歌单。'**
+  String get loginPrivacyHold;
+
+  /// No description provided for @settingsPrivacy.
+  ///
+  /// In zh, this message translates to:
+  /// **'隐私政策'**
+  String get settingsPrivacy;
+
+  /// No description provided for @settingsChildrenPrivacy.
+  ///
+  /// In zh, this message translates to:
+  /// **'儿童隐私政策'**
+  String get settingsChildrenPrivacy;
+
+  /// No description provided for @privacyOpenFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'打不开隐私政策，请稍后再试'**
+  String get privacyOpenFailed;
+
   /// No description provided for @settingsCarLayout.
   ///
   /// In zh, this message translates to:

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/platform/open_url.dart';
 import '../../l10n/l10n.dart';
 import 'login_controller.dart';
 import 'login_method.dart';
@@ -9,10 +10,13 @@ import 'web_login_panel.dart';
 
 /// 登录页。手机默认网页登录，桌面默认扫码。
 class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key, this.mobile});
+  const LoginPage({super.key, this.mobile, this.openUrl});
 
   /// 为空时按 Android / iOS 判断。
   final bool? mobile;
+
+  /// 打开隐私政策。测试可替换；为空时用系统浏览器。
+  final Future<bool> Function(String url)? openUrl;
 
   @override
   ConsumerState<LoginPage> createState() => _LoginPageState();
@@ -20,6 +24,7 @@ class LoginPage extends ConsumerStatefulWidget {
 
 class _LoginPageState extends ConsumerState<LoginPage> {
   late LoginMethod _method;
+  var _agreed = false;
 
   @override
   void initState() {
@@ -38,17 +43,118 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final hold = l10n.loginPrivacyHold;
     return Scaffold(
-      appBar: AppBar(title: Text(context.l10n.loginTitle)),
+      appBar: AppBar(title: Text(l10n.loginTitle)),
       body: SafeArea(
         top: false,
-        child: LoginMethodBody(
-          mobile: _mobile,
-          method: _method,
-          onMethodChanged: (method) => setState(() => _method = method),
-          web: WebLoginPanel(onSignedIn: _signedIn),
-          qr: QrLoginPanel(onSignedIn: _signedIn),
+        child: Column(
+          children: [
+            Expanded(
+              child: LoginMethodBody(
+                mobile: _mobile,
+                method: _method,
+                onMethodChanged: (method) => setState(() => _method = method),
+                web: _agreed
+                    ? WebLoginPanel(onSignedIn: _signedIn)
+                    : _LoginBlocked(text: hold),
+                qr: _agreed
+                    ? QrLoginPanel(onSignedIn: _signedIn)
+                    : _LoginBlocked(text: hold),
+              ),
+            ),
+            LoginPrivacyConsent(
+              agreed: _agreed,
+              onChanged: (agreed) => setState(() => _agreed = agreed),
+              onOpenPrivacy: () => openPrivacyDocument(
+                context,
+                privacyPolicyUrl,
+                openUrl: widget.openUrl,
+              ),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// 未同意隐私政策时占住登录区域，避免扫码或网页登录先开始。
+class _LoginBlocked extends StatelessWidget {
+  const _LoginBlocked({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+      ),
+    );
+  }
+}
+
+/// 登录页底部的隐私政策勾选。默认不勾选。
+class LoginPrivacyConsent extends StatelessWidget {
+  const LoginPrivacyConsent({
+    super.key,
+    required this.agreed,
+    required this.onChanged,
+    required this.onOpenPrivacy,
+  });
+
+  final bool agreed;
+  final ValueChanged<bool> onChanged;
+  final VoidCallback onOpenPrivacy;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surface,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 12, 4),
+            child: Row(
+              children: [
+                Checkbox(
+                  value: agreed,
+                  onChanged: (value) => onChanged(value ?? false),
+                ),
+                Expanded(
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 4,
+                    children: [
+                      GestureDetector(
+                        onTap: () => onChanged(!agreed),
+                        child: Text(l10n.loginPrivacyLead),
+                      ),
+                      GestureDetector(
+                        onTap: onOpenPrivacy,
+                        child: Text(
+                          l10n.loginPrivacyLink,
+                          style: TextStyle(color: scheme.primary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -479,6 +479,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get loginPrompt => '当前音质受限，登录后可使用更高音质';
 
   @override
+  String get loginPrivacyLead => '我已阅读并同意';
+
+  @override
+  String get loginPrivacyLink => '《隐私政策》';
+
+  @override
+  String get loginPrivacyHold => '勾选下方后才能登录。不登录也可以搜索、播放和歌单。';
+
+  @override
+  String get settingsPrivacy => '隐私政策';
+
+  @override
+  String get settingsChildrenPrivacy => '儿童隐私政策';
+
+  @override
+  String get privacyOpenFailed => '打不开隐私政策，请稍后再试';
+
+  @override
   String get settingsCarLayout => '车机布局';
 
   @override
